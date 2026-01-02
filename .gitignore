@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# Outputs
+segmentation_results.txt
+
+# IDE / System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
