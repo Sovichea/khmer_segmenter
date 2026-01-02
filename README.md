@@ -179,9 +179,10 @@ The raw Viterbi output is good but often leaves small debris for unknown words o
 ### Performance & Portability Analysis
 
 #### 1. Concurrency & Threading
-Benchmarks run with `10 workers` using a `ThreadPoolExecutor` show that `KhmerSegmenter` achieves **570 calls/sec** vs `khmernltk`'s **301 calls/sec**.
-*   **Memory Efficiency**: `KhmerSegmenter` loads its dictionary structures once (~40MB). `khmernltk` relies on `sklearn-crfsuite`, which manages internal model states. In a threaded environment, both share memory, but `KhmerSegmenter`'s simpler pure-Python arithmetic logic incurs less overhead than the feature extraction pipelines required by CRF models.
-*   **Scalability**: The Viterbi algorithm scales linearly with text length and handles concurrent requests robustly, making it suitable for high-throughput APIs.
+Benchmarks run with `10 workers` using a `ThreadPoolExecutor` show that `KhmerSegmenter` achieves **~497 calls/sec** vs `khmernltk`'s **~317 calls/sec**.
+*   **GIL Bottleneck**: In the current Python implementation, concurrent performance is restricted by the **Global Interpreter Lock (GIL)**. This means that while we use multiple threads, Python only executes one thread's bytecode at a time, limiting the speedup to roughly the efficiency of the underlying C-calls or I/O.
+*   **True Parallelism (Future Potential)**: Because our algorithm is purely mathematical and stateless (no complex model locking), porting it to a language without a GIL (like **C**, **C++**, **Rust**, or **Go**) would result in **dramatic performance increases**. In those environments, the 10 workers would run in true parallel across CPU cores, potentially reaching thousands or tens of thousands of calls per second.
+*   **Memory Efficiency**: `KhmerSegmenter` loads its dictionary structures once (~19 MB). `khmernltk` adds ~115 MB. In a threaded environment, both share memory, but `KhmerSegmenter`'s small footprint and lightweight arithmetic make it significantly easier to scale.
 
 #### 2. Portability (Zero-Dependency)
 *   **KhmerSegmenter**: **Pure Python**. Requires **Zero** external dependencies (no `pip install` needed other than standard lib). It runs anywhere Python runs (Lambda, Edge devices, Windows/Linux/Mac) without compilation.
