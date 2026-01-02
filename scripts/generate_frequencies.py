@@ -112,7 +112,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--corpus", nargs="+", default=[
         os.path.join(default_data_dir, "khmer_wiki_corpus.txt"), 
-        os.path.join(default_data_dir, "khmer_folktales_extracted.txt")
+        os.path.join(default_data_dir, "khmer_folktales_extracted.txt"),
+        os.path.join(default_data_dir, "allwords.txt")
     ], help="Path(s) to corpus text file(s)")
     
     parser.add_argument("--dict", default=os.path.join(default_data_dir, "khmer_dictionary_words.txt"), help="Path to dictionary file (line separated)")

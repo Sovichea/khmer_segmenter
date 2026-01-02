@@ -78,7 +78,7 @@ class KhmerSegmenter:
                 words_to_remove.add(word)
 
         # Manually exclude specific fragments that cause over-segmentation
-        words_to_remove.add('ត្តិ')
+        # words_to_remove.add('ត្តិ')
 
         if words_to_remove:
             print(f"Removing {len(words_to_remove)} invalid words (compound ORs, start-with-Coeng) to enforce splitting.")
@@ -324,7 +324,10 @@ class KhmerSegmenter:
                 
         return i - start_index
     
-    def _is_separator(self, char):
+    def _is_currency_symbol(self, char):
+        return char in ['$', '៛', '€', '£', '¥']
+
+    def _is_separator(self, char, next_char=None):
         # Check for standard punctuation and Khmer punctuation
         try:
             code = ord(char)
@@ -511,17 +514,27 @@ class KhmerSegmenter:
                 continue # Skip normal processing
 
 
-            # 1. Number / Digit Grouping
-            if self._is_digit(text[i]):
+            # 1. Number / Digit Grouping (Including Leading Currency)
+            # CHECK THIS BEFORE SEPARATORS to capture "$50.00" as one token.
+            is_digit = self._is_digit(text[i])
+            is_currency_start = self._is_currency_symbol(text[i]) and i+1 < n and self._is_digit(text[i+1])
+            
+            if is_digit or is_currency_start:
                 num_len = self._get_number_length(text, i)
                 next_idx = i + num_len
-                # Numbers are treated as low cost tokens (e.g., cost 1.0 or similar to frequent word)
-                # To maintain consistency with probability model, assign a low cost.
                 step_cost = 1.0 
                 if dp[i][0] + step_cost < dp[next_idx][0]:
                     dp[next_idx] = (dp[i][0] + step_cost, i)
             
-            # 2. Acronym Grouping
+            # 2. Separators (If not already handled as number start)
+            # Only treat as separator if it wasn't a valid currency start
+            elif self._is_separator(text[i]):
+                 next_idx = i + 1
+                 step_cost = 0.1 
+                 if dp[i][0] + step_cost < dp[next_idx][0]:
+                     dp[next_idx] = (dp[i][0] + step_cost, i)
+            
+            # 3. Acronym Grouping
             if self._is_acronym_start(text, i):
                 acr_len = self._get_acronym_length(text, i)
                 next_idx = i + acr_len

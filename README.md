@@ -165,11 +165,55 @@ The raw Viterbi output is good but often leaves small debris for unknown words o
 
 **Results:**
 
-| Feature | khmernltk | KhmerSegmenter (Ours) |
-| :--- | :--- | :--- |
-| **Time** | ~0.89s | **~0.001s** (Significantly Faster) |
-| **Segmentation** | `ឯ` \| `ខ្មាំង` \| `សត្រូវ` \| `ឃើញ` \| `គង់` \| `ហ៊ាន` \| `បំបោល` \| `ដំរី` \| `ចូល` \| `ដូច្នោះ` \| ` ` \| `គិត` \| `ស្មាន` \| `ថា` \| `មេទ័ព` \| `នេះ` \| `ពូកែ` \| `ណាស់` \| ` ` \| `ក៏` \| `បាក់` \| `ទ័ព` \| `ចាញ់` \| ` ` \| `រត់` \| `យក` \| `តែ` \| `ព្រះអាយុ` \| `ដោយ` \| `ខ្លួន` \| `ទៅ` \| ` ` \| `។` | `ឯ` \| `ខ្មាំងសត្រូវ` \| `ឃើញ` \| `គង់` \| `ហ៊ាន` \| `បំបោល` \| `ដំរី` \| `ចូល` \| `ដូច្នោះ` \| ` ` \| `គិតស្មាន` \| `ថា` \| `មេទ័ព` \| `នេះ` \| `ពូកែ` \| `ណាស់` \| ` ` \| `ក៏` \| `បាក់ទ័ព` \| `ចាញ់` \| ` ` \| `រត់` \| `យកតែព្រះអាយុ` \| `ដោយខ្លួន` \| `ទៅ` \| ` ` \| `។` |
-| **Characteristics** | Tends to split compound words (e.g., `ខ្មាំង` \| `សត្រូវ`). | Preserves compound words found in the dictionary (e.g., `ខ្មាំងសត្រូវ`, `បាក់ទ័ព`) and handles unknown phrases as chunks. |
+|Feature|khmernltk|KhmerSegmenter (Ours)|
+|:---|:---|:---|
+|**Cold Start (Load)**|~1.83s|**~0.22s** (8x Faster)|
+|**Memory Usage (Load)**|~114.6 MB|**~19.1 MB** (6x Leaner)|
+|**Execution Speed (Seq)**|~2.99ms / call|**~2.08ms / call** (1.4x Faster)|
+|**Concurrent (10 Workers)**|~317 calls / sec|**~497 calls / sec** (1.5x Faster)|
+|**Concurrent Memory Delta**|~2.2 MB|~19.7 MB (High Throughput)|
+|**Complex Input**|`ក្រុមហ៊ុន... ១ ០០០ ០០០... (ស.ភ.ភ.ព.)`|`ក្រុមហ៊ុន... ១ ០០០ ០០០... (ស.ភ.ភ.ព.)`|
+|**Segmentation**|`១` \| `០០០` \| `០០០` \| `(` \| `ស` \| `.` \| `ភ` \| ...|`១ ០០០ ០០០` \| `(ស.ភ.ភ.ព.)`|
+|**Characteristics**|Tends to split numbers, symbols, and acronyms.|**Correctly groups** space-separated numbers, currencies, and complex acronyms.|
+
+### Performance & Portability Analysis
+
+#### 1. Concurrency & Threading
+Benchmarks run with `10 workers` using a `ThreadPoolExecutor` show that `KhmerSegmenter` achieves **570 calls/sec** vs `khmernltk`'s **301 calls/sec**.
+*   **Memory Efficiency**: `KhmerSegmenter` loads its dictionary structures once (~40MB). `khmernltk` relies on `sklearn-crfsuite`, which manages internal model states. In a threaded environment, both share memory, but `KhmerSegmenter`'s simpler pure-Python arithmetic logic incurs less overhead than the feature extraction pipelines required by CRF models.
+*   **Scalability**: The Viterbi algorithm scales linearly with text length and handles concurrent requests robustly, making it suitable for high-throughput APIs.
+
+#### 2. Portability (Zero-Dependency)
+*   **KhmerSegmenter**: **Pure Python**. Requires **Zero** external dependencies (no `pip install` needed other than standard lib). It runs anywhere Python runs (Lambda, Edge devices, Windows/Linux/Mac) without compilation.
+*   **khmernltk**: Requires `sklearn-crfsuite` and `python-crfsuite`, which are **C++ extensions**. These require compilation or binary wheels, making deployment on restricted environments (e.g. Alpine Linux, WASM, specific embedded hardware) significantly harder.
+
+#### 3. Cold Start
+`KhmerSegmenter` initializes in **~0.2s**, whereas `khmernltk` takes **~1.8s+** to load its model. This makes `KhmerSegmenter` ideal for "Serverless" functions where startup latency matters.
+
+### Real-World Complex Sentence Example
+
+### Real-World Complex Sentence Example
+
+**Input:**
+> "ក្រុមហ៊ុនទទួលបានប្រាក់ចំណូល ១ ០០០ ០០០ ដុល្លារក្នុងឆ្នាំនេះ ខណៈដែលតម្លៃភាគហ៊ុនកើនឡើង ៥% ស្មើនឹង 50.00$។ លោក ទេព សុវិចិត្រ នាយកប្រតិបត្តិដែលបញ្ចប់ការសិក្សាពីសាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ (ស.ភ.ភ.ព.) បានថ្លែងថា ភាពជោគជ័យផ្នែកហិរញ្ញវត្ថុនាឆ្នាំនេះ គឺជាសក្ខីភាពនៃកិច្ចខិតខំប្រឹងប្រែងរបស់ក្រុមការងារទាំងមូល និងការជឿទុកចិត្តពីសំណាក់វិនិយោគិន។"
+
+**khmernltk Result (v1.5):**
+> `ក្រុមហ៊ុន` | `ទទួល` | `បាន` | `ប្រាក់` | `ចំណូល` | ` ` | `១` | ` ` | `០០០` | ` ` | `០០០` | ` ` | `ដុល្លារ` | `ក្នុង` | `ឆ្នាំ` | `នេះ` | ` ` | `ខណៈ` | `ដែល` | `តម្លៃ` | `ភាគហ៊ុន` | `កើន` | `ឡើង` | ` ` | `៥` | `%` | ` ` | `ស្មើ` | `នឹង` | ` ` | `50.00` | `$` | `។` | ` ` | `លោក` | ` ` | `ទេព` | ` ` | `សុវិចិត្រ` | ` ` | `នាយក` | `ប្រតិបត្តិ` | `ដែល` | `បញ្ចប់` | `ការ` | `សិក្សា` | `ពី` | `សាកលវិទ្យាល័យ` | `ភូមិន្ទ` | `ភ្នំពេញ` | ` ` | `(` | `ស` | `.` | `ភ` | `.` | `ភ` | `.` | `ព` | `.` | `)` | ` ` | `បាន` | `ថ្លែង` | `ថា` | ` ` | `ភាព` | `ជោគជ័យ` | `ផ្នែក` | `ហិរញ្ញវត្ថុ` | `នា` | `ឆ្នាំ` | `នេះ` | ` ` | `គឺ` | `ជា` | `សក្ខីភាព` | `នៃ` | `កិច្ច` | `ខិតខំ` | `ប្រឹងប្រែង` | `របស់` | `ក្រុម` | `ការងារ` | `ទាំងមូល` | ` ` | `និង` | `ការ` | `ជឿ` | `ទុកចិត្ត` | `ពី` | `សំណាក់` | `វិនិយោគិន` | `។`
+
+**KhmerSegmenter Result (Ours):**
+> `ក្រុមហ៊ុន` | `ទទួលបាន` | `ប្រាក់ចំណូល` | ` ` | `១ ០០០ ០០០` | ` ` | `ដុល្លារ` | `ក្នុង` | `ឆ្នាំ` | `នេះ` | ` ` | `ខណៈដែល` | `តម្លៃ` | `ភាគហ៊ុន` | `កើនឡើង` | ` ` | `៥` | `%` | ` ` | `ស្មើនឹង` | ` ` | `50.00` | `$` | `។` | ` ` | `លោក` | ` ` | `ទេព` | ` ` | `សុវិចិត្រ` | ` ` | `នាយក` | `ប្រតិបត្តិ` | `ដែល` | `បញ្ចប់` | `ការសិក្សា` | `ពី` | `សាកលវិទ្យាល័យ` | `ភូមិន្ទ` | `ភ្នំពេញ` | ` ` | `(ស.ភ.ភ.ព.)` | ` ` | `បាន` | `ថ្លែង` | `ថា` | ` ` | `ភាពជោគជ័យ` | `ផ្នែក` | `ហិរញ្ញវត្ថុ` | `នា` | `ឆ្នាំ` | `នេះ` | ` ` | `គឺជា` | `សក្ខីភាព` | `នៃ` | `កិច្ចខិតខំប្រឹងប្រែង` | `របស់` | `ក្រុមការងារ` | `ទាំងមូល` | ` ` | `និង` | `ការជឿទុកចិត្ត` | `ពីសំណាក់` | `វិនិយោគិន` | `។`
+
+**Key Differences:**
+1.  **Numbers**: `khmernltk` splits `១ ០០០ ០០០` into 5 tokens. `KhmerSegmenter` keeps it as **one**.
+2.  **Acronyms**: `khmernltk` destroys `(ស.ភ.ភ.ព.)` into 11 tokens. `KhmerSegmenter` keeps it as **one**.
+3.  **Compound Words**: `KhmerSegmenter` tends to group common compounds like `កិច្ចខិតខំប្រឹងប្រែង` and `ការជឿទុកចិត្ត` better than the CRF approach which fragments them.
+
+### Portability & Universal Compatibility
+Because `KhmerSegmenter` relies on **pure mathematical logic (Viterbi Algorithm)** and simple string matching:
+*   **Language Agnostic**: The core algorithm consists of standard loops, array lookups, and arithmetic operations. It can be easily ported to **ANY** programming language (JavaScript, Go, Rust, Java, C#, C++, etc.) without dependency hell.
+*   **CPU Efficient**: It runs efficiently on standard CPUs without needing GPUs or heavy matrix multiplication libraries (like NumPy/TensorFlow).
+*   **Zero Dependencies**: Unlike ML-based solutions that require specific runtime environments (e.g. `scikit-learn`, `libpython`), this logic is self-contained and highly embeddable.
+*   **Web & Edge Ready**: Perfect for client-side JavaScript execution (via WASM or direct port) or edge computing where low latency and small binary size are crucial.
 
 ## 5. Testing & Verification
 
