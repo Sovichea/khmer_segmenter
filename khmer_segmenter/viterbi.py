@@ -616,10 +616,17 @@ class KhmerSegmenter:
             
         raw_segments = segments[::-1]
         
+
         # Post-processing Pass 1: Snap Invalid Single Consonants to Previous
         # UNLESS they are surrounded by spaces/separators
+        # Special Case: 'អ' (Prefix for negation) combines with NEXT segment instead of previous.
         pass1_segments = []
-        for j, seg in enumerate(raw_segments):
+        j = 0
+        n_segs = len(raw_segments)
+        
+        while j < n_segs:
+            seg = raw_segments[j]
+            
             # Check if this segment is an invalid independent single char
             is_invalid_single = (len(seg) == 1 
                                  and seg not in self.valid_single_words 
@@ -629,22 +636,20 @@ class KhmerSegmenter:
             
             if is_invalid_single:
                 # Valid Exception: Separated by separators/spaces?
-                is_valid_context = False
                 
                 # Check Prev
                 prev_is_sep = False
                 if len(pass1_segments) > 0:
                     prev_seg = pass1_segments[-1]
-                    # Check first char of prev seg matches separator
                     if self._is_separator(prev_seg[0]) or prev_seg in [' ', '\u200b']: 
                         prev_is_sep = True
-                elif j == 0:
+                else:
                      # Start of string acts as separator boundary
                      prev_is_sep = True
                      
                 # Check Next
                 next_is_sep = False
-                if j + 1 < len(raw_segments):
+                if j + 1 < n_segs:
                     next_seg = raw_segments[j+1]
                     if self._is_separator(next_seg[0]) or next_seg in [' ', '\u200b']:
                         next_is_sep = True
@@ -655,10 +660,34 @@ class KhmerSegmenter:
                 if prev_is_sep and next_is_sep:
                     # It's an isolated single char (e.g. " . ក . ") -> Keep it
                     pass1_segments.append(seg)
+                    j += 1
                     continue
 
+                if seg == 'អ':
+                    # Special Rule for 'អ' (Prefix): Merge with NEXT
+                    # If next is NOT a separator (checked by !next_is_sep implies it's a word/chunk?)
+                    # Wait, if prev_is_sep=False and next_is_sep=True (Word 'អ' Sep).
+                    # 'អ' is suffix to word? Or isolated from next?
+                    # Ideally combine with next. If next is separator, we can't.
+                    # Fallback to keep single? Or merge previous?
+                    # Generally 'អ' is prefix. If at end of phrase, it's dangling. Keep single.
+                    
+                    if not next_is_sep:
+                         # Merge with Next
+                         next_seg = raw_segments[j+1]
+                         pass1_segments.append(seg + next_seg)
+                         j += 2
+                         continue
+                    else:
+                         # Cannot merge right. Keep single (or merge left?)
+                         # Default to keeping single for now as it doesn't match Prefix role.
+                         pass1_segments.append(seg)
+                         j += 1
+                         continue
+                
+                # Standard Logic: Merge with PREVIOUS
                 if pass1_segments:
-                    # Check if previous is NOT a separator (though technically we can snap to anything, usually words)
+                    # Check if previous is NOT a separator
                     if not self._is_separator(pass1_segments[-1]):
                         prev = pass1_segments.pop()
                         pass1_segments.append(prev + seg)
@@ -666,8 +695,10 @@ class KhmerSegmenter:
                         pass1_segments.append(seg)
                 else:
                     pass1_segments.append(seg)
+                j += 1
             else:
                 pass1_segments.append(seg)
+                j += 1
         
         # Apply Heuristic Rules (Merge Consonant+Signs etc)
         pass2_segments = self._apply_heuristics(pass1_segments)
