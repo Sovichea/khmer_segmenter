@@ -110,7 +110,7 @@ class KhmerSegmenter:
         # Or simply generate "All Ta" and "All Da" versions.
         
         coeng_ta = '\u17D2\u178F'
-        coeng_da = '\u17D2\u178D'
+        coeng_da = '\u17D2\u178A'
         
         if coeng_ta in word:
             variants.add(word.replace(coeng_ta, coeng_da))

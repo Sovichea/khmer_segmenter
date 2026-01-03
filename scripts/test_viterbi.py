@@ -7,7 +7,7 @@ from typing import List
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from khmer_segmenter import KhmerSegmenter
 
-def test_segmentation():
+def create_segmenter():
     # Setup paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
@@ -17,7 +17,10 @@ def test_segmentation():
     freq_path = os.path.join(default_data_dir, "khmer_word_frequencies.json")
 
     print(f"Loading segmenter from {dict_path}...")
-    segmenter = KhmerSegmenter(dict_path, freq_path)
+    return KhmerSegmenter(dict_path, freq_path)
+
+def test_segmentation():
+    segmenter = create_segmenter()
     print("Segmenter loaded.")
 
     test_cases = [
@@ -37,15 +40,7 @@ def test_segmentation():
         print("-" * 20)
 
 def batch_process(corpus_file, limit):
-    # Setup paths
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    default_data_dir = os.path.join(project_root, 'data')
-    
-    dict_path = os.path.join(default_data_dir, "khmer_dictionary_words.txt")
-    freq_path = os.path.join(default_data_dir, "khmer_word_frequencies.json")
-
-    segmenter = KhmerSegmenter(dict_path, freq_path)
+    segmenter = create_segmenter()
     
     output_file = "segmentation_results.txt"
     print(f"Processing {corpus_file} to {output_file}...")
@@ -74,10 +69,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Khmer Viterbi Segmenter")
     parser.add_argument("-s", "--source", help="Optional path to corpus file for batch processing")
     parser.add_argument("-l", "--limit", type=int, default=1000, help="Limit number of lines for batch processing (default 1000)")
+    parser.add_argument("-t", "--text", help="Raw text to segment")
     
     args = parser.parse_args()
     
     if args.source:
         batch_process(args.source, args.limit)
+    elif args.text:
+        segmenter = create_segmenter()
+        
+        print(f"DEBUG: Input Text Codepoints: {[hex(ord(c)) for c in args.text]}")
+        print(f"DEBUG: Input in segmenter.words: {args.text in segmenter.words}")
+        
+        words = segmenter.segment(args.text)
+        print(f"Input:  {args.text}")
+        print(f"Output: {' | '.join(words)}")
     else:
         test_segmentation()
