@@ -11,3 +11,5 @@ unknown_words_from_results.txt
 .idea/
 .DS_Store
 Thumbs.db
+
+experiments/

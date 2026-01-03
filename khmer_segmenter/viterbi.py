@@ -3,12 +3,15 @@ import math
 import json
 import unicodedata
 
+from .normalization import KhmerNormalizer
+
 class KhmerSegmenter:
     def __init__(self, dictionary_path, frequency_path="khmer_word_frequencies.json"):
         """
         Initialize the segmenter by loading the dictionary and word frequencies.
         """
         self.words = set()
+        self.normalizer = KhmerNormalizer()
         self.max_word_length = 0
         # Valid single-character words (Consonants and Independent Vowels)
         self.valid_single_words = set([
@@ -479,6 +482,9 @@ class KhmerSegmenter:
         """
         Segment the text using Viterbi Algorithm (Minimize Cost / Maximize Probability).
         """
+        # 0. Normalize Text
+        text = self.normalizer.normalize(text)
+        
         # 1. Strip ZWS
         text = text.replace('\u200b', '')
         
