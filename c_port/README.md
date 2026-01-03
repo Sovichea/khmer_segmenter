@@ -76,7 +76,7 @@ Run performance tests using the built-in sample or your own data.
 
 ## Performance Comparison
 
-Comparing segmentation speed on a long text paragraph (~935 characters) 1000 iterations for single thread, 5000 iterations for 10 threads:
+Comparing segmentation speed on a long text paragraph (~935 characters) 1000 iterations for Single Thread, 5000 iterations for 10 Threads:
 
 | Version | Build Type | Time per Call | Throughput | Notes |
 | :--- | :--- | :--- | :--- | :--- |
