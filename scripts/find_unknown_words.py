@@ -20,7 +20,7 @@ def is_unknown(word: str, segmenter: KhmerSegmenter, prev_token: str = None, nex
         
     # 2. Check if it's a valid single char
     if len(word) == 1:
-        if word in segmenter.valid_single_words:
+        if segmenter._is_valid_single_base_char(word):
             return False
         
         # Check context: If surrounded by separators/spaces, consider it valid (isolated char)

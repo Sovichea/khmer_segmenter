@@ -14,24 +14,6 @@ class KhmerSegmenter:
         self.words = set()
         self.normalizer = KhmerNormalizer()
         self.max_word_length = 0
-        # Valid single-character words (Consonants and Independent Vowels)
-        self.valid_single_words = set([
-            # Common linking words/particles
-            '\u1780', # Ka (Kor/Ka?) - Rare as word, but "Kor" (also) is \u1780\u17CF
-            '\u17AA', # O (Independent Vowel)
-            '\u17B3', # Ou (Independent Vowel) - obsolete?
-            '\u17CF', # Ahsda (Rarely isolated)
-            '\u17D0', # Samyok Sannya (Sanskrit marker, rarely isolated)
-            'នៃ',     # Nai (Of) - Common
-            'ជា',     # Jea (Is/As) - Common
-            'នូវ',    # Nov (at/in)
-            'ដោយ',   # Doy (by)
-            'ក៏',     # Kor (Also) - Very common single char sound \u1780\u17CF
-            'ដ៏',     # Dor (Which/Very) - \u178A\u17CF
-            'ឯ',      # Ae (At/In)
-            'ក', 'ខ', 'គ', 'ង', 'ច', 'ឆ', 'ញ', 'ដ', 'ត', 'ទ', 'ព', 'រ', 'ល', 'ស', 'ឡ', # Consonants
-            'ឬ', 'ឮ', 'ឪ', 'ឯ', 'ឱ', 'ឦ', 'ឧ', 'ឳ' # Independent Vowels
-        ])
         
         # Word Costs
         self.word_costs = {}
@@ -55,8 +37,8 @@ class KhmerSegmenter:
             for line in f:
                 word = line.strip()
                 if word:
-                    # Filter out single-character words that are NOT valid single consonants
-                    if len(word) == 1 and word not in self.valid_single_words:
+                    # Filter out single-character words that are NOT valid base characters
+                    if len(word) == 1 and not self._is_valid_single_base_char(word):
                         continue
                         
                     self.words.add(word)
@@ -119,13 +101,48 @@ class KhmerSegmenter:
                  
         print(f"Loaded {len(self.words)} words. Max length: {self.max_word_length}")
 
+                     
+    def _is_valid_single_base_char(self, char):
+        """
+        Check if a single character is a valid base character (Consonant or Independent Vowel).
+        These are the only characters that can validly stand alone as 1-char words.
+        """
+        code = ord(char)
+        # Consonants: 0x1780 - 0x17A2
+        if 0x1780 <= code <= 0x17A2:
+            return True
+        # Independent Vowels: 0x17A3 - 0x17B3
+        if 0x17A3 <= code <= 0x17B3:
+            return True
+        return False
+
     def _is_invalid_single(self, seg):
         """Helper to determine if a segment is an invalid single character."""
-        return (len(seg) == 1 
-                and seg not in self.valid_single_words 
-                and seg not in self.words 
-                and not self._is_digit(seg)
-                and not self._is_separator(seg))
+        # It IS invalid if:
+        # 1. It is length 1.
+        # 2. AND It is NOT a valid base char (Consonant/IndepVowel).
+        # 3. AND It is NOT a known dictionary word (some special single chars might be in dict? e.g. currency? but those are usually 'separators' or handled specially).
+        # 4. AND It is NOT a digit.
+        # 5. AND It is NOT a separator.
+        
+        if len(seg) != 1:
+            return False
+            
+        if self._is_valid_single_base_char(seg):
+            return False # Valid base char
+            
+        if self._is_digit(seg):
+            return False
+            
+        if self._is_separator(seg):
+            return False
+            
+        # If it's in dictionary, it SHOULD be valid, but we filter dictionary on load using same logic
+        # so check dictionary just in case specialized single chars were added that bypass generic check.
+        if seg in self.words:
+            return False
+            
+        return True
 
     def _generate_variants(self, word):
         """
@@ -550,7 +567,7 @@ class KhmerSegmenter:
                 # Penalty for Invalid Single Consonants
                 if cluster_len == 1:
                     char = text[i]
-                    if char not in self.valid_single_words:
+                    if not self._is_valid_single_base_char(char):
                          step_cost += 10.0 # Extra penalty for invalid single char
                 
                 # NOTE: If the cluster itself forms a word, it is handled in loop #2.
@@ -606,7 +623,7 @@ class KhmerSegmenter:
                 is_known = True
             elif seg in self.words:
                 is_known = True
-            elif len(seg) == 1 and seg in self.valid_single_words:
+            elif len(seg) == 1 and self._is_valid_single_base_char(seg):
                 is_known = True
             elif self._is_separator(seg):
                 is_known = True
