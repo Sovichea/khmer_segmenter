@@ -4,6 +4,7 @@ import json
 import unicodedata
 
 from .normalization import KhmerNormalizer
+from .rule_engine import RuleBasedEngine
 
 class KhmerSegmenter:
     def __init__(self, dictionary_path, frequency_path="khmer_word_frequencies.json"):
@@ -15,6 +16,19 @@ class KhmerSegmenter:
         self.max_word_length = 0
         # Valid single-character words (Consonants and Independent Vowels)
         self.valid_single_words = set([
+            # Common linking words/particles
+            '\u1780', # Ka (Kor/Ka?) - Rare as word, but "Kor" (also) is \u1780\u17CF
+            '\u17AA', # O (Independent Vowel)
+            '\u17B3', # Ou (Independent Vowel) - obsolete?
+            '\u17CF', # Ahsda (Rarely isolated)
+            '\u17D0', # Samyok Sannya (Sanskrit marker, rarely isolated)
+            'នៃ',     # Nai (Of) - Common
+            'ជា',     # Jea (Is/As) - Common
+            'នូវ',    # Nov (at/in)
+            'ដោយ',   # Doy (by)
+            'ក៏',     # Kor (Also) - Very common single char sound \u1780\u17CF
+            'ដ៏',     # Dor (Which/Very) - \u178A\u17CF
+            'ឯ',      # Ae (At/In)
             'ក', 'ខ', 'គ', 'ង', 'ច', 'ឆ', 'ញ', 'ដ', 'ត', 'ទ', 'ព', 'រ', 'ល', 'ស', 'ឡ', # Consonants
             'ឬ', 'ឮ', 'ឪ', 'ឯ', 'ឱ', 'ឦ', 'ឧ', 'ឳ' # Independent Vowels
         ])
@@ -23,6 +37,12 @@ class KhmerSegmenter:
         self.word_costs = {}
         self.default_cost = 10.0 # High cost for dictionary words without frequency
         self.unknown_cost = 20.0 # Very high cost for unknown chunks
+        
+        # Initialize Rule Engine (before partial loads to avoid attribute errors if used)
+        self.rule_engine = RuleBasedEngine(
+            check_invalid_single_func=self._is_invalid_single,
+            is_separator_func=self._is_separator
+        )
         
         self._load_dictionary(dictionary_path)
         self._load_frequencies(frequency_path)
@@ -98,6 +118,14 @@ class KhmerSegmenter:
                  self.max_word_length = len(word)
                  
         print(f"Loaded {len(self.words)} words. Max length: {self.max_word_length}")
+
+    def _is_invalid_single(self, seg):
+        """Helper to determine if a segment is an invalid single character."""
+        return (len(seg) == 1 
+                and seg not in self.valid_single_words 
+                and seg not in self.words 
+                and not self._is_digit(seg)
+                and not self._is_separator(seg))
 
     def _generate_variants(self, word):
         """
@@ -411,72 +439,7 @@ class KhmerSegmenter:
         
         return i - start_index
 
-    def _apply_heuristics(self, segments):
-        """
-        Apply post-processing heuristics to merge segments.
-        Rule 1: If the unknown word is consonance + ់, ិ៍, ៍, ៌ combine it with previous cluster
-        Rule 2: If the unknown word is consonance + ័, combine it with the next cluster
-        """
-        merged = []
-        i = 0
-        n = len(segments)
-        
-        while i < n:
-            curr = segments[i]
-            
-            # Check if current segment is a known word. If so, do NOT heuristic merge.
-            # This prevents merging words like 'ក៏' (which matches Consonant+Sign rule) with previous word.
-            if curr in self.words:
-                merged.append(curr)
-                i += 1
-                continue
-            
-            # Rule 1: Consonant + [់/ិ៍/៍/៌] -> Merge with PREVIOUS
-            # Regex equivalent: ^[Consonant][Signs]$
-            # Consonants: 0x1780-0x17A2
-            # Specific Signs: 
-            # ់ (\u17CB) - Bantoc
-            # ិ៍ (\u17B7\u17CD) - I + Toe (Actually just \u17CD (Toe) usually combined with vowels, but lets check char codes)
-            # ៍ (\u17CE) - Kakabat
-            # ៌ (\u17CF) - Ahsdja
-            # The prompt says "consonance + ...". 
-            # Implies the segment IS "Consonant + Sign".
-            if len(merged) > 0 and len(curr) == 2:
-                c0 = curr[0]
-                c1 = curr[1]
-                if (0x1780 <= ord(c0) <= 0x17A2) and c1 in ['\u17CB', '\u17CE', '\u17CF']:
-                    prev = merged.pop()
-                    merged.append(prev + curr)
-                    i += 1
-                    continue
-                # Special case for ិ៍ (i + toe)? Or just toe? 
-                # If user meant specifically that sequence. 
-                # Let's assume standard diacritics that act as word endings.
-            
-            # Additional check for 3-char sequence if it involves ិ៍ (Is valid khmer char sequence? \u17B7\u17CD)
-            if len(merged) > 0 and len(curr) == 3:
-                # Check for Consonant + ិ + ៍
-                if (0x1780 <= ord(curr[0]) <= 0x17A2) and curr[1] == '\u17B7' and curr[2] == '\u17CD':
-                     prev = merged.pop()
-                     merged.append(prev + curr)
-                     i += 1
-                     continue
 
-            # Rule 2: Consonant + ័ (\u17D0) -> Merge with NEXT
-            if i + 1 < n and len(curr) == 2:
-                c0 = curr[0]
-                c1 = curr[1]
-                if (0x1780 <= ord(c0) <= 0x17A2) and c1 == '\u17D0':
-                    # Merge with NEXT
-                    next_seg = segments[i+1]
-                    merged.append(curr + next_seg)
-                    i += 2 # Skip next
-                    continue
-
-            merged.append(curr)
-            i += 1
-            
-        return merged
 
     def segment(self, text):
         """
@@ -623,91 +586,13 @@ class KhmerSegmenter:
         raw_segments = segments[::-1]
         
 
-        # Post-processing Pass 1: Snap Invalid Single Consonants to Previous
-        # UNLESS they are surrounded by spaces/separators
-        # Special Case: 'អ' (Prefix for negation) combines with NEXT segment instead of previous.
-        pass1_segments = []
-        j = 0
-        n_segs = len(raw_segments)
         
-        while j < n_segs:
-            seg = raw_segments[j]
-            
-            # Check if this segment is an invalid independent single char
-            is_invalid_single = (len(seg) == 1 
-                                 and seg not in self.valid_single_words 
-                                 and seg not in self.words 
-                                 and not self._is_digit(seg)
-                                 and not self._is_separator(seg)) 
-            
-            if is_invalid_single:
-                # Valid Exception: Separated by separators/spaces?
-                
-                # Check Prev
-                prev_is_sep = False
-                if len(pass1_segments) > 0:
-                    prev_seg = pass1_segments[-1]
-                    if self._is_separator(prev_seg[0]) or prev_seg in [' ', '\u200b']: 
-                        prev_is_sep = True
-                else:
-                     # Start of string acts as separator boundary
-                     prev_is_sep = True
-                     
-                # Check Next
-                next_is_sep = False
-                if j + 1 < n_segs:
-                    next_seg = raw_segments[j+1]
-                    if self._is_separator(next_seg[0]) or next_seg in [' ', '\u200b']:
-                        next_is_sep = True
-                else:
-                    # End of string acts as separator boundary
-                    next_is_sep = True
-                    
-                if prev_is_sep and next_is_sep:
-                    # It's an isolated single char (e.g. " . ក . ") -> Keep it
-                    pass1_segments.append(seg)
-                    j += 1
-                    continue
+        # 4. Apply Rule-Based Post-Processing
+        # This replaces the hardcoded "Pass 1" (Invalid Singles) and "Pass 2" (Heuristics)
+        pass2_segments = self.rule_engine.apply_rules(raw_segments)
 
-                if seg == 'អ':
-                    # Special Rule for 'អ' (Prefix): Merge with NEXT
-                    # If next is NOT a separator (checked by !next_is_sep implies it's a word/chunk?)
-                    # Wait, if prev_is_sep=False and next_is_sep=True (Word 'អ' Sep).
-                    # 'អ' is suffix to word? Or isolated from next?
-                    # Ideally combine with next. If next is separator, we can't.
-                    # Fallback to keep single? Or merge previous?
-                    # Generally 'អ' is prefix. If at end of phrase, it's dangling. Keep single.
-                    
-                    if not next_is_sep:
-                         # Merge with Next
-                         next_seg = raw_segments[j+1]
-                         pass1_segments.append(seg + next_seg)
-                         j += 2
-                         continue
-                    else:
-                         # Cannot merge right. Keep single (or merge left?)
-                         # Default to keeping single for now as it doesn't match Prefix role.
-                         pass1_segments.append(seg)
-                         j += 1
-                         continue
-                
-                # Standard Logic: Merge with PREVIOUS
-                if pass1_segments:
-                    # Check if previous is NOT a separator
-                    if not self._is_separator(pass1_segments[-1]):
-                        prev = pass1_segments.pop()
-                        pass1_segments.append(prev + seg)
-                    else:
-                        pass1_segments.append(seg)
-                else:
-                    pass1_segments.append(seg)
-                j += 1
-            else:
-                pass1_segments.append(seg)
-                j += 1
-        
-        # Apply Heuristic Rules (Merge Consonant+Signs etc)
-        pass2_segments = self._apply_heuristics(pass1_segments)
+        # Post-processing Pass 3: Merge Consecutive Unknowns
+        # Separators break the merge chain
 
         # Post-processing Pass 3: Merge Consecutive Unknowns
         # Separators break the merge chain

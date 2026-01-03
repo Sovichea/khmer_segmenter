@@ -1,0 +1,101 @@
+[
+    {
+        "name": "Ahsda Exception Keep",
+        "description": "Keep 'ក៏' and 'ដ៏' as single words.",
+        "priority": 110,
+        "trigger": {
+            "type": "regex",
+            "value": "^(ក៏|ដ៏)$"
+        },
+        "action": "keep"
+    },
+    {
+        "name": "Prefix OR Merge",
+        "description": "If segment is 'អ' and next is not a separator, merge with next.",
+        "priority": 100,
+        "trigger": {
+            "type": "exact_match",
+            "value": "អ"
+        },
+        "checks": [
+            {
+                "target": "next",
+                "check": "is_separator",
+                "value": false,
+                "exists": true
+            }
+        ],
+        "action": "merge_next"
+    },
+    {
+        "name": "Consonant + Signs Merge Left",
+        "description": "If segment is Consonant + (Bantoc/Toe/etc), merge with previous.",
+        "priority": 90,
+        "trigger": {
+            "type": "regex",
+            "value": "^[\u1780-\u17A2][\u17CB\u17CE\u17CF]$"
+        },
+        "checks": [
+            {
+                "target": "prev",
+                "exists": true
+            }
+        ],
+        "action": "merge_prev"
+    },
+    {
+        "name": "Consonant + Samyok Sannya Merge Next",
+        "description": "If segment is Consonant + Samyok Sannya (u17D0), merge with next.",
+        "priority": 90,
+        "trigger": {
+            "type": "regex",
+            "value": "^[\u1780-\u17A2]\u17D0$"
+        },
+        "checks": [
+            {
+                "target": "next",
+                "exists": true
+            }
+        ],
+        "action": "merge_next"
+    },
+    {
+        "name": "Consonant + Robat Merge Prev",
+        "description": "If segment is Consonant + Robat (u17CC), merge with previous.",
+        "priority": 90,
+        "trigger": {
+            "type": "regex",
+            "value": "^[\u1780-\u17A2]\u17CC$"
+        },
+        "checks": [
+            {
+                "target": "prev",
+                "exists": true
+            }
+        ],
+        "action": "merge_prev"
+    },
+    {
+        "name": "Invalid Single Consonant Cleanup",
+        "description": "Merge single invalid char with previous if not isolated. This is a catch-all for single chars.",
+        "priority": 10,
+        "trigger": {
+            "type": "complexity_check",
+            "value": "is_invalid_single"
+        },
+        "checks": [
+            {
+                "target": "context",
+                "check": "is_isolated",
+                "value": false
+            },
+            {
+                "target": "prev",
+                "check": "is_separator",
+                "value": false,
+                "exists": true
+            }
+        ],
+        "action": "merge_prev"
+    }
+]

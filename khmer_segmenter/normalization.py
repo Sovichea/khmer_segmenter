@@ -8,6 +8,7 @@ class KhmerNormalizer:
         self.INDEP_VOWELS = set(range(0x17A3, 0x17B4)) # In .. Au
         self.DEP_VOWELS = set(range(0x17B6, 0x17C6)) # Aa .. Au  (Excluding signs)
         self.SIGNS = set(range(0x17C6, 0x17D4)) # Nikahit .. Viriam + Others (17D3)
+        self.REGISTERS = {0x17C9, 0x17CA} # Muusikatoan, Triisap (Subset of SIGNS range but distinct behavior)
         self.COENG = 0x17D2
         self.RO = 0x179A
         
@@ -24,6 +25,8 @@ class KhmerNormalizer:
             return 'BASE'
         if code == self.COENG:
             return 'COENG'
+        if code in self.REGISTERS:
+            return 'REGISTER'
         if code in self.DEP_VOWELS:
             return 'VOWEL'
         if code in self.SIGNS or code == 0x17DD: # 17DD is Atthacan
@@ -34,7 +37,7 @@ class KhmerNormalizer:
         """
         Normalizes Khmer text by:
         1. Fixing composite vowels (merging split vowels).
-        2. Reordering clusters (Base + Subscripts + Vowels + Signs).
+        2. Reordering clusters (Base + Subscripts + Registers + Vowels + Signs).
         """
         if not text:
             return ""
@@ -86,7 +89,7 @@ class KhmerNormalizer:
                     # Trailing Coeng
                     current_cluster.append(char)
                     i += 1
-            elif ctype in ['VOWEL', 'SIGN']:
+            elif ctype in ['VOWEL', 'SIGN', 'REGISTER']:
                 # Append to current cluster if exists, else treat as isolated
                 if current_cluster:
                      current_cluster.append(char)
@@ -113,8 +116,9 @@ class KhmerNormalizer:
         1. Base (First item, usually already first)
         2. Sub-Consonants (Type 1: Non-Ro)
         3. Sub-Consonants (Type 2: Ro \u17D2\u179A)
-        4. Dependent Vowels
-        5. Signs
+        4. Registers (Muusikatoan/Triisap)
+        5. Dependent Vowels
+        6. Signs
         """
         if not parts: return ""
         
@@ -134,6 +138,10 @@ class KhmerNormalizer:
             # Use char code for Vowels/Signs to keep stable 'standard' order if multiple?
             # Or define specific category priority.
             code = ord(item[0])
+            
+            if code in self.REGISTERS:
+                return 2.5 # After Subscripts, BEFORE Vowels
+                
             if code in self.DEP_VOWELS:
                 return 3
             if code in self.SIGNS or code == 0x17DD:
@@ -169,3 +177,30 @@ if __name__ == "__main__":
     input3 = chr(0x1780) + chr(0x17C1) + chr(0x17B8)
     out3 = norm.normalize(input3)
     print(f"Test 3 (Composite): {[hex(ord(c)) for c in input3]} -> {[hex(ord(c)) for c in out3]}")
+
+    # Test 4: Register Shifter Reordering
+    # User Examples: ម្លេ៉ះ, បុ៉ណ្ណោះ, ហា៊ន, មា៉វ, បូ៊
+    
+    # ម្លេ៉ះ: Mlo + E + Muusikatoan + Reahmuk -> Mlo + Muusikatoan + E + Reahmuk
+    input_mleh = '\u1798\u17D2\u179B\u17C1\u17C9\u17C7' 
+    out_mleh = norm.normalize(input_mleh)
+    print(f"Test 4.1 (Mleh): {[hex(ord(c)) for c in input_mleh]} -> {[hex(ord(c)) for c in out_mleh]}")
+    # Expected: 1798 17D2 179B 17C9 17C1 17C7 (E moves after Muusikatoan)
+
+    # បុ៉ណ្ណោះ: Bo + U + Muusikatoan + Nno ...
+    input_ponnoh = '\u1794\u17BB\u17C9\u178E\u17D2\u178E\u17C4\u17C7'
+    out_ponnoh = norm.normalize(input_ponnoh)
+    print(f"Test 4.2 (Ponnoh): {[hex(ord(c)) for c in input_ponnoh]} -> {[hex(ord(c)) for c in out_ponnoh]}")
+    # Expected: 1794 (Bo) + 17C9 (Muu) + 17BB (U) ...
+
+    # ហា៊ន: Ho + Aa + Triisap + No
+    input_han = '\u17A0\u17B6\u17CA\u1793'
+    out_han = norm.normalize(input_han)
+    print(f"Test 4.3 (Han): {[hex(ord(c)) for c in input_han]} -> {[hex(ord(c)) for c in out_han]}")
+    # Expected: 17A0 (Ho) + 17CA (Tri) + 17B6 (Aa) + 1793 (No)
+
+    # បូ៊: Bo + Oo + Triisap
+    input_bou = '\u1794\u17BC\u17CA'
+    out_bou = norm.normalize(input_bou)
+    print(f"Test 4.4 (Bou): {[hex(ord(c)) for c in input_bou]} -> {[hex(ord(c)) for c in out_bou]}")
+    # Expected: 1794 (Bo) + 17CA (Tri) + 17BC (Oo)
