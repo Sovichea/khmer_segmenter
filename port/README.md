@@ -110,21 +110,15 @@ Once `dp[n]` is reached, reconstruct the path:
 
 The raw Viterbi output is logically correct but may be linguistically rigid. Apply these passes:
 
-### 5.1 Rule Engine
-Run distinct rules to fix edge cases.
-- **Merge Orphan Signs**: If a cluster ends with `\u17CB` (Bantoc), merge with previous.
-- **Merge Technical IDs**: Group alphanumeric codes.
-
-### 5.2 Merge Consecutive Unknowns
-Iterate through the segments. If you find adjacent segments that are **Unknown** (not in Dict, not Number, not Separator), merge them into a single token (e.g., names like "សុវិចិត្រ" if not in dict).
-
----
-
-## 6. Rule-Based Engine (The "Polisher")
+### 5.1 Rule-Based Engine (The "Polisher")
 
 The Viterbi algorithm is probabilistic and sometimes makes "mathematically correct but linguistically wrong" splits, especially with rare names or typos. The Rule Engine runs **after** Viterbi to deterministic fix these edge cases.
 
-### 6.1 Rule Structure
+**Common Rules**:
+- **Merge Orphan Signs**: If a cluster ends with `\u17CB` (Bantoc), merge with previous.
+- **Merge Technical IDs**: Group alphanumeric codes.
+
+#### 5.1.1 Rule Structure
 Rules are defined in `rules.json` (for reference) but should be implemented differently based on your language's constraints.
 
 **JSON Schema**:
@@ -138,9 +132,9 @@ Rules are defined in `rules.json` (for reference) but should be implemented diff
 }
 ```
 
-### 6.2 Implementation Strategy
+#### 5.1.2 Implementation Strategy
 
-#### A. High-Level Languages (Python, JS, Go)
+**A. High-Level Languages (Python, JS, Go)**
 For languages with rich managed runtimes, you can implement a **Generic Engine**:
 1.  **Load JSON**: Read `rules.json` at startup.
 2.  **Compile Regex**: Pre-compile `trigger.value` into Regex objects.
@@ -150,7 +144,7 @@ For languages with rich managed runtimes, you can implement a **Generic Engine**
 *Pros*: Easy to update rules without code changes.
 *Cons*: Slower startup, higher memory overhead.
 
-#### B. Resource-Constrained Languages (C, C++, Rust, Embedded)
+**B. Resource-Constrained Languages (C, C++, Rust, Embedded)**
 For high-performance or embedded ports, **DO NOT** use JSON or Regex at runtime. It is too heavy.
 The **C Port** in this repository implements this **Hardcoded** strategy.
 Instead, **Hardcode** the logic into a static function.
@@ -189,9 +183,14 @@ if (strlen(txt) == 6) {
 *Pros*: Blazing fast (nanoseconds), zero allocation, tiny binary size.
 *Cons*: Requires recompilation to change rules.
 
+### 5.2 Merge Consecutive Unknowns
+Iterate through the segments. If you find adjacent segments that are **Unknown** (not in Dict, not Number, not Separator), merge them into a single token (e.g., names like "សុវិចិត្រ" if not in dict).
+
 ---
 
-## 7. Checklist for Implementers
+
+
+## 6. Checklist for Implementers
 
 - [ ] Can load binary frequencies?
 - [ ] Does Normalization pass all tests (Ro swapping, Composite fixing)?
