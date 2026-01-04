@@ -15,6 +15,7 @@ import math
 import struct
 import os
 import sys
+import shutil
 
 def generate_binary_frequencies(json_path, output_path):
     """Convert JSON frequency file to binary format."""
@@ -84,7 +85,9 @@ def main():
     project_root = os.path.dirname(script_dir)
     
     json_path = os.path.join(project_root, 'data', 'khmer_word_frequencies.json')
-    output_path = os.path.join(project_root, 'data', 'khmer_frequencies.bin')
+    output_path = os.path.join(project_root, 'port', 'common', 'khmer_frequencies.bin')
+    dict_src_path = os.path.join(project_root, 'data', 'khmer_dictionary_words.txt')
+    dict_dest_path = os.path.join(project_root, 'port', 'common', 'khmer_dictionary_words.txt')
     
     # Allow command-line overrides
     if len(sys.argv) > 1:
@@ -100,6 +103,14 @@ def main():
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     generate_binary_frequencies(json_path, output_path)
+
+    # Copy dictionary to port/common for synchronization
+    if os.path.exists(dict_src_path):
+        print(f"Copying dictionary to {dict_dest_path}...")
+        shutil.copy2(dict_src_path, dict_dest_path)
+        print("Dictionary copied successfully!")
+    else:
+        print(f"Warning: Dictionary source not found at {dict_src_path}")
 
 if __name__ == '__main__':
     main()

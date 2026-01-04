@@ -46,10 +46,10 @@ pip install -r requirements.txt
 
 ## C Port (High Performance)
 
-For users requiring maximum performance or embedding in C/C++/Zig applications, a native port is available in the `c_port/` directory.
+For users requiring maximum performance or embedding in C/C++/Zig applications, a native port is available in the [port/c/](port/c/) directory. All ports share common linguistic data found in [port/common/](port/common/).
 
 *   **Speed**: ~3.5x faster (Single Thread), more than 10x faster (Multi-Thread) running in WSL.
-*   **Documentation**: See [c_port/README.md](c_port/README.md).
+*   **Documentation**: See [port/c/README.md](port/c/README.md).
 ## 1. Data Preparation (`scripts/generate_frequencies.py`)
 
 Before the segmenter works, it needs a statistical model of the language:
@@ -81,172 +81,11 @@ To add or modify words in the dictionary:
     python scripts/generate_frequencies.py --engine internal
     ```
 
-## 2. The Segmentation Algorithm (`khmer_segmenter/viterbi.py`)
+## 2. The Segmentation Algorithm
 
-The core engine is a class `KhmerSegmenter` that uses **Viterbi Algorithm** (Dynamic Programming) to find the sequence of words with the *lowest total cost*.
+For a detailed step-by-step explanation of the Viterbi algorithm, Normalization logic, and Rules used in this project, please refer to the **[Porting Guide & Algorithm Reference](port/README.md)**.
 
-### Cost Calculation
-*   **Cost** = $-\log_{10}(Probability)$
-*   **Probability**: The frequency of the word in our generated `khmer_word_frequencies.json` divided by total tokens.
-*   **Unknown Word Cost**: A fixed high penalty (higher than any known word) to discourage splitting into unknown chunks if a known word is available.
-
----
-
-### Step-by-Step Logic
-When `segment(text)` is called:
-
-#### Phase 0: Input Normalization (`khmer_segmenter/normalization.py`)
-Before segmentation begins, the text passes through a **Khmer-specific Normalization Layer**. This addresses the "Visual vs. Logical" ordering conflict common in Khmer digital text (e.g., typing a vowel before a subscript or mixing up sign order).
-
-1.  **Composite Vowel Merging**: 
-    Automatically merges split vowel components into single canonical Unicode points:
-    *   `េ` (`\u17C1`) + `ី` (`\u17B8`) $\rightarrow$ **ើ** (`\u17BE`)
-    *   `េ` (`\u17C1`) + `ា` (`\u17B6`) $\rightarrow$ **ោ** (`\u17C4`)
-
-2.  **Cluster-Based Canonical Reordering**:
-    The normalizer parses text into linguistic clusters and strictly enforces the following Unicode order:
-    1.  **Base Char** (Consonant or Independent Vowel)
-    2.  **Subscripts (Non-Ro)** (e.g., `្ក`, `្ខ`)
-    3.  **Subscript Ro** (Coeng Ro `\u17D2\u179A` is *always* moved after other subscripts)
-    4.  **Registers** (Muusikatoan `៉`, Triisap `៊`) — *Crucially moved to precedes vowels to prevent display bugs*
-    5.  **Dependent Vowels** (e.g., `ា`, `ិ`, `ុ`)
-    6.  **Signs/Diacritics** (e.g., `ំ`, `ះ`, `៍`)
-
-3.  **Stability & Error Handling**: 
-    *   **ZWS Cleaning**: Removes Zero Width Spaces (`\u200b`) at the very first step to prevent segmentation interference.
-    *   **Stable Sorting**: If multiple vowels or signs are present, they are sorted by Unicode code point to ensure deterministic output.
-    *   **Orphan Preservation**: Vowels or signs without a base consonant (typos) are preserved rather than deleted, allowing the segmenter to flag them as unknown.
-
-#### Phase 1: Viterbi Forward Pass
-The algorithm iterates through the text, finding the most probabilistic path where
-
-**Cost** = $-\log_{10}(Probability)$.
-
-**1. Number & Currency Grouping (Highest Priority)**:
-*   **Logic**: Captures digits (Khmer/Arabic), separators (`,`, `.`), and units (e.g., `1 000 000`, `1,200.50`).
-*   **Currency**: Automatically groups **leading currency symbols** (e.g., `$50.00`) as a single token.
-*   **Cost**: Low penalty to ensure numbers stay together.
-
-**2. Separator Handling**:
-*   **Logic**: Recognizes punctuation (`។`, `៕`, `៖`, `?`, `/`), symbols (`%`), and whitespace.
-*   **Exception**: Currency symbols are only treated as separators if they *don't* precede a number.
-
-**3. Acronym Detection**:
-*   **Logic**: Identifies sequences of (Cluster + `.`) like `ស.ភ.ភ.ព.` or `គ.ម.` as single logical units.
-
-**4. Dictionary Match (Shortest Path)**:
-*   **Logic**: Matches words from the dictionary, including **automatically generated variants** for:
-    *   **Interchangeable Consonants**: `្ + ត` vs `្ + ដ` (Ta/Da).
-    - **Subscript Ordering**: Flexible ordering for `Coeng Ro` (e.g., `្រ` vs other subscripts).
-*   **Cost**: Derived from corpus frequency.
-
-**5. Unknown Cluster Fallback**:
-*   **Logic**: If no dictionary word matches, it falls back to a structural Khmer cluster.
-*   **Constraint**: Single Khmer characters (e.g., `ក`) incur an **extra penalty** unless they are valid **Base Characters** (Consonants `U+1780-U+17A2` or Independent Vowels `U+17A3-U+17B3`). This encourages merging with neighbors to avoid over-segmentation of signs or dependent vowels.
-
-**6. Robust Recovery (Repair Mode)**:
-*   **Problem**: Typos like "orphan" subscripts or vowels at the start of a boundary.
-*   **Action**: Strictly consumes 1 character with a high penalty to ensure the algorithm never crashes on malformed text.
-
----
-
-#### Phase 2: Backtracking
-Traces the optimal path from the end of the text back to the beginning to produce the raw segments.
-
----
-
-#### Phase 3: Post-Processing Rules
-The raw output is refined using linguistic heuristics:
-
-**A. Snap Isolated Consonants**:
-*   Loose consonants (unknown names/typos) are attached to the previous word.
-*   **Exception**: If a consonant is explicitly surrounded by spaces or separators (e.g., `... , ក , ...`), it is preserved as an isolated unit.
-
-**B. Heuristic Sign Merging**:
-*   Merges clusters with special ending signs (like `់`, `៍`, `៌`, `័`) that were not caught by the dictionary (common in names and loans).
-
-**C. Merge Consecutive Unknowns**:
-*   Groups multiple unknown clusters into a single logical "Unknown Block," typically representing a novel proper name or technical term.
-
----
-
-## 3. Rule-Based Engine (Post-Processing)
-
-The **Rule-Based Engine** (`khmer_segmenter/rule_engine.py`) is a logic layer that runs after the Viterbi algorithm. It allows you to define deterministic fixes for common errors using a JSON configuration.
-
-### How it Works
-1.  **Iterative Processing**: The engine scans the list of segments produced by Phase 1 & 2.
-2.  **Priority-Based**: Rules in `khmer_segmenter/rules.json` are sorted and applied by priority (highest first).
-3.  **Trigger & Action**: If a segment matches a rule's `trigger`, and satisfies its `checks` (contextual conditions), the specified `action` is performed.
-
-### Rule Schema (`rules.json`)
-| Field | Description |
-| :--- | :--- |
-| **`name`** | Unique identifier for the rule. |
-| **`priority`** | Higher numbers run first. |
-| **`trigger`** | Condition to activate the rule: `exact_match`, `regex`, or `complexity_check`. |
-| **`checks`** | Contextual conditions targeting `prev` or `next` segments. |
-| **`action`** | Operation to perform: `merge_prev`, `merge_next`, or `keep`. |
-
-### Regex Example Rules
-Using `regex` triggers allows targeting broad linguistic patterns:
-
-#### A. Merge Orphaned Signs
-Merges a cluster with a terminal sign (like Robat `៌`) to the previous word if the segmenter accidentally split them.
-```json
-{
-    "name": "Merge Orphaned Signs",
-    "priority": 90,
-    "trigger": { "type": "regex", "value": "^[\\u1780-\\u17A2][\\u17CB\\u17CC\\u17CD\\u17CE\\u17CF]$" },
-    "checks": [{ "target": "prev", "exists": true }],
-    "action": "merge_prev"
-}
-```
-
-#### B. Technical ID Merger
-Keep alphanumeric IDs (like `#ID123`) together by merging them with the following segment.
-```json
-{
-    "name": "Technical ID Merger",
-    "priority": 70,
-    "trigger": { "type": "regex", "value": "^[A-Za-z0-9#@._-]+$" },
-    "checks": [{ "target": "next", "exists": true }],
-    "action": "merge_next"
-}
-```
-
----
-
-## 4. Concrete Examples
-
-### Example 1: Known Words
-**Input**: `កងកម្លាំងរក្សាសន្តិសុខ` (Security Forces)
-1.  **Viterbi**: Finds `កងកម្លាំង` (Known Compound), `រក្សា` (Known), `សន្តិសុខ` (Known).
-2.  **Path**: The path `កងកម្លាំង` -> `រក្សា` -> `សន្តិសុខ` has the lowest cost.
-3.  **Result**: `កងកម្លាំង` | `រក្សា` | `សន្តិសុខ`
-
-### Example 2: Names & Foreign Words
-**Input**: `លោក ចន ស្មីត` (Mr. John Smith)
-1.  **Viterbi**:
-    *   `លោក`: Known.
-    *   `ចន`: Known (John).
-    *   `ស្មី`: Known (Ray/Light).
-    *   `ត`: Known (Connector/Per).
-    *   *Note*: Since `ស្មី` and `ត` are valid words, the segmenter prefers them over treating `ស្មីត` as a single unknown block.
-2.  **Result**: `លោក` | ` ` | `ចន` | ` ` | `ស្មី` | `ត`
-
-### Example 3: Invalid Single Consonant Penalty
-**Input**: `ការងារ` (Job)
-*   Dictionary has `ការងារ` as a compound word.
-*   The algorithm prefers the longest match `ការងារ` over splitting into `ការ` | `ងារ` or smaller parts.
-*   **Result**: `ការងារ`
-
-**Input**: `តាប៉ិ` (Old man, slang/informal)
-*   `តា` (Known "Grandpa").
-*   `ប៉ិ` (Unknown).
-*   **Result**: `តា` | `ប៉ិ` (Correctly keeps known word, flags rest as unknown).
-
-## 5. Comparison with khmernltk
+## 3. Comparison with khmernltk
 
 We compared the performance and output of `KhmerSegmenter` against `khmernltk` using a complex sentence from a folktale.
 
@@ -260,7 +99,7 @@ python scripts/find_unknown_words.py --input segmentation_results.txt
 
 This will generate `data/unknown_words_from_results.txt` showing the unknown words, their frequency, and **context** (2 words before and after) to help you decide if they should be added to the dictionary.
 
-## 6. Benchmark & Performance Comparison
+## 4. Benchmark & Performance Comparison
 
 We compared `KhmerSegmenter` against `khmernltk` using real-world complex text:
 
@@ -313,7 +152,7 @@ Because `KhmerSegmenter` relies on **pure mathematical logic (Viterbi Algorithm)
 *   **Zero Dependencies**: Unlike ML-based solutions that require specific runtime environments (e.g. `scikit-learn`, `libpython`), this logic is self-contained and highly embeddable.
 *   **Web & Edge Ready**: Perfect for client-side JavaScript execution (via WASM or direct port) or edge computing where low latency and small binary size are crucial.
 
-## 7. Testing & Verification
+## 5. Testing & Verification
 
 You can verify the segmentation logic using the `scripts/test_viterbi.py` script. This script supports both single-case regression testing and batch processing of a corpus.
 
@@ -329,7 +168,7 @@ python scripts/test_viterbi.py --source data/khmer_folktales_extracted.txt --lim
 ```
 This will generate `segmentation_results.txt`.
 
-## 8. License
+## 6. License
 
 MIT License
 
@@ -357,7 +196,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 You are free to use, modify, and distribute this software, but you **must acknowledge usage** by retaining the copyright notice and license in your copies.
 
-## 9. Acknowledgements
+## 7. Acknowledgements
 
 *   **[khmernltk](https://github.com/VietHoang1512/khmer-nltk)**: Used for initial corpus tokenization and baseline frequency generation.
 *   **[sovichet](https://github.com/sovichet)**: For providing the [Khmer Folktales Corpus](https://github.com/sovichet) and Dictionary resources.

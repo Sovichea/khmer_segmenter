@@ -562,18 +562,29 @@ int main(int argc, char** argv) {
     }
     
     // Check for dictionary in probable locations
-    const char* dict_path = "data/khmer_dictionary_words.txt";
-    const char* freq_path = "data/khmer_frequencies.bin";  // Binary format
+    const char* dict_path = "port/common/khmer_dictionary_words.txt";
+    const char* freq_path = "port/common/khmer_frequencies.bin";
     
     FILE* check = fopen(dict_path, "r");
     if (!check) {
-        dict_path = "khmer_dictionary_words.txt"; 
-    } else {
-        fclose(check);
+        dict_path = "../common/khmer_dictionary_words.txt";
+        check = fopen(dict_path, "r");
     }
-    
+    if (!check) {
+        dict_path = "data/khmer_dictionary_words.txt";
+        check = fopen(dict_path, "r");
+    }
+    if (check) fclose(check);
+
+    // Update frequencies path based on dictionary location for consistency
+    if (strstr(dict_path, "../common/")) {
+        freq_path = "../common/khmer_frequencies.bin";
+    } else if (strstr(dict_path, "data/")) {
+        freq_path = "data/khmer_frequencies.bin";
+    }
+
     if (mode_benchmark || input_files_count > 0) {
-        fprintf(stderr, "Initializing segmenter (Dict: %s)...\n", dict_path);
+        fprintf(stderr, "Initializing segmenter (Dict: %s, Freq: %s)...\n", dict_path, freq_path);
     }
 
     KhmerSegmenter* seg = khmer_segmenter_init(dict_path, freq_path);

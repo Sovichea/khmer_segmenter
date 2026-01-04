@@ -28,9 +28,9 @@ The codebase automatically adapts to the target platform, using platform-specifi
 
 ## Building
 
-Navigate to the `c_port` directory:
+Navigate to the `port/c` directory:
 ```bash
-cd c_port
+cd port/c
 ```
 
 ### Build Commands
@@ -160,7 +160,7 @@ For best performance and to avoid permission issues with Zig cache:
 ```bash
 # Option 1: Work in WSL native filesystem
 cp -r /mnt/c/path/to/project ~/project
-cd ~/project/c_port
+cd ~/project/port/c
 zig build
 
 # Option 2: Clear cache in Windows directories
