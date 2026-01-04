@@ -601,61 +601,68 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
     if (!raw_text || !*raw_text) return STRDUP("");
     if (!separator) separator = "\xE2\x80\x8B"; 
 
-    // 0. Normalize
+    // Normalize input text
     char* text = khmer_normalize(raw_text);
-
+    if (!text) return STRDUP("");
     size_t n = strlen(text);
-    State* dp = (State*)malloc((n + 1) * sizeof(State));
-    
+
+    // Initialize memory arena with a 32KB stack buffer (SBO)
+    // This typically avoids heap allocations for most inputs
+    unsigned char stack_buf[32 * 1024];
+    MemArena arena;
+    arena_init_static(&arena, stack_buf, sizeof(stack_buf));
+
+    // Initialize DP table
+    State* dp = (State*)arena_alloc(&arena, (n + 1) * sizeof(State));
+    if (!dp) { free(text); arena_free(&arena); return STRDUP(""); } 
+
     for (size_t i = 0; i <= n; i++) {
         dp[i].cost = 1e9f; 
         dp[i].prev_idx = -1;
     }
     dp[0].cost = 0;
 
-    for (size_t i = 0; i < n; i++) {
-        if (dp[i].cost >= 1e9f) continue;
-        
+    // Viterbi forward pass
+    for (size_t i = 0; i < n; ) {
+        // Skip unreachable states
+        if (dp[i].cost >= 1e9f) {
+             i++; 
+             continue;
+        }
+
         int cp;
         int char_len = utf8_decode(text + i, &cp);
 
-        // Repair Mode: Check for malformed input
-        int force_repair = 0;
+        // Optional: Repair Mode for malformed input
         if (seg->config.enable_repair_mode) {
-            // Check for orphaned Coeng
+            int force_repair = 0;
             if (i > 0) {
                 int prev_cp;
-                utf8_decode(text + i - 1, &prev_cp);  // Simplified check
-                if (prev_cp == 0x17D2 && (cp >= 0x1780 && cp <= 0x17A2)) {
-                    // Valid subscript should have been attached
-                    force_repair = 1;
-                }
+                utf8_decode(text + i - 1, &prev_cp);
+                // Check for orphaned Coeng
+                if (prev_cp == 0x17D2 && (cp >= 0x1780 && cp <= 0x17A2)) force_repair = 1;
             }
-            
             // Check for isolated dependent vowel
-            if (cp >= 0x17B6 && cp <= 0x17C5) {
-                force_repair = 1;
-            }
-        }
+            if (cp >= 0x17B6 && cp <= 0x17C5) force_repair = 1;
         
-        if (force_repair) {
-            // Recovery mode: Consume 1 character with huge penalty
-            size_t next_idx = i + char_len;
-            float repair_cost = seg->unknown_cost + 50.0f;
-            if (next_idx <= n && dp[i].cost + repair_cost < dp[next_idx].cost) {
-                dp[next_idx].cost = dp[i].cost + repair_cost;
-                dp[next_idx].prev_idx = (int)i;
+            if (force_repair) {
+                size_t next_idx = i + char_len;
+                float repair_cost = seg->unknown_cost + 50.0f;
+                if (next_idx <= n && dp[i].cost + repair_cost < dp[next_idx].cost) {
+                    dp[next_idx].cost = dp[i].cost + repair_cost;
+                    dp[next_idx].prev_idx = (int)i;
+                }
+                i++; // Proceed to next byte
+                continue; 
             }
-            continue; // Skip normal processing
         }
 
-        // 1. Number / Currency Grouping
+        // Handle Numbers, Currency, and Separators
         int is_dig = is_digit_cp(cp);
-        // Check for currency start ($50)
         int is_curr_start = 0;
         if ((cp == '$' || cp == 0x17DB || cp == 0x20AC || cp == 0xA3 || cp == 0xA5) && i + char_len < n) {
              int next_c;
-             int next_l = utf8_decode(text + i + char_len, &next_c);
+             utf8_decode(text + i + char_len, &next_c);
              if (is_digit_cp(next_c)) is_curr_start = 1;
         }
 
@@ -668,17 +675,16 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
                  dp[next_idx].prev_idx = (int)i;
              }
         }
-        // 2. Separators
         else if (is_separator_cp(cp)) {
              size_t next_idx = i + char_len;
-             float step_cost = 0.1f; // Cheap
-             if (dp[i].cost + step_cost < dp[next_idx].cost) {
+             float step_cost = 0.1f; 
+             if (next_idx <= n && dp[i].cost + step_cost < dp[next_idx].cost) {
                  dp[next_idx].cost = dp[i].cost + step_cost;
                  dp[next_idx].prev_idx = (int)i;
              }
         }
 
-        // 2.5 Acronym Detection (if enabled)
+        // Handle Acronyms
         if (seg->config.enable_acronym_detection && is_acronym_start(text, n, i)) {
             size_t acr_len = get_acronym_length(text, n, i);
             size_t next_idx = i + acr_len;
@@ -689,15 +695,13 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
             }
         }
 
-        // 3. Dictionary Match
+        // Dictionary Lookup
         size_t end_limit = i + seg->max_word_length;
         if (end_limit > n) end_limit = n;
 
-        // Optimized lookup inner loop
         for (size_t j = i + 1; j <= end_limit; j++) {
             size_t len = j - i;
             float cost;
-            // Use get_len to avoid malloc/memcpy
             if (hashmap_get_len(seg->word_costs, text + i, len, &cost)) {
                 float new_cost = dp[i].cost + cost;
                 if (new_cost < dp[j].cost) {
@@ -707,7 +711,7 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
             }
         }
         
-        // 4. Unknown
+        // Handle Unknown Clusters
         size_t cluster_bytes = 0;
         int is_khmer = is_khmer_char(cp);
         if (is_khmer) get_khmer_cluster_length(text, n, i, &cluster_bytes);
@@ -716,143 +720,133 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
         size_t next_idx = i + cluster_bytes;
         float unk_cost = seg->unknown_cost;
         if (cluster_bytes == char_len && is_khmer) { 
+             // Penalize invalid single base chars
              if (!is_valid_single_base_char(cp)) unk_cost += 10.0f; 
         }
         
         if (next_idx <= n) {
             float new_cost = dp[i].cost + unk_cost;
-            // Only update if better than existing (dict/number might have set this)
             if (new_cost < dp[next_idx].cost) {
                 dp[next_idx].cost = new_cost;
                 dp[next_idx].prev_idx = (int)i;
             }
         }
+        
+        i++;
     }
 
-    // Backtrack & Build Segments List
-    int curr = (int)n;
-    if (dp[curr].prev_idx == -1) {
-        free(dp);
-        // Fallback: return copy of normalized text
-        return text; // Ownership transfer? No, text was separate.
-        // Wait, text was allocated by khmer_normalize.
-        // If we return text, we need to make sure outside frees it.
-        // khmer_normalize returns malloc'd string.
+    // Backtracking
+    if (dp[n].prev_idx == -1) {
+        // Fallback: return the entire string as one segment (should rarely happen)
+        char* fallback = STRDUP(text);
+        free(text); 
+        arena_free(&arena);
+        return fallback; 
     }
 
-    int* breaks = (int*)malloc((n + 1) * sizeof(int));
+    // Collect segment breaks
+    int* breaks = (int*)arena_alloc(&arena, (n + 1) * sizeof(int));
     int count = 0;
+    int curr = (int)n;
     while (curr > 0) {
         breaks[count++] = curr;
         curr = dp[curr].prev_idx;
     }
     breaks[count++] = 0; 
     
-    // Build SegmentList
-    SegmentList* seg_list = segment_list_create(count);
+    // Construct Initial SegmentList
+    SegmentList* seg_list = (SegmentList*)arena_alloc(&arena, sizeof(SegmentList));
+    seg_list->capacity = count; 
+    seg_list->count = 0;
+    seg_list->items = (char**)arena_alloc(&arena, sizeof(char*) * count);
+    
     for (int k = count - 1; k > 0; k--) {
         int start = breaks[k];
         int end = breaks[k-1];
         int len = end - start;
-        char* temp_seg = (char*)malloc(len + 1);
-        memcpy(temp_seg, text + start, len);
-        temp_seg[len] = 0;
-        segment_list_add(seg_list, temp_seg);
-        free(temp_seg);
+        
+        char* s = (char*)arena_alloc(&arena, len + 1);
+        memcpy(s, text + start, len);
+        s[len] = 0;
+        
+        seg_list->items[seg_list->count++] = s;
     }
     
-    free(breaks);
-    free(dp);
-    free(text); // Free normalized text
-    
-    // Apply Rules
+    free(text); 
+
+    // Apply Rule Engine
     if (seg->rule_engine) {
-        rule_engine_apply(seg->rule_engine, seg_list);
+        rule_engine_apply(seg->rule_engine, seg_list, &arena);
     }
 
-    // Merge Consecutive Unknowns (if enabled)
+    // Merge Consecutive Unknowns (Heuristic)
     if (seg->config.enable_unknown_merging && seg_list->count > 0) {
-        SegmentList* merged = segment_list_create(seg_list->count);
-        char* unknown_buffer = NULL;
+        size_t est_cap = seg_list->count;
+        char** new_items = (char**)arena_alloc(&arena, sizeof(char*) * est_cap);
+        size_t new_count = 0;
+        
+        char* unknown_buffer = NULL; // Use malloc for this buffer as it grows
         size_t buffer_len = 0;
         size_t buffer_cap = 0;
         
         for (size_t i = 0; i < seg_list->count; i++) {
             const char* s = seg_list->items[i];
             
-            // Determine if segment is known
+            // Heuristic to check if 's' is a known word / token
             int is_known = 0;
-            
-            // Check if separator
-            if (strlen(s) == 1 || strlen(s) == 3) {  // Most separators are 1 or 3 bytes
-                int cp;
-                utf8_decode(s, &cp);
-                if (is_separator_cp(cp)) is_known = 1;
+            size_t slen = strlen(s);
+            if (slen == 1 || slen == 3) {
+                int cp_t;
+                utf8_decode(s, &cp_t);
+                if (is_separator_cp(cp_t)) is_known = 1;
             }
-            
-            // Check if digit
-            if (!is_known && strlen(s) > 0) {
-                int cp;
-                utf8_decode(s, &cp);
-                if (is_digit_cp(cp)) is_known = 1;
+            if (!is_known && slen > 0) {
+                int cp_t;
+                utf8_decode(s, &cp_t);
+                if (is_digit_cp(cp_t)) is_known = 1;
             }
-            
-            // Check if in dictionary
-            float dummy_cost;
-            if (!is_known && hashmap_get(seg->word_costs, s, &dummy_cost)) {
-                is_known = 1;
+            float d_cost;
+            if (!is_known && hashmap_get(seg->word_costs, s, &d_cost)) is_known = 1;
+            if (!is_known && slen > 0) {
+                 int cp_t;
+                 int l_t = utf8_decode(s, &cp_t);
+                 if (l_t == slen && is_valid_single_base_char(cp_t)) is_known = 1;
             }
-            
-            // Check if valid single base char
-            if (!is_known && strlen(s) > 0) {
-                int cp;
-                int len = utf8_decode(s, &cp);
-                if (len == strlen(s) && is_valid_single_base_char(cp)) {
-                    is_known = 1;
-                }
-            }
-            
-            // Check if acronym (contains dot and length >= 2)
-            if (!is_known && strlen(s) >= 2 && strchr(s, '.')) {
-                is_known = 1;
-            }
+            if (!is_known && slen >= 2 && strchr(s, '.')) is_known = 1; 
             
             if (is_known) {
-                // Flush unknown buffer if any
                 if (unknown_buffer) {
-                    segment_list_add(merged, unknown_buffer);
+                    // Flush accumulated unknown buffer
+                    new_items[new_count++] = arena_strdup(&arena, unknown_buffer);
+                    
                     free(unknown_buffer);
                     unknown_buffer = NULL;
-                    buffer_len = 0;
-                    buffer_cap = 0;
+                    buffer_len = 0; buffer_cap = 0;
                 }
-                // Add known segment
-                segment_list_add(merged, s);
+                new_items[new_count++] = (char*)s;
             } else {
-                // Append to unknown buffer
-                size_t s_len = strlen(s);
-                if (buffer_len + s_len + 1 > buffer_cap) {
-                    buffer_cap = (buffer_len + s_len + 1) * 2;
+                // Accumulate unknown segment
+                 if (buffer_len + slen + 1 > buffer_cap) {
+                    buffer_cap = (buffer_len + slen + 1) * 2;
                     unknown_buffer = (char*)realloc(unknown_buffer, buffer_cap);
                     if (buffer_len == 0) unknown_buffer[0] = 0;
                 }
                 strcat(unknown_buffer, s);
-                buffer_len += s_len;
+                buffer_len += slen;
             }
         }
         
-        // Flush remaining unknown buffer
         if (unknown_buffer) {
-            segment_list_add(merged, unknown_buffer);
-            free(unknown_buffer);
+             new_items[new_count++] = arena_strdup(&arena, unknown_buffer);
+             free(unknown_buffer);
         }
         
-        // Replace seg_list with merged
-        segment_list_free(seg_list);
-        seg_list = merged;
+        seg_list->items = new_items;
+        seg_list->count = new_count;
+        seg_list->capacity = est_cap; 
     }
 
-    // Concatenate Result
+    // Final Concatenation
     size_t sep_len = strlen(separator);
     size_t total_len = 0;
     for (size_t i = 0; i < seg_list->count; i++) {
@@ -873,7 +867,8 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
     }
     *ptr = 0;
     
-    segment_list_free(seg_list);
+    arena_free(&arena);
+    
     return final_res;
 }
 

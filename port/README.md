@@ -120,7 +120,78 @@ Iterate through the segments. If you find adjacent segments that are **Unknown**
 
 ---
 
-## Checklist for Implementers
+## 6. Rule-Based Engine (The "Polisher")
+
+The Viterbi algorithm is probabilistic and sometimes makes "mathematically correct but linguistically wrong" splits, especially with rare names or typos. The Rule Engine runs **after** Viterbi to deterministic fix these edge cases.
+
+### 6.1 Rule Structure
+Rules are defined in `rules.json` (for reference) but should be implemented differently based on your language's constraints.
+
+**JSON Schema**:
+```json
+{
+    "name": "Consonant + Robat Merge Prev",
+    "priority": 90,
+    "trigger": { "type": "regex", "value": "^[\\u1780-\\u17A2]\\u17CC$" },
+    "checks": [{ "target": "prev", "exists": true }],
+    "action": "merge_prev"
+}
+```
+
+### 6.2 Implementation Strategy
+
+#### A. High-Level Languages (Python, JS, Go)
+For languages with rich managed runtimes, you can implement a **Generic Engine**:
+1.  **Load JSON**: Read `rules.json` at startup.
+2.  **Compile Regex**: Pre-compile `trigger.value` into Regex objects.
+3.  **Iterate**: Loop through segments. For each segment, iterate through Rules (sorted by Priority).
+4.  **Apply**: If `trigger` matches AND `checks` pass $\rightarrow$ execute `action`.
+
+*Pros*: Easy to update rules without code changes.
+*Cons*: Slower startup, higher memory overhead.
+
+#### B. Resource-Constrained Languages (C, C++, Rust, Embedded)
+For high-performance or embedded ports, **DO NOT** use JSON or Regex at runtime. It is too heavy.
+The **C Port** in this repository implements this **Hardcoded** strategy.
+Instead, **Hardcode** the logic into a static function.
+
+**Recommended Pattern**:
+1.  Create a function `apply_rules(segments)`.
+2.  Iterate through segments.
+3.  Use Fast Character Checks (Masks/Ranges) instead of Regex.
+
+**Example (C-like Pseudo-code)**:
+```c
+// Rule: Consonant + Robat (\u17CC) -> Merge Previous
+// Logic: Starts with Consonant (E1 9E [80-A2]) AND Ends with Robat (E1 9F 8C)
+// Exact bytes: [0xE1, 0x9E, 0x??, 0xE1, 0x9F, 0x8C] (Total Length 6)
+
+char* txt = seg->text;
+if (strlen(txt) == 6) {
+    // 1. Check Base Consonant (0x1780 - 0x17A2)
+    // UTF-8 Pattern: E1 9E [80-A2]
+    if (txt[0] == 0xE1 && txt[1] == 0x9E && txt[2] >= 0x80 && txt[2] <= 0xA2) {
+        
+        // 2. Check Robat Suffix (0x17CC)
+        // UTF-8 Pattern: E1 9F 8C
+        if (txt[3] == 0xE1 && txt[4] == 0x9F && txt[5] == 0x8C) {
+            
+            if (has_previous_segment()) {
+                merge_with_previous(i);
+                // Restart loop or adjust index to handle merged segment
+                continue; 
+            }
+        }
+    }
+}
+```
+
+*Pros*: Blazing fast (nanoseconds), zero allocation, tiny binary size.
+*Cons*: Requires recompilation to change rules.
+
+---
+
+## 7. Checklist for Implementers
 
 - [ ] Can load binary frequencies?
 - [ ] Does Normalization pass all tests (Ro swapping, Composite fixing)?

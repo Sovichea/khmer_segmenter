@@ -17,7 +17,6 @@ fn createExecutable(
         .files = &.{
             "src/khmer_segmenter.c",
             "src/main.c",
-            "src/re.c",
             "src/khmer_normalization.c",
             "src/khmer_rule_engine.c",
         },

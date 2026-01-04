@@ -16,9 +16,8 @@ Thumbs.db
 experiments/
 
 # Zig Build System
-c_port/.zig-cache
-c_port/zig-cache/
-c_port/zig-out/
+port/c/zig-out/
+port/c/.zig-cache
 
 # C/C++ Build Artifacts
 *.o

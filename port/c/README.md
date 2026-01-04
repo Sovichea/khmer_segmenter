@@ -13,6 +13,7 @@ The codebase automatically adapts to the target platform, using platform-specifi
 - **Threading**: Windows threads vs pthreads
 - **High-precision timing**: QueryPerformanceCounter vs gettimeofday
 - **Memory measurement**: Windows PSAPI, macOS Mach, Linux /proc
+- **Rule Engine**: Zero-allocation, Hardcoded logic (No Regex dependency)
 
 ## Prerequisites
 

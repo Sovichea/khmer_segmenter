@@ -49,6 +49,7 @@ pip install -r requirements.txt
 For users requiring maximum performance or embedding in C/C++/Zig applications, a native port is available in the [port/c/](port/c/) directory. All ports share common linguistic data found in [port/common/](port/common/).
 
 *   **Speed**: ~3.5x faster (Single Thread), more than 10x faster (Multi-Thread) running in WSL.
+*   **Architecture**: Zero-dependency, **Regex-Free** Rule Engine (Hardcoded logic) for consistent O(n) performance.
 *   **Documentation**: See [port/c/README.md](port/c/README.md).
 ## 1. Data Preparation (`scripts/generate_frequencies.py`)
 
