@@ -4,24 +4,76 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <windows.h>
-#include <psapi.h>
+
+// Platform-specific includes
+#ifdef _WIN32
+    #include <windows.h>
+    #include <psapi.h>
+#else
+    #include <pthread.h>
+    #include <sys/time.h>
+    #include <sys/resource.h>
+    #include <unistd.h>
+    #ifdef __APPLE__
+        #include <mach/mach.h>
+    #endif
+#endif
+
+// Cross-platform strdup compatibility
+#if defined(_WIN32)
+    #define STRDUP _strdup
+#else
+    #define STRDUP strdup
+#endif
 
 // --- Helpers ---
 
 double get_time_sec() {
+#ifdef _WIN32
     LARGE_INTEGER frequency, start;
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&start);
     return (double)start.QuadPart / frequency.QuadPart;
+#else
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0;
+#endif
 }
 
 double get_memory_mb() {
+#ifdef _WIN32
     PROCESS_MEMORY_COUNTERS pmc;
     if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
         return (double)pmc.WorkingSetSize / (1024.0 * 1024.0);
     }
     return 0.0;
+#elif defined(__APPLE__)
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t size = MACH_TASK_BASIC_INFO_COUNT;
+    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &size) == KERN_SUCCESS) {
+        return (double)info.resident_size / (1024.0 * 1024.0);
+    }
+    return 0.0;
+#else
+    // Linux: read from /proc/self/status
+    FILE* f = fopen("/proc/self/status", "r");
+    if (!f) return 0.0;
+    
+    char line[256];
+    double mem_mb = 0.0;
+    while (fgets(line, sizeof(line), f)) {
+        if (strncmp(line, "VmRSS:", 6) == 0) {
+            long mem_kb;
+            if (sscanf(line + 6, "%ld", &mem_kb) == 1) {
+                mem_mb = (double)mem_kb / 1024.0;
+            }
+            break;
+        }
+    }
+    fclose(f);
+    return mem_mb;
+#endif
 }
 
 // --- Batch Processing ---
@@ -39,7 +91,11 @@ typedef struct {
     int total_threads;
 } BatchWorkerArgs;
 
+#ifdef _WIN32
 DWORD WINAPI batch_worker(LPVOID lpParam) {
+#else
+void* batch_worker(void* lpParam) {
+#endif
     BatchWorkerArgs* args = (BatchWorkerArgs*)lpParam;
     for (int i = args->thread_id; i < args->count; i += args->total_threads) {
         // Initialize result to NULL first
@@ -48,7 +104,11 @@ DWORD WINAPI batch_worker(LPVOID lpParam) {
             args->results[i] = khmer_segmenter_segment(args->seg, args->lines[i], " | ");
         }
     }
+#ifdef _WIN32
     return 0;
+#else
+    return NULL;
+#endif
 }
 
 static char* read_line(FILE* f) {
@@ -109,7 +169,7 @@ void batch_process_file(KhmerSegmenter* seg, const char* filepath, FILE* out, in
         if (first_line) {
             unsigned char* ub = (unsigned char*)line;
             if (ub[0] == 0xEF && ub[1] == 0xBB && ub[2] == 0xBF) {
-                line_start = _strdup(line + 3);
+                line_start = STRDUP(line + 3);
                 free(line);
             } else {
                 line_start = line;
@@ -126,6 +186,7 @@ void batch_process_file(KhmerSegmenter* seg, const char* filepath, FILE* out, in
                     results[i] = khmer_segmenter_segment(seg, lines[i], " | ");
                 }
             } else {
+#ifdef _WIN32
                 HANDLE* handles = (HANDLE*)malloc(threads_count * sizeof(HANDLE));
                 BatchWorkerArgs* args = (BatchWorkerArgs*)malloc(threads_count * sizeof(BatchWorkerArgs));
                 
@@ -142,6 +203,25 @@ void batch_process_file(KhmerSegmenter* seg, const char* filepath, FILE* out, in
                 for(int t=0; t<threads_count; t++) CloseHandle(handles[t]);
                 free(handles);
                 free(args);
+#else
+                pthread_t* threads = (pthread_t*)malloc(threads_count * sizeof(pthread_t));
+                BatchWorkerArgs* args = (BatchWorkerArgs*)malloc(threads_count * sizeof(BatchWorkerArgs));
+                
+                for(int t=0; t<threads_count; t++) {
+                    args[t].seg = seg;
+                    args[t].lines = lines;
+                    args[t].results = results;
+                    args[t].count = chunk_idx;
+                    args[t].thread_id = t;
+                    args[t].total_threads = threads_count;
+                    pthread_create(&threads[t], NULL, batch_worker, &args[t]);
+                }
+                for(int t=0; t<threads_count; t++) {
+                    pthread_join(threads[t], NULL);
+                }
+                free(threads);
+                free(args);
+#endif
             }
 
             // Print & Free
@@ -165,6 +245,7 @@ void batch_process_file(KhmerSegmenter* seg, const char* filepath, FILE* out, in
                 results[i] = khmer_segmenter_segment(seg, lines[i], " | ");
             }
         } else {
+#ifdef _WIN32
              HANDLE* handles = (HANDLE*)malloc(threads_count * sizeof(HANDLE));
              BatchWorkerArgs* args = (BatchWorkerArgs*)malloc(threads_count * sizeof(BatchWorkerArgs));
              
@@ -181,6 +262,25 @@ void batch_process_file(KhmerSegmenter* seg, const char* filepath, FILE* out, in
              for(int t=0; t<threads_count; t++) CloseHandle(handles[t]);
              free(handles);
              free(args);
+#else
+             pthread_t* threads = (pthread_t*)malloc(threads_count * sizeof(pthread_t));
+             BatchWorkerArgs* args = (BatchWorkerArgs*)malloc(threads_count * sizeof(BatchWorkerArgs));
+             
+             for(int t=0; t<threads_count; t++) {
+                 args[t].seg = seg;
+                 args[t].lines = lines;
+                 args[t].results = results;
+                 args[t].count = chunk_idx;
+                 args[t].thread_id = t;
+                 args[t].total_threads = threads_count;
+                 pthread_create(&threads[t], NULL, batch_worker, &args[t]);
+             }
+             for(int t=0; t<threads_count; t++) {
+                 pthread_join(threads[t], NULL);
+             }
+             free(threads);
+             free(args);
+#endif
         }
 
         for(int i=0; i<chunk_idx; i++) {
@@ -234,6 +334,7 @@ void run_input_benchmark(KhmerSegmenter* seg, char** lines, int count, int threa
         fprintf(stderr, "[%d Threads] Processing...", threads);
         start = get_time_sec();
         
+#ifdef _WIN32
         HANDLE* handles = (HANDLE*)malloc(threads * sizeof(HANDLE));
         BatchWorkerArgs* args = (BatchWorkerArgs*)malloc(threads * sizeof(BatchWorkerArgs));
         
@@ -250,6 +351,25 @@ void run_input_benchmark(KhmerSegmenter* seg, char** lines, int count, int threa
         for(int t=0; t<threads; t++) CloseHandle(handles[t]);
         free(handles);
         free(args);
+#else
+        pthread_t* thread_handles = (pthread_t*)malloc(threads * sizeof(pthread_t));
+        BatchWorkerArgs* args = (BatchWorkerArgs*)malloc(threads * sizeof(BatchWorkerArgs));
+        
+        for(int t=0; t<threads; t++) {
+            args[t].seg = seg;
+            args[t].lines = lines;
+            args[t].results = results;
+            args[t].count = count;
+            args[t].thread_id = t;
+            args[t].total_threads = threads;
+            pthread_create(&thread_handles[t], NULL, batch_worker, &args[t]);
+        }
+        for(int t=0; t<threads; t++) {
+            pthread_join(thread_handles[t], NULL);
+        }
+        free(thread_handles);
+        free(args);
+#endif
         
         end = get_time_sec();
         double dur_conc = end - start;
@@ -268,16 +388,24 @@ typedef struct {
     int iterations;
 } ThreadData;
 
+#ifdef _WIN32
 DWORD WINAPI benchmark_worker(LPVOID lpParam) {
+#else
+void* benchmark_worker(void* lpParam) {
+#endif
     ThreadData* data = (ThreadData*)lpParam;
     for (int i = 0; i < data->iterations; i++) {
         char* res = khmer_segmenter_segment(data->seg, data->text, NULL);
         free(res);
     }
+#ifdef _WIN32
     return 0;
+#else
+    return NULL;
+#endif
 }
 
-void run_benchmark(KhmerSegmenter* seg, int threads_count, const char* custom_text) {
+void run_benchmark(KhmerSegmenter* seg, int threads_count, const char* custom_text, FILE* out) {
     const char* text = custom_text;
     if (!text) {
         text = "ក្រុមហ៊ុនទទួលបានប្រាក់ចំណូល ១ ០០០ ០០០ ដុល្លារក្នុងឆ្នាំនេះ ខណៈដែលតម្លៃភាគហ៊ុនកើនឡើង ៥% ស្មើនឹង 50.00$។"
@@ -297,6 +425,14 @@ void run_benchmark(KhmerSegmenter* seg, int threads_count, const char* custom_te
     if (strlen(text) < 1000) {
         printf("\n[Output Check]\n%s\n", check);
     }
+    
+    // Save benchmark text and result to file
+    if (out) {
+        fprintf(out, "Original:  %s\n", text);
+        fprintf(out, "Segmented: %s\n", check);
+        fprintf(out, "----------------------------------------\n");
+    }
+    
     free(check);
 
     // 2. Sequential
@@ -323,6 +459,7 @@ void run_benchmark(KhmerSegmenter* seg, int threads_count, const char* custom_te
     start = get_time_sec();
     start_mem = get_memory_mb();
     
+#ifdef _WIN32
     HANDLE* handles = (HANDLE*)malloc(sizeof(HANDLE) * threads_count);
     ThreadData* tdata = (ThreadData*)malloc(sizeof(ThreadData) * threads_count);
     
@@ -340,6 +477,25 @@ void run_benchmark(KhmerSegmenter* seg, int threads_count, const char* custom_te
     for(int i=0; i<threads_count; i++) CloseHandle(handles[i]);
     free(handles);
     free(tdata);
+#else
+    pthread_t* handles = (pthread_t*)malloc(sizeof(pthread_t) * threads_count);
+    ThreadData* tdata = (ThreadData*)malloc(sizeof(ThreadData) * threads_count);
+    
+    int per_thread = iterations_conc / threads_count;
+    
+    for (int i=0; i<threads_count; i++) {
+        tdata[i].seg = seg;
+        tdata[i].text = text;
+        tdata[i].iterations = per_thread;
+        pthread_create(&handles[i], NULL, benchmark_worker, &tdata[i]);
+    }
+    
+    for(int i=0; i<threads_count; i++) {
+        pthread_join(handles[i], NULL);
+    }
+    free(handles);
+    free(tdata);
+#endif
     
     end = get_time_sec();
     end_mem = get_memory_mb();
@@ -352,20 +508,26 @@ void run_benchmark(KhmerSegmenter* seg, int threads_count, const char* custom_te
 
 // --- Main ---
 
-int main() {
-    setbuf(stdout, NULL);
-
-    int argc;
+int main(int argc, char** argv) {
+#ifdef _WIN32
+    // Set console to UTF-8 mode for proper Khmer text display
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    
+    // On Windows, convert command line from UTF-16 to UTF-8
     LPWSTR* argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (!argvw) return 1;
 
     // Parse Args
-    char** argv = (char**)malloc(argc * sizeof(char*));
+    argv = (char**)malloc(argc * sizeof(char*));
     for (int i = 0; i < argc; i++) {
         int len = WideCharToMultiByte(CP_UTF8, 0, argvw[i], -1, NULL, 0, NULL, NULL);
         argv[i] = (char*)malloc(len);
         WideCharToMultiByte(CP_UTF8, 0, argvw[i], -1, argv[i], len, NULL, NULL);
     }
+#endif
+    
+    setbuf(stdout, NULL);
     
     // Config
     int mode_benchmark = 0;
@@ -400,8 +562,8 @@ int main() {
     }
     
     // Check for dictionary in probable locations
-    const char* dict_path = "../data/khmer_dictionary_words.txt";
-    const char* freq_path = "../data/khmer_word_frequencies.json"; 
+    const char* dict_path = "data/khmer_dictionary_words.txt";
+    const char* freq_path = "data/khmer_frequencies.bin";  // Binary format
     
     FILE* check = fopen(dict_path, "r");
     if (!check) {
@@ -453,7 +615,23 @@ int main() {
             for(int i=0; i<count; i++) free(lines[i]);
             free(lines);
         } else {
-            run_benchmark(seg, threads, NULL);
+            FILE* out = NULL;
+            if (output_file) {
+                out = fopen(output_file, "w");
+                if (!out) {
+                    fprintf(stderr, "Warning: Could not open output file %s for benchmark results\n", output_file);
+                }
+            } else {
+                // Default output file for internal benchmark
+                out = fopen("benchmark_results.txt", "w");
+                if (!out) {
+                    fprintf(stderr, "Warning: Could not create benchmark_results.txt\n");
+                }
+            }
+            
+            run_benchmark(seg, threads, NULL, out);
+            
+            if (out) fclose(out);
         }
     } else if (input_files_count > 0) {
         FILE* out = stdout;
@@ -476,6 +654,25 @@ int main() {
         char* res = khmer_segmenter_segment(seg, input_text, " | ");
         printf("Input: %s\n", input_text);
         printf("Output: %s\n", res);
+        
+        // Save to file
+        FILE* out = NULL;
+        if (output_file) {
+            out = fopen(output_file, "w");
+        } else {
+            out = fopen("segmentation_results.txt", "w");
+        }
+        
+        if (out) {
+            fprintf(out, "Original:  %s\n", input_text);
+            fprintf(out, "Segmented: %s\n", res);
+            fprintf(out, "----------------------------------------\n");
+            fclose(out);
+            fprintf(stderr, "Results saved to %s\n", output_file ? output_file : "segmentation_results.txt");
+        } else {
+            fprintf(stderr, "Warning: Could not save results to file\n");
+        }
+        
         free(res);
     } else {
         printf("Usage: khmer_segmenter.exe [flags] [text]\n");
@@ -488,9 +685,13 @@ int main() {
     }
 
     khmer_segmenter_free(seg);
+    
+#ifdef _WIN32
     LocalFree(argvw); 
     for(int i=0; i<argc; i++) free(argv[i]);
     free(argv);
+#endif
+    
     if (input_files) free(input_files);
     
     return 0;

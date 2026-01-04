@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <string.h>
 
+// Cross-platform strdup compatibility
+#if defined(_WIN32)
+    #define STRDUP _strdup
+#else
+    #define STRDUP strdup
+#endif
+
 /*
  * Specialized Pattern Matcher for Khmer Segmenter Rules
  * Supports:
@@ -154,7 +161,7 @@ re_t* re_compile(const char* pattern) {
             while (*p && *p != ')') {
                 if (*p == '|') {
                     buffer[b_idx] = '\0';
-                    inst->data.alt.options[opt_idx++] = _strdup(buffer);
+                    inst->data.alt.options[opt_idx++] = STRDUP(buffer);
                     b_idx = 0;
                     p++;
                 } else {
@@ -162,7 +169,7 @@ re_t* re_compile(const char* pattern) {
                 }
             }
             buffer[b_idx] = '\0';
-            inst->data.alt.options[opt_idx++] = _strdup(buffer);
+            inst->data.alt.options[opt_idx++] = STRDUP(buffer);
             inst->data.alt.count = opt_idx;
             
             if (*p == ')') p++;

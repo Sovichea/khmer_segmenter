@@ -6,6 +6,13 @@
 #include <string.h>
 #include <ctype.h>
 
+// Cross-platform strdup compatibility
+#if defined(_WIN32)
+    #define STRDUP _strdup
+#else
+    #define STRDUP strdup
+#endif
+
 // --- Segment List Implementation ---
 
 SegmentList* segment_list_create(size_t cap) {
@@ -21,7 +28,7 @@ void segment_list_add(SegmentList* list, const char* str) {
         list->capacity *= 2;
         list->items = (char**)realloc(list->items, sizeof(char*) * list->capacity);
     }
-    list->items[list->count++] = _strdup(str);
+    list->items[list->count++] = STRDUP(str);
 }
 
 void segment_list_free(SegmentList* list) {
@@ -138,10 +145,10 @@ static void add_rule(RuleEngine* eng, const char* name, int prio, TriggerType tt
     eng->rules = (Rule*)realloc(eng->rules, sizeof(Rule) * (eng->rule_count + 1));
     Rule* r = &eng->rules[eng->rule_count++];
     memset(r, 0, sizeof(Rule));
-    r->name = _strdup(name);
+    r->name = STRDUP(name);
     r->priority = prio;
     r->trigger_type = ttype;
-    r->trigger_value = _strdup(tval);
+    r->trigger_value = STRDUP(tval);
     r->action = act;
     
     if (ttype == TRIGGER_REGEX) {
@@ -154,8 +161,8 @@ static void add_check(RuleEngine* eng, int rule_idx, const char* target, const c
     Rule* r = &eng->rules[rule_idx];
     r->checks = (RuleCheck*)realloc(r->checks, sizeof(RuleCheck) * (r->check_count + 1));
     RuleCheck* c = &r->checks[r->check_count++];
-    c->target = _strdup(target);
-    c->check = check_type ? _strdup(check_type) : NULL;
+    c->target = STRDUP(target);
+    c->check = check_type ? STRDUP(check_type) : NULL;
     c->expected_bool = expected;
     c->check_exists = exists;
 }

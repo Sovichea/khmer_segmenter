@@ -5,6 +5,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdint.h>
+
+// Cross-platform strdup compatibility
+#if defined(_WIN32)
+    #define STRDUP _strdup
+#else
+    #define STRDUP strdup
+#endif
 
 // ============================================================================
 // Internal Data Structures (Hash Map & String Utils)
@@ -59,7 +67,7 @@ static void hashmap_put(HashMap* map, const char* key, float value) {
     
     // New entry
     Entry* new_entry = (Entry*)malloc(sizeof(Entry));
-    new_entry->key = _strdup(key);
+    new_entry->key = STRDUP(key);
     new_entry->value = value;
     new_entry->next = map->buckets[index];
     map->buckets[index] = new_entry;
@@ -139,13 +147,15 @@ static int utf8_decode(const char* str, int* out_codepoint) {
 
 #include "khmer_normalization.h"
 #include "khmer_rule_engine.h"
+#include "khmer_segmenter_config.h"
 
 struct KhmerSegmenter {
     HashMap* word_costs;
     size_t max_word_length;
     float default_cost;
     float unknown_cost;
-    RuleEngine* rule_engine; 
+    RuleEngine* rule_engine;
+    SegmenterConfig config;  // Feature toggles
 };
 
 // --- Helper Functions ---
@@ -278,12 +288,172 @@ static size_t get_number_length(const char* text, size_t n, size_t start_idx) {
     return i - start_idx;
 }
 
+// --- Acronym Detection ---
+
+static int is_acronym_start(const char* text, size_t n, size_t index) {
+    // Need at least 2 chars: Cluster + .
+    if (index + 1 >= n) return 0;
+    
+    // Must start with Khmer Consonant or Independent Vowel
+    int cp;
+    utf8_decode(text + index, &cp);
+    if (!(cp >= 0x1780 && cp <= 0x17B3)) return 0;
+    
+    // Get cluster length
+    size_t cluster_bytes;
+    if (!get_khmer_cluster_length(text, n, index, &cluster_bytes)) return 0;
+    
+    // Check if char AFTER cluster is dot
+    size_t dot_index = index + cluster_bytes;
+    if (dot_index < n && text[dot_index] == '.') {
+        return 1;
+    }
+    
+    return 0;
+}
+
+static size_t get_acronym_length(const char* text, size_t n, size_t start_idx) {
+    size_t i = start_idx;
+    
+    while (i < n) {
+        // Must start with Khmer Consonant/Indep Vowel
+        int cp;
+        utf8_decode(text + i, &cp);
+        if (!(cp >= 0x1780 && cp <= 0x17B3)) break;
+        
+        size_t cluster_bytes;
+        if (!get_khmer_cluster_length(text, n, i, &cluster_bytes)) break;
+        
+        size_t dot_index = i + cluster_bytes;
+        if (dot_index < n && text[dot_index] == '.') {
+            i = dot_index + 1; // Advance past cluster and dot
+            continue;
+        } else {
+            break;
+        }
+    }
+    
+    return i - start_idx;
+}
+
+// --- Variant Generation---
+
+static void generate_ta_da_variant(const char* word, HashMap* map, float cost) {
+    // Coeng Ta: E1 9F 92 E1 9E 8F (U+17D2 U+178F)
+    // Coeng Da: E1 9F 92 E1 9E 8D (U+17D2 U+178D)
+    const char* ta = "\xE1\x9F\x92\xE1\x9E\x8F";
+    const char* da = "\xE1\x9F\x92\xE1\x9E\x8D";
+    
+    // Check if word contains Ta or Da
+    const char* ptr = strstr(word, ta);
+    if (ptr) {
+        // Replace Ta with Da
+        char* variant = (char*)malloc(strlen(word) + 1);
+        strcpy(variant, word);
+        char* v_ptr = variant + (ptr - word);
+        memcpy(v_ptr, da, 6);
+        hashmap_put(map, variant, cost);
+        free(variant);
+        return;
+    }
+    
+    ptr = strstr(word, da);
+    if (ptr) {
+        // Replace Da with Ta
+        char* variant = (char*)malloc(strlen(word) + 1);
+        strcpy(variant, word);
+        char* v_ptr = variant + (ptr - word);
+        memcpy(v_ptr, ta, 6);
+        hashmap_put(map, variant, cost);
+        free(variant);
+    }
+}
+
+// --- Binary Frequency Loading ---
+
+static int load_binary_frequencies(KhmerSegmenter* seg, const char* path) {
+    FILE* f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "Warning: Could not open frequency file: %s\n", path);
+        return 0;
+    }
+    
+    // Read header: word count
+    uint32_t word_count;
+    if (fread(&word_count, sizeof(uint32_t), 1, f) != 1) {
+        fprintf(stderr, "Error reading frequency file header\n");
+        fclose(f);
+        return 0;
+    }
+    
+    printf("Loading %u word frequencies from binary file...\n", word_count);
+    
+    // Read each entry
+    for (uint32_t i = 0; i < word_count; i++) {
+        // Read word length
+        uint16_t word_len;
+        if (fread(&word_len, sizeof(uint16_t), 1, f) != 1) {
+            fprintf(stderr, "Error reading word length at entry %u\n", i);
+            break;
+        }
+        
+        // Read word bytes
+        char* word = (char*)malloc(word_len + 1);
+        if (fread(word, 1, word_len, f) != word_len) {
+            fprintf(stderr, "Error reading word bytes at entry %u\n", i);
+            free(word);
+            break;
+        }
+        word[word_len] = 0;
+        
+        // Read cost
+        float cost;
+        if (fread(&cost, sizeof(float), 1, f) != 1) {
+            fprintf(stderr, "Error reading cost at entry %u\n", i);
+            free(word);
+            break;
+        }
+        
+        // Insert into hashmap
+        hashmap_put(seg->word_costs, word, cost);
+        
+        // Generate variants if enabled
+        if (seg->config.enable_variant_generation) {
+            generate_ta_da_variant(word, seg->word_costs, cost);
+            // TODO: Add Ro ordering variants if needed
+        }
+        
+        if (strlen(word) > seg->max_word_length) {
+            seg->max_word_length = strlen(word);
+        }
+        
+        free(word);
+        
+        if ((i + 1) % 10000 == 0) {
+            printf("\rLoaded %u frequencies...", i + 1);
+            fflush(stdout);
+        }
+    }
+    
+    printf("\nLoaded %u word frequencies successfully.\n", word_count);
+    fclose(f);
+    return 1;
+}
+
 // --- Init ---
 
-KhmerSegmenter* khmer_segmenter_init(const char* dictionary_path, const char* frequency_path) {
-    (void)frequency_path; // Unused for now
+
+KhmerSegmenter* khmer_segmenter_init_ex(const char* dictionary_path, const char* frequency_path, SegmenterConfig* config) {
     KhmerSegmenter* seg = (KhmerSegmenter*)malloc(sizeof(KhmerSegmenter));
-    // Optimization: Increased hashmap size for reduced collisions (80k words -> 131k slots)
+    
+    // Set configuration
+    if (config) {
+        seg->config = *config;
+    } else {
+        seg->config = segmenter_config_default();
+    }
+    
+    // Optimization: Increased hashmap size for reduced collisions
     seg->word_costs = hashmap_create(131072);
     seg->max_word_length = 0;
     seg->default_cost = 10.0f;
@@ -291,6 +461,7 @@ KhmerSegmenter* khmer_segmenter_init(const char* dictionary_path, const char* fr
     
     seg->rule_engine = rule_engine_init(NULL);
 
+    // Load dictionary
     FILE* f_dict = fopen(dictionary_path, "r");
     if (f_dict) {
         printf("Loading dictionary from %s...\n", dictionary_path);
@@ -300,7 +471,33 @@ KhmerSegmenter* khmer_segmenter_init(const char* dictionary_path, const char* fr
             char* p = line;
             while (*p) { if (*p == '\r' || *p == '\n') *p = 0; else p++; }
             if (strlen(line) == 0) continue;
+            
+            // Filter invalid single chars if preprocessing enabled
+            if (seg->config.enable_variant_generation && strlen(line) == 1) {
+                int cp;
+                utf8_decode(line, &cp);
+                if (!is_valid_single_base_char(cp)) {
+                    continue; // Skip invalid single char
+                }
+            }
+            
+            // Filter words starting with Coeng
+            if (seg->config.enable_variant_generation && line[0] == '\xE1' && line[1] == '\x9F' && line[2] == '\x92') {
+                continue; // Skip words starting with Coeng
+            }
+            
+            // Filter words containing repetition mark
+            if (seg->config.enable_variant_generation && strstr(line, "\xE1\x9F\x97")) { // ៗ
+                continue;
+            }
+            
             hashmap_put(seg->word_costs, line, seg->default_cost);
+            
+            // Generate variants if enabled
+            if (seg->config.enable_variant_generation) {
+                generate_ta_da_variant(line, seg->word_costs, seg->default_cost);
+            }
+            
             if (strlen(line) > seg->max_word_length) seg->max_word_length = strlen(line);
             count++;
             if (count % 10000 == 0) printf("\rLoaded %d words...", count);
@@ -311,7 +508,21 @@ KhmerSegmenter* khmer_segmenter_init(const char* dictionary_path, const char* fr
         fprintf(stderr, "Error loading dictionary: %s\n", dictionary_path);
     }
 
+    // Load frequency costs if enabled and path provided
+    if (seg->config.enable_frequency_costs && frequency_path && *frequency_path) {
+        if (load_binary_frequencies(seg, frequency_path)) {
+            // Binary file loaded successfully
+            // Note: default_cost and unknown_cost should ideally be recalculated
+            // based on the actual frequency distribution, but for simplicity
+            // we keep the values that were computed in the Python script
+        }
+    }
+
     return seg;
+}
+
+KhmerSegmenter* khmer_segmenter_init(const char* dictionary_path, const char* frequency_path) {
+    return khmer_segmenter_init_ex(dictionary_path, frequency_path, NULL);
 }
 
 // --- Segmentation (Viterbi) ---
@@ -323,7 +534,7 @@ typedef struct {
 } State;
 
 char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const char* separator) {
-    if (!raw_text || !*raw_text) return _strdup("");
+    if (!raw_text || !*raw_text) return STRDUP("");
     if (!separator) separator = "\xE2\x80\x8B"; 
 
     // 0. Normalize
@@ -343,6 +554,36 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
         
         int cp;
         int char_len = utf8_decode(text + i, &cp);
+
+        // Repair Mode: Check for malformed input
+        int force_repair = 0;
+        if (seg->config.enable_repair_mode) {
+            // Check for orphaned Coeng
+            if (i > 0) {
+                int prev_cp;
+                utf8_decode(text + i - 1, &prev_cp);  // Simplified check
+                if (prev_cp == 0x17D2 && (cp >= 0x1780 && cp <= 0x17A2)) {
+                    // Valid subscript should have been attached
+                    force_repair = 1;
+                }
+            }
+            
+            // Check for isolated dependent vowel
+            if (cp >= 0x17B6 && cp <= 0x17C5) {
+                force_repair = 1;
+            }
+        }
+        
+        if (force_repair) {
+            // Recovery mode: Consume 1 character with huge penalty
+            size_t next_idx = i + char_len;
+            float repair_cost = seg->unknown_cost + 50.0f;
+            if (next_idx <= n && dp[i].cost + repair_cost < dp[next_idx].cost) {
+                dp[next_idx].cost = dp[i].cost + repair_cost;
+                dp[next_idx].prev_idx = (int)i;
+            }
+            continue; // Skip normal processing
+        }
 
         // 1. Number / Currency Grouping
         int is_dig = is_digit_cp(cp);
@@ -371,6 +612,17 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
                  dp[next_idx].cost = dp[i].cost + step_cost;
                  dp[next_idx].prev_idx = (int)i;
              }
+        }
+
+        // 2.5 Acronym Detection (if enabled)
+        if (seg->config.enable_acronym_detection && is_acronym_start(text, n, i)) {
+            size_t acr_len = get_acronym_length(text, n, i);
+            size_t next_idx = i + acr_len;
+            float step_cost = seg->default_cost;
+            if (next_idx <= n && dp[i].cost + step_cost < dp[next_idx].cost) {
+                dp[next_idx].cost = dp[i].cost + step_cost;
+                dp[next_idx].prev_idx = (int)i;
+            }
         }
 
         // 3. Dictionary Match
@@ -452,6 +704,88 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
     // Apply Rules
     if (seg->rule_engine) {
         rule_engine_apply(seg->rule_engine, seg_list);
+    }
+
+    // Merge Consecutive Unknowns (if enabled)
+    if (seg->config.enable_unknown_merging && seg_list->count > 0) {
+        SegmentList* merged = segment_list_create(seg_list->count);
+        char* unknown_buffer = NULL;
+        size_t buffer_len = 0;
+        size_t buffer_cap = 0;
+        
+        for (size_t i = 0; i < seg_list->count; i++) {
+            const char* s = seg_list->items[i];
+            
+            // Determine if segment is known
+            int is_known = 0;
+            
+            // Check if separator
+            if (strlen(s) == 1 || strlen(s) == 3) {  // Most separators are 1 or 3 bytes
+                int cp;
+                utf8_decode(s, &cp);
+                if (is_separator_cp(cp)) is_known = 1;
+            }
+            
+            // Check if digit
+            if (!is_known && strlen(s) > 0) {
+                int cp;
+                utf8_decode(s, &cp);
+                if (is_digit_cp(cp)) is_known = 1;
+            }
+            
+            // Check if in dictionary
+            float dummy_cost;
+            if (!is_known && hashmap_get(seg->word_costs, s, &dummy_cost)) {
+                is_known = 1;
+            }
+            
+            // Check if valid single base char
+            if (!is_known && strlen(s) > 0) {
+                int cp;
+                int len = utf8_decode(s, &cp);
+                if (len == strlen(s) && is_valid_single_base_char(cp)) {
+                    is_known = 1;
+                }
+            }
+            
+            // Check if acronym (contains dot and length >= 2)
+            if (!is_known && strlen(s) >= 2 && strchr(s, '.')) {
+                is_known = 1;
+            }
+            
+            if (is_known) {
+                // Flush unknown buffer if any
+                if (unknown_buffer) {
+                    segment_list_add(merged, unknown_buffer);
+                    free(unknown_buffer);
+                    unknown_buffer = NULL;
+                    buffer_len = 0;
+                    buffer_cap = 0;
+                }
+                // Add known segment
+                segment_list_add(merged, s);
+            } else {
+                // Append to unknown buffer
+                size_t s_len = strlen(s);
+                if (buffer_len + s_len + 1 > buffer_cap) {
+                    buffer_cap = (buffer_len + s_len + 1) * 2;
+                    unknown_buffer = (char*)realloc(unknown_buffer, buffer_cap);
+                    if (buffer_len == 0) unknown_buffer[0] = 0;
+                }
+                strcat(unknown_buffer, s);
+                buffer_len += s_len;
+            }
+        }
+        
+        // Flush remaining unknown buffer
+        if (unknown_buffer) {
+            segment_list_add(merged, unknown_buffer);
+            free(unknown_buffer);
+        }
+        
+        // Replace seg_list with merged
+        segment_list_free(seg_list);
+        seg_list = merged;
     }
 
     // Concatenate Result

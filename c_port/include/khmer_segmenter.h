@@ -2,6 +2,7 @@
 #define KHMER_SEGMENTER_H
 
 #include <stddef.h>
+#include "khmer_segmenter_config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,13 +11,23 @@ extern "C" {
 typedef struct KhmerSegmenter KhmerSegmenter;
 
 /**
- * @brief Initialize the Khmer Segmenter.
+ * @brief Initialize the Khmer Segmenter with default configuration (all features enabled).
  * 
  * @param dictionary_path Path to the dictionary file (line-separated words).
- * @param frequency_path Path to the frequency file (JSON or text).
+ * @param frequency_path Path to the binary frequency file.
  * @return Pointer to the segmenter instance, or NULL on failure.
  */
 KhmerSegmenter* khmer_segmenter_init(const char* dictionary_path, const char* frequency_path);
+
+/**
+ * @brief Initialize the Khmer Segmenter with custom configuration.
+ * 
+ * @param dictionary_path Path to the dictionary file (line-separated words).
+ * @param frequency_path Path to the binary frequency file (optional, can be NULL).
+ * @param config Pointer to configuration struct (enables/disables features).
+ * @return Pointer to the segmenter instance, or NULL on failure.
+ */
+KhmerSegmenter* khmer_segmenter_init_ex(const char* dictionary_path, const char* frequency_path, SegmenterConfig* config);
 
 /**
  * @brief Segment a Khmer string.
