@@ -71,8 +71,8 @@ zig-out/
 ```
 
 **Size comparison:**
-- Release build: ~200 KB (optimized)
-- Debug build: ~765 KB (with symbols)
+- Release build: ~32 KB (optimized)
+- Debug build: ~2.6 MB (with symbols)
 
 ## Usage
 

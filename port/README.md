@@ -180,7 +180,7 @@ if (strlen(txt) == 6) {
 }
 ```
 
-*Pros*: Blazing fast (nanoseconds), zero allocation, tiny binary size.
+*Pros*: Blazing fast (nanoseconds), zero allocation, tiny binary size (~68 KB on Windows, ~32 KB on WSL).
 *Cons*: Requires recompilation to change rules.
 
 ### 5.2 Merge Consecutive Unknowns

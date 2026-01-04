@@ -19,7 +19,7 @@ In the current NLP landscape (2026), there is a significant trade-off between **
 | **Logic** | "Search": Find the mathematically best path through a curated dictionary. | "Patterns": Infer boundaries based on patterns seen in millions of articles. |
 | **Transparency** | **White Box**: If a word splits incorrectly, you simply update the dictionary or frequency table. | **Black Box**: Errors require retraining with thousands of examples; shifts are often opaque. |
 | **Hardware** | **Ultra-Light**: Runs on anything (Drones, Mobile, Arduinos, Low-power CPUs). | **Heavy**: Usually requires GPUs or high-end CPUs and massive RAM. |
-| **Size** | **Tiny**: ~1MB (Dictionary size) + a few KB of logic. | **Massive**: 500MB to 10GB+ of model weights. |
+| **Size** | **Tiny**: ~3 MB (Dictionary size) + <100KB of logic. | **Massive**: 500 MB to 10 GB+ of model weights. |
 | **Determinism** | **100% Consistent**: Same input + Same dict always equals Same output. | **Stochastic**: Can "hallucinate" or vary results based on subtle context shifts. |
 
 ### The "Context" Argument

@@ -57,6 +57,7 @@ pub fn build(b: *std.Build) void {
     // Build both debug and release versions
     const debug_exe = createExecutable(b, target, .Debug, "_debug");
     const release_exe = createExecutable(b, target, .ReleaseFast, "");
+    release_exe.root_module.strip = true;
 
     // Custom install paths for each build type using platform directory
     const debug_path = b.fmt("{s}/bin", .{platform_dir});
