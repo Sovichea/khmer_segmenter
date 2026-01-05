@@ -538,6 +538,8 @@ int main(int argc, char** argv) {
     int threads = 4;
     int limit = -1;
     
+    SegmenterConfig config = segmenter_config_default();
+    
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--benchmark") == 0) {
             mode_benchmark = 1;
@@ -552,6 +554,16 @@ int main(int argc, char** argv) {
             threads = atoi(argv[++i]);
         } else if (strcmp(argv[i], "--limit") == 0 && i+1 < argc) {
             limit = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "--no-norm") == 0) {
+            config.enable_normalization = 0;
+        } else if (strcmp(argv[i], "--no-repair") == 0) {
+            config.enable_repair_mode = 0;
+        } else if (strcmp(argv[i], "--no-acronym") == 0) {
+            config.enable_acronym_detection = 0;
+        } else if (strcmp(argv[i], "--no-merging") == 0) {
+            config.enable_unknown_merging = 0;
+        } else if (strcmp(argv[i], "--no-freq") == 0) {
+            config.enable_frequency_costs = 0;
         } else if (argv[i][0] != '-') {
             input_text = argv[i]; // Treat positional as text
         }
@@ -562,32 +574,48 @@ int main(int argc, char** argv) {
     }
     
     // Check for dictionary in probable locations
-    const char* dict_path = "port/common/khmer_dictionary_words.txt";
-    const char* freq_path = "port/common/khmer_frequencies.bin";
+    const char* dict_path = "khmer_dictionary.kdict";
+    const char* freq_path = "";
     
-    FILE* check = fopen(dict_path, "r");
+    // 1. CWD .kdict
+    FILE* check = fopen(dict_path, "rb");
+    
+    // 2. port/common/ .kdict
+    if (!check) {
+        dict_path = "port/common/khmer_dictionary.kdict";
+        check = fopen(dict_path, "rb");
+    }
+    
+    // 3. ../common/ .kdict
+    if (!check) {
+        dict_path = "../common/khmer_dictionary.kdict";
+        check = fopen(dict_path, "rb");
+    }
+    
+    // 4. Fallback to txt/bin (Legacy)
+    if (!check) {
+         dict_path = "port/common/khmer_dictionary_words.txt";
+         check = fopen(dict_path, "r");
+         if (check) freq_path = "port/common/khmer_frequencies.bin";
+    }
     if (!check) {
         dict_path = "../common/khmer_dictionary_words.txt";
         check = fopen(dict_path, "r");
+        if (check) freq_path = "../common/khmer_frequencies.bin";
     }
     if (!check) {
         dict_path = "data/khmer_dictionary_words.txt";
         check = fopen(dict_path, "r");
+        if (check) freq_path = "data/khmer_frequencies.bin";
     }
+    
     if (check) fclose(check);
-
-    // Update frequencies path based on dictionary location for consistency
-    if (strstr(dict_path, "../common/")) {
-        freq_path = "../common/khmer_frequencies.bin";
-    } else if (strstr(dict_path, "data/")) {
-        freq_path = "data/khmer_frequencies.bin";
-    }
 
     if (mode_benchmark || input_files_count > 0) {
         fprintf(stderr, "Initializing segmenter (Dict: %s, Freq: %s)...\n", dict_path, freq_path);
     }
 
-    KhmerSegmenter* seg = khmer_segmenter_init(dict_path, freq_path);
+    KhmerSegmenter* seg = khmer_segmenter_init_ex(dict_path, freq_path, &config);
     if (!seg) {
         fprintf(stderr, "Failed to init segmenter.\n");
         return 1;

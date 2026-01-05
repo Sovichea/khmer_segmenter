@@ -171,6 +171,8 @@ static int is_separator(const char* s) {
     if (cp >= 0x17D4 && cp <= 0x17DA) return 1;
     if (cp == 0x17DB) return 1;
     if (cp < 0x80 && (ispunct(cp) || isspace(cp))) return 1;
+    if (cp == 0xA0) return 1;
+    if (cp == 0x2DD) return 1;
     if (cp == 0xAB || cp == 0xBB) return 1;
     if (cp >= 0x2000 && cp <= 0x206F) return 1;
     if (cp >= 0x20A0 && cp <= 0x20CF) return 1;
@@ -206,8 +208,8 @@ void rule_engine_apply(RuleEngine* eng, SegmentList* segments, MemArena* arena) 
 
         // Rule 0: "Ahsda Exception Keep"
         if (len == 6) {
-            if (txt[3] == 0xE1 && txt[4] == 0x9F && txt[5] == 0x8E) {
-                if (txt[0] == 0xE1 && txt[1] == 0x9E && (txt[2] == 0x80 || txt[2] == 0x8A)) {
+            if (txt[3] == 0xE1 && txt[4] == 0x9F && txt[5] == 0x8F) { // U+17CF (Ahsda)
+                if (txt[0] == 0xE1 && txt[1] == 0x9E && (txt[2] == 0x80 || txt[2] == 0x8A)) { // KA or DA
                     i++;
                     continue;
                 }
@@ -231,7 +233,6 @@ void rule_engine_apply(RuleEngine* eng, SegmentList* segments, MemArena* arena) 
                  segments->items[i] = new_seg;
                  
                  if (!arena) free(segments->items[i+1]);
-                 // Shift
                  for (int k = i + 1; k < (int)segments->count - 1; k++) {
                      segments->items[k] = segments->items[k+1];
                  }
@@ -242,7 +243,7 @@ void rule_engine_apply(RuleEngine* eng, SegmentList* segments, MemArena* arena) 
         
         if (rule_applied) continue;
 
-        // Rule 2 & 4: Suffix Checks
+        // Rule 2 & 4: Suffix Checks (Signs Merge Left)
         if (len == 6) {
              if (txt[0] == 0xE1 && txt[1] == 0x9E && txt[2] >= 0x80 && txt[2] <= 0xA2) {
                  unsigned char* suffix = txt + 3;
@@ -283,7 +284,7 @@ void rule_engine_apply(RuleEngine* eng, SegmentList* segments, MemArena* arena) 
         
         if (rule_applied) continue;
 
-        // Rule 3: Samyok Sannya
+        // Rule 3: Samyok Sannya (Merge Next)
         if (len == 6) {
              if (txt[0] == 0xE1 && txt[1] == 0x9E && txt[2] >= 0x80 && txt[2] <= 0xA2) {
                  if (txt[3] == 0xE1 && txt[4] == 0x9F && txt[5] == 0x90) {

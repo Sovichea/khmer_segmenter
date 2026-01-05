@@ -66,6 +66,7 @@ typedef struct {
     char str[16]; // Max length of one cluster part
     int type; 
     int cp; 
+    int index; // For stable sort
 } ClsPart;
 
 static int get_prio(ClsPart* p) {
@@ -74,11 +75,12 @@ static int get_prio(ClsPart* p) {
     if (cp == 0x17D2) {
             // Check second char
             int next_cp;
-            if (p->str[3]) { // simplistic utf-8 check assumes 3 byte coeng
-                utf8_dec_norm(p->str + 3, &next_cp); // 17D2 is 3 bytes E1 9F 92
-                if (next_cp == 0x179A) return 20;
+            if (p->str[3]) { // Simplistic utf-8 check for combined subscript
+                utf8_dec_norm(p->str + 3, &next_cp); 
+                if (next_cp == 0x179A) return 20; // 2: Ro Subscript
+                return 10; // 1: Non-Ro Subscript
             }
-            return 10;
+            return 15; // 1.5: Stray Coeng
     }
     if (p->type == 3) return 30; // Register
     if (p->type == 4) return 40; // Vowel
@@ -93,7 +95,7 @@ static int compare_parts(const void* a, const void* b) {
     int prioA = get_prio(pa);
     int prioB = get_prio(pb);
     if (prioA != prioB) return prioA - prioB;
-    return pa->cp - pb->cp; // stable-ish
+    return pa->index - pb->index; // STABLE SORT
 }
 
 static void flush_cluster(StrBuf* final, ClsPart* cluster, int* cls_count) {
@@ -120,8 +122,8 @@ char* khmer_normalize(const char* text) {
         int cp;
         int len = utf8_dec_norm(p, &cp);
         
-        // ZWS Removal
-        if (cp == 0x200B) {
+        // ZWS, ZWNJ, ZWJ Removal
+        if (cp == 0x200B || cp == 0x200C || cp == 0x200D) {
             p += len; 
             continue;
         }
@@ -170,6 +172,7 @@ char* khmer_normalize(const char* text) {
             // Start new
             utf8_dec_norm(p + i, &cluster[cls_count].cp);
             cluster[cls_count].type = type;
+            cluster[cls_count].index = cls_count;
             strncpy(cluster[cls_count].str, p+i, len);
             cluster[cls_count].str[len] = 0;
             cls_count++;
@@ -181,13 +184,14 @@ char* khmer_normalize(const char* text) {
             int next_len = 0;
             if (i + len < n) next_len = utf8_dec_norm(p + i + len, &next_cp);
             
-            // If next is BASE or RO? (all consonants)
-            if (next_len && (next_cp >= 0x1780 && next_cp <= 0x17A2)) {
+            // If next is BASE (Consonants or Independent Vowels)
+            if (next_len && get_char_type_norm(next_cp) == 1) {
                  // Combined part
                  strncpy(cluster[cls_count].str, p+i, len + next_len);
                  cluster[cls_count].str[len + next_len] = 0;
                  cluster[cls_count].type = 2; // Coeng Part
                  cluster[cls_count].cp = cp;
+                 cluster[cls_count].index = cls_count;
                  cls_count++;
                  i += len + next_len;
             } else {
@@ -196,6 +200,7 @@ char* khmer_normalize(const char* text) {
                  cluster[cls_count].str[len] = 0;
                  cluster[cls_count].type = 2; // Treat as Coeng
                  cluster[cls_count].cp = cp;
+                 cluster[cls_count].index = cls_count;
                  cls_count++;
                  i += len;
             }
@@ -207,6 +212,7 @@ char* khmer_normalize(const char* text) {
                  cluster[cls_count].str[len] = 0;
                  cluster[cls_count].type = type;
                  cluster[cls_count].cp = cp;
+                 cluster[cls_count].index = cls_count;
                  cls_count++;
                  i += len; 
             } else {

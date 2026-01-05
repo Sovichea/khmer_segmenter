@@ -35,7 +35,7 @@ class KhmerSegmenter:
             
         with open(path, 'r', encoding='utf-8') as f:
             for line in f:
-                word = line.strip()
+                word = line.strip().replace('\u200b', '').replace('\u200c', '').replace('\u200d', '')
                 if word:
                     # Filter out single-character words that are NOT valid base characters
                     if len(word) == 1 and not self._is_valid_single_base_char(word):
@@ -209,8 +209,9 @@ class KhmerSegmenter:
         return final_variants
 
     def _load_frequencies(self, path):
-        if not os.path.exists(path):
-            print(f"Frequency file not found at {path}. Using default costs.")
+        if not path or not os.path.exists(path):
+            if path:
+                print(f"Frequency file not found at {path}. Using default costs.")
             return
 
         with open(path, 'r', encoding='utf-8') as f:
@@ -232,6 +233,7 @@ class KhmerSegmenter:
         total_tokens = 0
         
         for word, count in data.items():
+            word = word.replace('\u200b', '').replace('\u200c', '').replace('\u200d', '')
             eff = max(count, min_freq_floor)
             effective_counts[word] = eff
             
@@ -458,7 +460,7 @@ class KhmerSegmenter:
 
 
 
-    def segment(self, text):
+    def segment(self, text, disable_post_processing=False):
         """
         Segment the text using Viterbi Algorithm (Minimize Cost / Maximize Probability).
         """
@@ -601,6 +603,9 @@ class KhmerSegmenter:
         
 
         
+        if disable_post_processing:
+            return raw_segments
+            
         # 4. Apply Rule-Based Post-Processing
         # This replaces the hardcoded "Pass 1" (Invalid Singles) and "Pass 2" (Heuristics)
         pass2_segments = self.rule_engine.apply_rules(raw_segments)

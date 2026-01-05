@@ -11,6 +11,7 @@ typedef struct {
     int enable_repair_mode;          /* Handle malformed input gracefully */
     int enable_acronym_detection;    /* Detect and preserve acronyms (Cluster+.)+ */
     int enable_unknown_merging;      /* Merge consecutive unknown segments */
+    int enable_normalization;       /* Enable input normalization */
 } SegmenterConfig;
 
 /**
@@ -23,6 +24,7 @@ static inline SegmenterConfig segmenter_config_default() {
     config.enable_repair_mode = 1;
     config.enable_acronym_detection = 1;
     config.enable_unknown_merging = 1;
+    config.enable_normalization = 1;
     return config;
 }
 
@@ -36,6 +38,7 @@ static inline SegmenterConfig segmenter_config_disabled() {
     config.enable_repair_mode = 0;
     config.enable_acronym_detection = 0;
     config.enable_unknown_merging = 0;
+    config.enable_normalization = 0;
     return config;
 }
 
