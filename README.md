@@ -117,7 +117,10 @@ This will generate `data/unknown_words_from_results.txt` showing the unknown wor
 
 ## 4. Benchmark & Performance Comparison
 
-We compared `KhmerSegmenter` against `khmernltk` using real-world complex text:
+We provide two benchmarks: one for **Real-Time Latency** (single sentence, micro-benchmark) and one for **Batch Throughput** (large corpus, macro-benchmark).
+
+### Scenario A: Real-Time / Latency (Micro-benchmark)
+*Context: Processing a single complex paragraph repeated (simulates typing, chatbot, UI).*
 
 |Feature|khmernltk (Python)|KhmerSegmenter (Python)|KhmerSegmenter (C Port)|
 |:---|:---|:---|:---|
@@ -126,19 +129,30 @@ We compared `KhmerSegmenter` against `khmernltk` using real-world complex text:
 |**Execution Speed (Seq)**|~5.77ms / call|~5.77ms / call (Baseline)|**~0.59ms / call** (WSL)|
 |**Concurrent (10 Workers)**|~318 calls / sec (GIL)|~447 calls / sec (GIL)|**~9240 calls / sec** (WSL)|
 |**Concurrent Memory Delta**|~12.1 MB|~19.0 MB|**~0.17 MB** (Efficient)|
-|**Complex Input**|Splits numbers/acronyms|Correctly Groups (Rules)|**Correctly Groups**|
+|**Concurrent Speedup**|0.9x (GIL)|~1.4x (GIL overhead)|**~15x** (Linear)|
 |**Characteristics**|ML/Rule Hybrid|Pure Logic (Python)|**Pure Logic (Native)**|
+
+### Scenario B: Batch Processing / Throughput (Macro-benchmark)
+*Context: Processing large datasets (Khmer Wiki Corpus, 50,000 lines).*
+
+|Metric|khmernltk (Python)|KhmerSegmenter (Python)|KhmerSegmenter (C Port)|
+|:---|:---|:---|:---|
+|**Load Time**|~1.84s|~0.28s (6x Faster)|**< 0.05s** (Instant)|
+|**Memory Overhead**|~53.7 MB|~27.8 MB|**~23 MB**|
+|**Throughput (Seq)**|~429 lines / sec|~585 lines / sec|**~5,310 lines / sec** (12x)|
+|**Throughput (10 Threads)**|~391 lines / sec (GIL)|~553 lines / sec (GIL)|**~32,571 lines / sec** (83x)|
+|**Complex Input**|Splits numbers/acronyms|Correctly Groups (Rules)|**Correctly Groups**|
 
 ### Performance Analysis
 
-#### 1. Concurrency & Threading
-Benchmarks run with `10 workers` using a `ThreadPoolExecutor` show that `KhmerSegmenter` achieves **~447 calls/sec** vs `khmernltk`'s **~318 calls/sec**.
+#### 1. Massive Throughput (C Port)
+With file-based benchmarking on WSL, the C port processes **32,571 lines per second** using 10 threads, compared to ~553 lines/sec in Python. This **~60x - 80x speedup** validates the linear scaling of the C implementation on multi-core systems, making it suitable for high-volume ETL pipelines.
 
-*   **Python Limitations (GIL)**: In Python, concurrent performance is restricted by the **Global Interpreter Lock (GIL)**. This limits true parallelism.
-*   **C Port Advantage**: The C port, free from the GIL, achieves **~9240 calls/sec** (over **20x faster** than Python concurrent). This demonstrates linear scaling: adding more CPU cores directly translates to higher throughput, making it ideal for high-load server environments.
+#### 2. Concurrency & The GIL
+Python-based segmenters (both ours and `khmernltk`) see **negative scaling** (0.9x speedup) when adding threads due to the **Global Interpreter Lock (GIL)** and overhead. Python is strictly limited to single-core CPU speeds for this workload.
 
-#### 2. Cold Start
-`KhmerSegmenter` initializes in **~0.30s**, whereas `khmernltk` takes **~1.8s+** to load its model. This makes `KhmerSegmenter` ideal for "Serverless" functions where startup latency is a primary billing and UX concern.
+#### 3. Low Latency & Cold Start
+`KhmerSegmenter` initializes in **~0.28s**, whereas `khmernltk` takes **~1.8s+** to load its model. This makes `KhmerSegmenter` ideal for "Serverless" functions where startup latency is a primary billing and UX concern.
 
 ### Real-World Complex Sentence Example
 

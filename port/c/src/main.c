@@ -142,6 +142,11 @@ static char* read_line(FILE* f) {
         data[--len] = '\0';
     }
 
+    // Shrink buffer to fit actual content to save memory
+    // (Otherwise we waste ~4KB per line)
+    char* shrunk = (char*)realloc(data, len + 1);
+    if (shrunk) data = shrunk;
+
     return data;
 }
 
@@ -303,18 +308,34 @@ void run_input_benchmark(KhmerSegmenter* seg, char** lines, int count, int threa
     if (count <= 0) return;
     
     char** results = (char**)calloc(count, sizeof(char*));
-    fprintf(stderr, "\n--- Input Benchmark (%d lines) ---\n", count);
+    
+    // Calculate total size for throughput
+    size_t total_bytes = 0;
+    for(int i=0; i<count; i++) {
+        if (lines[i]) total_bytes += strlen(lines[i]);
+    }
+    double total_mb = (double)total_bytes / (1024.0 * 1024.0);
+
+    fprintf(stderr, "\n--- Input Benchmark (%d lines, %.2f MB) ---\n", count, total_mb);
+    fprintf(stderr, "Initial Memory: %.2f MB\n", get_memory_mb());
     
     // 1. Sequential (1 Thread)
     fprintf(stderr, "[1 Thread] Processing...");
-    double start = get_time_sec();
+    double start_time = get_time_sec();
+    double start_mem = get_memory_mb();
+    
     for (int i=0; i<count; i++) {
         results[i] = khmer_segmenter_segment(seg, lines[i], " | ");
     }
-    double end = get_time_sec();
-    double dur_seq = end - start;
+    
+    double end_time = get_time_sec();
+    double end_mem = get_memory_mb();
+    double dur_seq = end_time - start_time;
     if (dur_seq < 0.001) dur_seq = 0.001; 
-    fprintf(stderr, " Done in %.3fs (%.2f lines/sec)\n", dur_seq, (double)count / dur_seq);
+    
+    fprintf(stderr, " Done in %.3fs\n", dur_seq);
+    fprintf(stderr, "Throughput: %.2f lines/sec (%.2f MB/s)\n", (double)count / dur_seq, total_mb / dur_seq);
+    fprintf(stderr, "Mem Delta: %.2f MB\n", end_mem - start_mem);
     
     // Save results to file if output is open
     if (out) {
@@ -331,8 +352,9 @@ void run_input_benchmark(KhmerSegmenter* seg, char** lines, int count, int threa
     
     // 2. Multi-threaded run
     if (threads > 1) {
-        fprintf(stderr, "[%d Threads] Processing...", threads);
-        start = get_time_sec();
+        fprintf(stderr, "\n[%d Threads] Processing...", threads);
+        start_time = get_time_sec();
+        start_mem = get_memory_mb();
         
 #ifdef _WIN32
         HANDLE* handles = (HANDLE*)malloc(threads * sizeof(HANDLE));
@@ -371,10 +393,14 @@ void run_input_benchmark(KhmerSegmenter* seg, char** lines, int count, int threa
         free(args);
 #endif
         
-        end = get_time_sec();
-        double dur_conc = end - start;
+        end_time = get_time_sec();
+        end_mem = get_memory_mb();
+        double dur_conc = end_time - start_time;
         if (dur_conc < 0.001) dur_conc = 0.001;
-        fprintf(stderr, " Done in %.3fs (%.2f lines/sec)\n", dur_conc, (double)count / dur_conc);
+        
+        fprintf(stderr, " Done in %.3fs\n", dur_conc);
+        fprintf(stderr, "Throughput: %.2f lines/sec (%.2f MB/s)\n", (double)count / dur_conc, total_mb / dur_conc);
+        fprintf(stderr, "Mem Delta: %.2f MB\n", end_mem - start_mem);
         fprintf(stderr, "Speedup: %.2fx\n", dur_seq / dur_conc);
     }
     

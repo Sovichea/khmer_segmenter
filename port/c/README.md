@@ -145,16 +145,16 @@ Run performance tests using the built-in sample or your own data. Results are al
 
 ## Performance Comparison
 
-Comparing segmentation speed on a long text paragraph (~935 characters) running 1000 iterations for Single Thread, and 5000 iterations for 10 Threads:
+Comparing segmentation speed on various workloads:
 
-| Version | Build Type | Time per Call | Throughput | Notes |
+| Scenario | Version | Threads | Throughput | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Python** | N/A | ~5.77 ms | ~173 calls/s | Baseline logic |
-| **C Port** | Debug | ~8.56 ms | ~116 calls/s | Includes safety checks & unoptimized code |
-| **C Port** | Release (Seq) | ~0.59 ms | ~1709 calls/s | Single Thread (WSL Results) |
-| **C Port** | **Release (10 Threads)** | **~0.11 ms*** | **~9240 calls/s** | **Massive Throughput scaling** |
+| **Micro-Benchmark** (Latency) | **Python** | 1 | ~173 calls/s | Baseline logic |
+| **Micro-Benchmark** (Latency) | **C Port** | 1 | ~1,709 calls/s | Single Thread (WSL) |
+| **Micro-Benchmark** (Latency) | **C Port** | 10 | **~9,240 calls/s** | Repeated single paragraph |
+| **Macro-Benchmark** (Throughput) | **Python** | 10 | ~553 lines/s | File I/O + GIL bottleneck |
+| **Macro-Benchmark** (Throughput) | **C Port** | 10 | **~32,571 lines/s** | **Massive Scaling on Real Corpus** |
 
-*> * Effective time per call under load (1/Throughput).*  
 *> Note: Benchmarks run on standard consumer hardware. Multi-threaded throughput scales linearly with core count.*
 
 ## Platform-Specific Notes
