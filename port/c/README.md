@@ -27,6 +27,21 @@ The codebase automatically adapts to the target platform, using platform-specifi
     zig version
     ```
 
+## Data Preparation
+
+The C port requires compiled dictionary and frequency files to function. These are generated from the Python project.
+
+If you are just building the C port, these files might already be in `port/common/`. If not, or if you modified the dictionary (`data/khmer_dictionary_words.txt`), run:
+
+```bash
+# From project root
+python scripts/prepare_data.py
+```
+
+This will generate:
+- `port/common/khmer_dictionary.kdict` (Baked Dictionary)
+- `port/common/khmer_frequencies.bin` (Binary Frequencies)
+
 ## Building
 
 Navigate to the `port/c` directory:
@@ -136,8 +151,8 @@ Comparing segmentation speed on a long text paragraph (~935 characters) running 
 | :--- | :--- | :--- | :--- | :--- |
 | **Python** | N/A | ~5.77 ms | ~173 calls/s | Baseline logic |
 | **C Port** | Debug | ~8.56 ms | ~116 calls/s | Includes safety checks & unoptimized code |
-| **C Port** | Release (Seq) | ~1.52 ms | ~656 calls/s | Single Thread (WSL Results) |
-| **C Port** | **Release (10 Threads)** | **~0.23 ms*** | **~4437 calls/s** | **Massive Throughput scaling** |
+| **C Port** | Release (Seq) | ~0.59 ms | ~1709 calls/s | Single Thread (WSL Results) |
+| **C Port** | **Release (10 Threads)** | **~0.11 ms*** | **~9240 calls/s** | **Massive Throughput scaling** |
 
 *> * Effective time per call under load (1/Throughput).*  
 *> Note: Benchmarks run on standard consumer hardware. Multi-threaded throughput scales linearly with core count.*

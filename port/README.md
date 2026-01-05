@@ -36,6 +36,42 @@ Designed for fast loading (mmap-friendly). All integers are **Little Endian**.
 - Load entries into a `HashMap<String, float>`.
 - **Merge Logic**: If a word is in the Dictionary but NOT in this map, assign it `Default Cost`.
 
+### 1.3 Baked Binary Dictionary (KDIC)
+
+The C port uses a custom "Baked" format (`.kdict`) for zero-parsing startup. This format dumps the in-memory hash table structure directly to disk.
+
+**Vs. `khmer_frequencies.bin`?**
+*   `khmer_frequencies.bin` (KLIB) is a raw list of Words + Costs. It requires the loader to parse, hash, and insert into a hash map at runtime (Slow).
+*   `khmer_dictionary.kdict` (KDIC) **is** the hash map. The `prepare_data.py` script pre-calculates the hashes and layout. The C port simply loads this file into memory and casts a pointer to it (Instant).
+
+**File Structure:**
+
+1.  **Header (32 Bytes)**:
+    *   `magic`: `char[4]` ("KDIC")
+    *   `version`: `uint32` (1)
+    *   `num_entries`: `uint32`
+    *   `table_size`: `uint32` (Power of 2)
+    *   `default_cost`: `float32`
+    *   `unknown_cost`: `float32`
+    *   `max_word_length`: `uint32`
+    *   `padding`: `uint32` (Reserved)
+
+2.  **Hash Table (Array of `KDictEntry`)**:
+    *   Located immediately after Header.
+    *   Size: `table_size * sizeof(KDictEntry)`
+    *   **Entry Struct**:
+        *   `name_offset`: `uint32` (Offset into String Pool. 0 = Empty)
+        *   `cost`: `float32` (Pre-calculated log probability)
+
+3.  **String Pool**:
+    *   Located immediately after Hash Table.
+    *   Blob of null-terminated strings. `name_offset` points relative to the start of this pool.
+
+**Lookup Strategy**:
+*   **Hash**: DJB2.
+*   **Collision Resolution**: Linear Probing.
+*   **Incremental Hashing**: The format allows updating the hash char-by-char to scan substrings without re-hashing.
+
 ---
 
 ## 2. Normalization Engine

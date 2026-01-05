@@ -44,43 +44,58 @@ To install the required dependencies, run:
 pip install -r requirements.txt
 ```
 
+## Usage
+
+```python
+from khmer_segmenter import KhmerSegmenter
+
+# Initialize (Loads dictionary from default path)
+seg = KhmerSegmenter()
+
+# Segment text
+text = "ក្រុមហ៊ុនទទួលបានប្រាក់ចំណូល"
+result = seg.segment(text)
+
+print(result) 
+# Output: ['ក្រុមហ៊ុន', 'ទទួល', 'បាន', 'ប្រាក់ចំណូល']
+```
+
 ## C Port (High Performance)
 
 For users requiring maximum performance or embedding in C/C++/Zig applications, a native port is available in the [port/c/](port/c/) directory. All ports share common linguistic data found in [port/common/](port/common/).
 
-*   **Speed**: ~3.5x faster (Single Thread), more than 10x faster (Multi-Thread) running in WSL.
+*   **Speed**: ~10x faster (Single Thread), more than 20x faster (Multi-Thread) running in WSL.
 *   **Architecture**: Zero-dependency, **Regex-Free** Rule Engine (Hardcoded logic) for consistent O(n) performance.
 *   **Documentation**: See [port/c/README.md](port/c/README.md).
-## 1. Data Preparation (`scripts/generate_frequencies.py`)
+## 1. Data Preparation (`scripts/prepare_data.py`)
 
-Before the segmenter works, it needs a statistical model of the language:
+The project now uses a consolidated data pipeline to normalize text, generate frequencies, and compile binary dictionaries for all ports.
 
-1.  **Input Corpora**: The system reads raw Khmer text from files like `data/khmer_wiki_corpus.txt`, `data/khmer_folktales_extracted.txt`, and `data/allwords.txt`.
-2.  **Dictionary Filtering**: It loads `data/khmer_dictionary_words.txt` and filters out single-character words that are not true Khmer **Base Characters** (Consonants or Independent Vowels). This prevents signs or fragments from being treated as words.
-3.  **Frequency Generation**:
-    *   The `scripts/generate_frequencies.py` script supports two modes:
-        *   `--engine khmernltk` (Default): Uses the external library `khmernltk` to create a baseline frequency map from scratch.
-        *   `--engine internal`: Uses `KhmerSegmenter` itself. This is for **self-improvement**: once you have a baseline frequency file, you can run this to re-segment the corpus *using* that baseline to find potentially better or more consistent word counts, creating a feedback loop.
-    *   **Usage**:
-        ```bash
-        # Bootstrap baseline
-        python scripts/generate_frequencies.py --engine khmernltk --corpus data/khmer_wiki_corpus.txt --dict data/khmer_dictionary_words.txt --output data/khmer_word_frequencies.json
-        
-        # Improve using internal segmenter (after baseline exists)
-        python scripts/generate_frequencies.py --engine internal --corpus data/khmer_wiki_corpus.txt --dict data/khmer_dictionary_words.txt --output data/khmer_word_frequencies.json
-        ```
-    *   It re-scans the tokens and attempts to combine them to match the **longest possible entry** in our dictionary. This helps correct potential errors in the initial tokenization and ensures our frequencies align with our specific dictionary.
-    *   We calculate the count of each word and export this to `data/khmer_word_frequencies.json`.
+### Pipeline Steps:
+1.  **Normalize**: Strips ZWS, ZWNJ, and fixes composite vowels/clusters in the corpus.
+2.  **Generate Frequencies**: Tokenizes the corpus and counts word occurrences.
+3.  **Compile Binaries**:
+    *   `khmer_dictionary.kdict`: Optimized Hash Table for C/Zig port (Saved to `port/common/`).
+    *   `khmer_frequencies.bin`: Legacy binary format (Saved to `port/common/`).
 
-### Updating the Dictionary
+### Usage
 
-To add or modify words in the dictionary:
+Run the pipeline to rebuild all data assets:
+```bash
+# Run with default settings (uses internal segmenter)
+python scripts/prepare_data.py
 
-1.  **Edit the Dictionary File**: Open `data/khmer_dictionary_words.txt` and add/edit the words. Ensure there is only one word per line.
-2.  **Regenerate Frequencies**: Run the frequency generation script to update the statistical model. This ensures the segmenter knows about the new word and its usage probability.
-    ```bash
-    python scripts/generate_frequencies.py --engine internal
-    ```
+# Specify custom corpus or dictionary
+python scripts/prepare_data.py --corpus data/my_corpus.txt --dict data/my_dict.txt
+
+# Use khmernltk for initial bootstrapping
+python scripts/prepare_data.py --engine khmernltk
+```
+
+To add new words:
+1.  Add word to `data/khmer_dictionary_words.txt`.
+2.  Run `python scripts/prepare_data.py`.
+3.  The new word is now compiled into `khmer_dictionary.kdict` and ready for the C port.
 
 ## 2. The Segmentation Algorithm
 
@@ -107,10 +122,10 @@ We compared `KhmerSegmenter` against `khmernltk` using real-world complex text:
 |Feature|khmernltk (Python)|KhmerSegmenter (Python)|KhmerSegmenter (C Port)|
 |:---|:---|:---|:---|
 |**Cold Start (Load)**|~1.83s|~0.30s (6x Faster)|**< 0.05s** (Instant)|
-|**Memory Usage**|~113.6 MB|~21.6 MB (5x Leaner)|**~9 MB** (Lowest)|
-|**Execution Speed (Seq)**|~5.77ms / call|~5.77ms / call (Baseline)|**~1.52ms / call** (WSL)|
-|**Concurrent (10 Workers)**|~318 calls / sec (GIL)|~447 calls / sec (GIL)|**~4437 calls / sec** (WSL)|
-|**Concurrent Memory Delta**|~12.1 MB|~19.0 MB|**~1.0 MB** (Efficient)|
+|**Memory Usage**|~113.6 MB|~21.6 MB (5x Leaner)|**~4.8 MB** (Lowest)|
+|**Execution Speed (Seq)**|~5.77ms / call|~5.77ms / call (Baseline)|**~0.59ms / call** (WSL)|
+|**Concurrent (10 Workers)**|~318 calls / sec (GIL)|~447 calls / sec (GIL)|**~9240 calls / sec** (WSL)|
+|**Concurrent Memory Delta**|~12.1 MB|~19.0 MB|**~0.17 MB** (Efficient)|
 |**Complex Input**|Splits numbers/acronyms|Correctly Groups (Rules)|**Correctly Groups**|
 |**Characteristics**|ML/Rule Hybrid|Pure Logic (Python)|**Pure Logic (Native)**|
 
@@ -120,7 +135,7 @@ We compared `KhmerSegmenter` against `khmernltk` using real-world complex text:
 Benchmarks run with `10 workers` using a `ThreadPoolExecutor` show that `KhmerSegmenter` achieves **~447 calls/sec** vs `khmernltk`'s **~318 calls/sec**.
 
 *   **Python Limitations (GIL)**: In Python, concurrent performance is restricted by the **Global Interpreter Lock (GIL)**. This limits true parallelism.
-*   **C Port Advantage**: The C port, free from the GIL, achieves **~4437 calls/sec** (over **10x faster** than Python concurrent). This demonstrates linear scaling: adding more CPU cores directly translates to higher throughput, making it ideal for high-load server environments.
+*   **C Port Advantage**: The C port, free from the GIL, achieves **~9240 calls/sec** (over **20x faster** than Python concurrent). This demonstrates linear scaling: adding more CPU cores directly translates to higher throughput, making it ideal for high-load server environments.
 
 #### 2. Cold Start
 `KhmerSegmenter` initializes in **~0.30s**, whereas `khmernltk` takes **~1.8s+** to load its model. This makes `KhmerSegmenter` ideal for "Serverless" functions where startup latency is a primary billing and UX concern.
