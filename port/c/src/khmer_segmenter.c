@@ -143,6 +143,9 @@ static int is_separator_cp(int cp) {
     // Currency Symbols (0x20A0-0x20CF)
     if (cp >= 0x20A0 && cp <= 0x20CF) return 1;
 
+    // Latin-1 Currency
+    if (cp == 0xA3 || cp == 0xA5) return 1;
+
     return 0;
 }
 
@@ -481,14 +484,9 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
 
         // Handle Numbers, Currency, and Separators
         int is_dig = is_digit_cp(cp);
-        int is_curr_start = 0;
-        if ((cp == '$' || cp == 0x17DB || cp == 0x20AC || cp == 0xA3 || cp == 0xA5) && i + char_len < n) {
-             int next_c;
-             utf8_decode(text + i + char_len, &next_c);
-             if (is_digit_cp(next_c)) is_curr_start = 1;
-        }
-
-        if (is_dig || is_curr_start) {
+        // Removed: Currency Grouping Logic (Currency now treated as separator)
+        
+        if (is_dig) {
              size_t num_len = get_number_length(text, n, i);
              size_t next_idx = i + num_len;
              float step_cost = 1.0f;

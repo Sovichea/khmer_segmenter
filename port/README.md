@@ -117,7 +117,7 @@ Evaluate all possible segments starting at `i` and update `dp[i + length]`:
 
 | Priority | Type | Check Logic | Transition Cost |
 | :--- | :--- | :--- | :--- |
-| **1** | **Numbers** | Arabic (`0-9`) or Khmer (`០-៩`) digits. Groups separators (.,) if sandwiched. <br>Includes leading currency (e.g., `$50`). | `1.0` |
+| **1** | **Numbers** | Arabic (`0-9`) or Khmer (`០-៩`) digits. Groups separators (.,) if sandwiched. | `1.0` |
 | **2** | **Separators** | Punctuation, Symbols, Space. | `0.1` |
 | **3** | **Acronyms** | Pattern: `(Cluster + .)+` (e.g., `ស.ភ.`). | `DefaultCost` |
 | **4** | **Dictionary** | Check all substrings `text[i : i+1...k]` in Dictionary. | `WordCost` (from Map) |
@@ -230,7 +230,7 @@ Iterate through the segments. If you find adjacent segments that are **Unknown**
 
 - [ ] Can load binary frequencies?
 - [ ] Does Normalization pass all tests (Ro swapping, Composite fixing)?
-- [ ] Does `$1,000.00` group as one token?
+- [ ] Is `$1,000.00` segmented as `$` and `1,000.00`? (Currency must be separate)
 - [ ] Does `ស.ភ.ភ.ព.` group as one token?
 - [ ] Does `ក` (single char) have higher cost than `ក` inside a word?
 - [ ] **Performance**: Is it multi-threaded? (The algorithm is stateless and thread-safe).

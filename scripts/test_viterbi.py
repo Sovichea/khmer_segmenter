@@ -69,20 +69,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Khmer Viterbi Segmenter")
     parser.add_argument("-s", "--source", help="Optional path to corpus file for batch processing")
     parser.add_argument("-l", "--limit", type=int, default=1000, help="Limit number of lines for batch processing (default 1000)")
-    parser.add_argument("-t", "--text", help="Raw text to segment")
+    parser.add_argument("-t", "--text", help="Raw text to segment (deprecated favor positional args)")
+    parser.add_argument("input_text", nargs="*", help="Raw text to segment")
     
     args = parser.parse_args()
     
     if args.source:
         batch_process(args.source, args.limit)
-    elif args.text:
-        segmenter = create_segmenter()
-        
-        print(f"DEBUG: Input Text Codepoints: {[hex(ord(c)) for c in args.text]}")
-        print(f"DEBUG: Input in segmenter.words: {args.text in segmenter.words}")
-        
-        words = segmenter.segment(args.text)
-        print(f"Input:  {args.text}")
-        print(f"Output: {' | '.join(words)}")
     else:
-        test_segmentation()
+        # Prefer positional args, fallback to --text
+        text_to_process = " ".join(args.input_text) if args.input_text else args.text
+
+        if text_to_process:
+            segmenter = create_segmenter()
+            
+            # print(f"DEBUG: Input Text Codepoints: {[hex(ord(c)) for c in text_to_process]}")
+            
+            words = segmenter.segment(text_to_process)
+            print(f"Input:  {text_to_process}")
+            print(f"Output: {' | '.join(words)}")
+        else:
+            test_segmentation()

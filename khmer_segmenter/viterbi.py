@@ -375,8 +375,7 @@ class KhmerSegmenter:
                 
         return i - start_index
     
-    def _is_currency_symbol(self, char):
-        return char in ['$', '៛', '€', '£', '¥']
+
 
     def _is_separator(self, char, next_char=None):
         # Check for standard punctuation and Khmer punctuation
@@ -515,12 +514,11 @@ class KhmerSegmenter:
                 continue # Skip normal processing
 
 
-            # 1. Number / Digit Grouping (Including Leading Currency)
-            # CHECK THIS BEFORE SEPARATORS to capture "$50.00" as one token.
+            # 1. Number / Digit Grouping
+            # Only digits are grouped. Currency symbols are treated as separators.
             is_digit = self._is_digit(text[i])
-            is_currency_start = self._is_currency_symbol(text[i]) and i+1 < n and self._is_digit(text[i+1])
             
-            if is_digit or is_currency_start:
+            if is_digit:
                 num_len = self._get_number_length(text, i)
                 next_idx = i + num_len
                 step_cost = 1.0 

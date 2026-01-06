@@ -591,7 +591,20 @@ int main(int argc, char** argv) {
         } else if (strcmp(argv[i], "--no-freq") == 0) {
             config.enable_frequency_costs = 0;
         } else if (argv[i][0] != '-') {
-            input_text = argv[i]; // Treat positional as text
+            // Treat positional as text (concatenate multiple args)
+            if (input_text == NULL) {
+                input_text = STRDUP(argv[i]);
+            } else {
+                // Append space + arg
+                size_t input_len = strlen(input_text);
+                size_t arg_len = strlen(argv[i]);
+                char* new_text = (char*)malloc(input_len + 1 + arg_len + 1);
+                strcpy(new_text, input_text);
+                strcat(new_text, " ");
+                strcat(new_text, argv[i]);
+                free(input_text);
+                input_text = new_text;
+            }
         }
     }
 
