@@ -142,8 +142,8 @@ This will generate `output/unknown_words_from_results.txt` showing the unknown w
 
 I provide two benchmarks: one for **Real-Time Latency** (single sentence, micro-benchmark) and one for **Batch Throughput** (large corpus, macro-benchmark).
 
-### Scenario A: Real-Time / Latency (Micro-benchmark)
-*Context: Processing a single complex paragraph repeated (simulates typing, chatbot, UI).*
+### Benchmark Results
+*Context: Comparison across two scenarios: (1) **Micro-Benchmark** (Latency/Real-time) simulating single-sentence requests, and (2) **Macro-Benchmark** (Throughput) processing a large 50k-line corpus.*
 
 | Scenario | Metric | khmernltk | Python (v3) | C Port | Rust Port | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
