@@ -324,6 +324,20 @@ impl KhmerSegmenter {
                      new_segments.push((start, end));
                  } else {
                      // Extend unknown buffer
+                     if let Some(u_start) = unknown_start {
+                         // Check script continuity (Fix for mixing Khmer + Latin unknowns)
+                         let buffer_text = &text[u_start..unknown_end];
+                         if let Some(last_char) = buffer_text.chars().last() {
+                              if let Some(curr_char) = seg.chars().next() {
+                                  if utils::is_khmer_char(last_char) != utils::is_khmer_char(curr_char) {
+                                      // Flush previous buffer
+                                      new_segments.push((u_start, unknown_end));
+                                      unknown_start = None;
+                                  }
+                              }
+                         }
+                     }
+
                      if unknown_start.is_none() {
                          unknown_start = Some(start);
                      }

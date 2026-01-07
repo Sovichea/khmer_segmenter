@@ -128,6 +128,11 @@ class KhmerSegmenter:
         if len(seg) != 1:
             return False
             
+        # If it is NOT a Khmer character, it cannot be an "invalid SINGLE KHMER char".
+        # Non-Khmer characters (Latin, etc.) are valid singles.
+        if not self._is_khmer_char(seg):
+            return False
+            
         if self._is_valid_single_base_char(seg):
             return False # Valid base char
             
@@ -644,6 +649,17 @@ class KhmerSegmenter:
                     unknown_buffer = []
                 final_segments.append(seg)
             else:
+                # Check if script type changes (Khmer <-> Non-Khmer)
+                if unknown_buffer:
+                    last_char = unknown_buffer[-1][0]
+                    curr_char = seg[0]
+                    is_last_khmer = self._is_khmer_char(last_char)
+                    is_curr_khmer = self._is_khmer_char(curr_char)
+                    
+                    if is_last_khmer != is_curr_khmer:
+                         final_segments.append("".join(unknown_buffer))
+                         unknown_buffer = []
+                         
                 unknown_buffer.append(seg)
                 
         if unknown_buffer:

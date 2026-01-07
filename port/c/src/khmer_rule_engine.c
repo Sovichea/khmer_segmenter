@@ -183,6 +183,10 @@ static int is_invalid_single(const char* s) {
     int cp;
     int len = utf8_decode_re(s, &cp);
     if (!cp) return 0;
+    
+    // Fix: Only consider Khmer characters as invalid singles
+    if (!((cp >= 0x1780 && cp <= 0x17FF) || (cp >= 0x19E0 && cp <= 0x19FF))) return 0;
+
     if (s[len] != 0) return 0;
     if ((cp >= 0x1780 && cp <= 0x17A2) || (cp >= 0x17A3 && cp <= 0x17B3)) return 0;
     if (isdigit(cp) || (cp >= 0x17E0 && cp <= 0x17E9)) return 0;

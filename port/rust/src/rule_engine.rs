@@ -129,6 +129,9 @@ fn is_invalid_single(s: &str) -> bool {
         None => return false,
     };
     
+    // Fix: Non-Khmer characters are valid singles (e.g. Latin 'a')
+    if !utils::is_khmer_char(first) { return false; }
+    
     if chars.next().is_some() { return false; } // More than 1 char -> valid (or handled elsewhere)
     
     // logic: 
