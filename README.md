@@ -2,6 +2,29 @@
 
 I've implemented a probabilistic word segmentation algorithm for the Khmer language using a **Viterbi** approach (finding the shortest path in a graph of possible segments) weighted by word probabilities derived from a text corpus.
 
+## Try it out!
+
+🚀 **[Live Demo](https://sovichea.github.io/khmer_segment_webui_demo/)**
+
+### 1. Editor Mode
+
+<img src="assets/webui_editor_mode.png" width="800" alt="Editor Mode">
+
+**Real-time Segmentation & Editing**
+*   **Native Typing Experience**: Type quickly with zero lag.
+*   **Instant Feedback**: Unknown words are underlined in red, updating in real-time (~0.3ms latency) as you type.
+*   **Smart Paste**: Automatically re-segments pasted text while preserving formatting signals.
+
+### 2. View Mode
+
+<img src="assets/webui_view_mode.png" width="800" alt="View Mode">
+
+**Visual Analysis & Navigation**
+*   **Segmentation Blocks**: See exactly how the algorithm splits each word.
+*   **Navigation Tools**: Jump instantly between unknown words to verify potential errors or new vocabulary.
+*   **Analytics**: View word count and unknown word statistics.
+
+
 
 ## Acknowledgements
 
