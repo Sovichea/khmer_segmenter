@@ -293,7 +293,7 @@ static size_t get_number_length(const char* text, size_t n, size_t start_idx) {
         
         // Separators: , . Space
         // Must be followed by digit
-        if (next_cp == ',' || next_cp == '.' || next_cp == ' ') {
+        if (next_cp == ',' || next_cp == '.') {
             if (i + next_len < n) {
                 int f_cp;
                 int f_len = utf8_decode(text + i + next_len, &f_cp);

@@ -364,7 +364,7 @@ class KhmerSegmenter:
             
             # Check for separators (comma, dot, OR SPACE)
             # SPACE is allowed if followed by a digit
-            if char in [',', '.', ' ']:
+            if char in [',', '.']:
                 if i + 1 < n and self._is_digit(text[i+1]):
                     i += 2 # Consume separator and next digit
                     continue
