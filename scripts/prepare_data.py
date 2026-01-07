@@ -136,8 +136,11 @@ def step_generate_frequencies_iterative(corpus_path, dict_path, output_json, lim
     previous_counts = {}
 
     # Path to C Binary
-    # Adjust based on platform if needed, but assuming Windows per user context
-    c_binary = os.path.normpath("port/c/zig-out/win/bin/khmer_segmenter.exe")
+    # Adjust based on platform if needed
+    if sys.platform.startswith("linux"):
+        c_binary = os.path.normpath("port/c/zig-out/linux/bin/khmer_segmenter")
+    else:
+        c_binary = os.path.normpath("port/c/zig-out/win/bin/khmer_segmenter.exe")
     if not os.path.exists(c_binary):
         print(f"Error: C binary not found at {c_binary}. Please run 'zig build release' in port/c/")
         return {}
@@ -227,6 +230,65 @@ def step_generate_frequencies_iterative(corpus_path, dict_path, output_json, lim
     # Final Save
     shutil.copy2(temp_freq_file, output_json)
     
+    # Save Unknown Frequencies if requested (or default behavior)
+    # We need to collect them from the LAST iteration's segmentation.
+    # To do this robustly, we should scan the temp_segmented_output one last time OR
+    # integrate it into the counting loop above.
+    
+    # Re-scanning the latest segmented output to find UNKNOWN words
+    print(f"    > extracting unknown word frequencies with context...")
+    # Structure: { word: { 'count': int, 'examples': [] } }
+    unknown_data = {}
+    
+    with open(temp_segmented_output, "r", encoding="utf-8") as f:
+        for line in f:
+            # Skip "Original:" lines if they exist
+            if line.startswith("Original:"): continue
+            
+            # Remove "Segmented:" prefix if present
+            content = line.strip()
+            if content.startswith("Segmented:"):
+                content = content[len("Segmented:"):].strip()
+                
+            parts = content.split("|")
+            # Clean parts first to align indices
+            cleaned_parts = [strip_control_chars(p.strip()) for p in parts]
+            
+            for i, t in enumerate(cleaned_parts):
+                if t and t not in valid_words and not t.isdigit(): 
+                    # Basic unknown filter (same as before)
+                    # Note: Using isdigit() is rudimentary.
+                    
+                    if t not in unknown_data:
+                        unknown_data[t] = {'count': 0, 'examples': []}
+                    
+                    unknown_data[t]['count'] += 1
+                    
+                    # Store up to 5 examples
+                    if len(unknown_data[t]['examples']) < 5:
+                        # Grab context: 3 words before, 3 words after
+                        start = max(0, i - 3)
+                        end = min(len(cleaned_parts), i + 4)
+                        context_tokens = cleaned_parts[start:end]
+                        # Highlight the unknown work in context (e.g. wrap with matching ** or similar, 
+                        # but simple listing is fine. Let's use a list of tokens)
+                        # Or better join them.
+                        context_str = " | ".join(context_tokens)
+                        unknown_data[t]['examples'].append(context_str)
+
+    # Filter "junk" from unknown counts
+    final_unknowns = {}
+    for w, data in unknown_data.items():
+        if len(w) > 1: # Skip single chars
+             final_unknowns[w] = data
+            
+    # Determine output path for unknowns
+    # Put it alongside output_json
+    unknown_output_json = os.path.join(os.path.dirname(output_json), "unknown_word_frequencies.json")
+    with open(unknown_output_json, "w", encoding="utf-8") as f:
+        json.dump(final_unknowns, f, ensure_ascii=False, indent=4)
+    print(f"  > Unknown word frequencies saved to {unknown_output_json}")
+
     # Cleanup
     for f_path in [temp_freq_file, temp_freq_bin, temp_segmented_output]:
         if os.path.exists(f_path):

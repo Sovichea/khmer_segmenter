@@ -2,6 +2,9 @@
 __pycache__/
 *.pyc
 
+# Dataset
+dataset/kh_data_10000b/
+
 # Outputs
 segmentation_results.txt
 benchmark_results.txt
@@ -14,6 +17,7 @@ unknown_words_from_results.txt
 Thumbs.db
 
 experiments/
+temp/
 
 # Zig Build System
 port/c/zig-out/

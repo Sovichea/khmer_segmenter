@@ -100,6 +100,26 @@ To add new words:
 2.  Run `python scripts/prepare_data.py`.
 3.  The new word is now compiled into `khmer_dictionary.kdict` and ready for the C port.
 
+### Incremental Updates (`scripts/incremental_update.py`)
+
+If you are adding new words and want to assign them frequencies based on your existing corpus (using the unknown word frequencies captured during `prepare_data.py`), use the incremental update script. This is faster than re-running the full pipeline.
+
+1.  **Ensure you have unknown word data**: Run `prepare_data.py` at least once to generate `khmer_segmenter/dictionary_data/unknown_word_frequencies.json`.
+2.  **Add new words**: Add your new words to `khmer_segmenter/dictionary_data/khmer_dictionary_words.txt`.
+3.  **Run the update**:
+    ```bash
+    python scripts/incremental_update.py \
+      --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt \
+      --freq khmer_segmenter/dictionary_data/khmer_word_frequencies.json \
+      --unknown-freq khmer_segmenter/dictionary_data/unknown_word_frequencies.json
+    ```
+    This script will:
+    *   Find words in your dictionary that are missing from the frequency list.
+    *   Look up their count in `unknown_word_frequencies.json`.
+    *   If not found, try to derive frequency from component words (for compounds).
+    *   Otherwise, assign a default floor frequency.
+    *   Update `khmer_word_frequencies.json`.
+
 ## 2. The Segmentation Algorithm
 
 For a detailed step-by-step explanation of the Viterbi algorithm, Normalization logic, and Rules I use in this project, please refer to the **[Porting Guide & Algorithm Reference](port/README.md)**.
