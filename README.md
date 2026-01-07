@@ -3,6 +3,13 @@
 I've implemented a probabilistic word segmentation algorithm for the Khmer language using a **Viterbi** approach (finding the shortest path in a graph of possible segments) weighted by word probabilities derived from a text corpus.
 
 
+## Acknowledgements
+
+*   **[khmernltk](https://github.com/VietHoang1512/khmer-nltk)**: Used for benchmarking.
+*   **[sovichet](https://github.com/sovichet)**: For providing the [Khmer Folktales Corpus](https://github.com/sovichet) and Dictionary resources.
+*   **[phylypo](https://github.com/phylypo/segmentation-crf-khmer)**: For providing the `kh_data_10000b` dataset used for frequency analysis.
+
+
 > [!IMPORTANT]
 > **Disclaimer:** My dictionary is still lacking many curated sources of technical words. If anyone can contribute curated Khmer words with credible sources, the algorithm will improve significantly. I highly appreciate your contributions to improving the data quality!
 
@@ -67,10 +74,14 @@ I've built a consolidated data pipeline to normalize text, generate frequencies,
 
 ### Pipeline Steps:
 1.  **Normalize**: Strips ZWS, ZWNJ, and fixes composite vowels/clusters in the corpus.
-2.  **Generate Frequencies**: Tokenizes the corpus and counts word occurrences.
+2.  **Generate Frequencies (Iterative)**: Uses the C-based `khmer_segmenter` to iteratively segment the corpus and refine word frequencies (Self-Supervised).
+    > **Robustness**: This method starts with a clean slate (dictionary only) and converges to a stable frequency distribution in **minimal iterations** (typically 3 passes). It is robust against initial noise and effectively learns the corpus's natural word usage without external dependencies.
 3.  **Compile Binaries**:
     *   `khmer_dictionary.kdict`: Optimized Hash Table for C/Zig port (Saved to `port/common/`).
     *   `khmer_frequencies.bin`: Legacy binary format (Saved to `port/common/`).
+
+> [!NOTE]
+> **Compressed Dataset**: The extended frequency dataset is stored as `dataset/kh_data_10000b_200b.zip` to reduce repository size. If you wish to use this data for frequency generation, please **extract it manually** before running the scripts. The `prepare_data.py` script will automatically find the extracted `.txt` files if they are placed in the `experiments/` or `dataset/` folder.
 
 ### Usage
 
@@ -80,14 +91,12 @@ Run the pipeline to rebuild all data assets:
 python scripts/prepare_data.py
 
 # Specify custom corpus or dictionary
-python scripts/prepare_data.py --corpus data/my_corpus.txt --dict data/my_dict.txt
+python scripts/prepare_data.py --corpus dataset/my_corpus.txt --dict khmer_segmenter/dictionary_data/my_dict.txt
 
-# Use khmernltk for initial bootstrapping
-python scripts/prepare_data.py --engine khmernltk
 ```
 
 To add new words:
-1.  Add word to `data/khmer_dictionary_words.txt`.
+1.  Add word to `khmer_segmenter/dictionary_data/khmer_dictionary_words.txt`.
 2.  Run `python scripts/prepare_data.py`.
 3.  The new word is now compiled into `khmer_dictionary.kdict` and ready for the C port.
 
@@ -107,7 +116,7 @@ You can analyze the segmentation results to find words that were not in the dict
 python scripts/find_unknown_words.py --input segmentation_results.txt
 ```
 
-This will generate `data/unknown_words_from_results.txt` showing the unknown words, their frequency, and **context** (2 words before and after) to help you decide if they should be added to the dictionary.
+This will generate `output/unknown_words_from_results.txt` showing the unknown words, their frequency, and **context** (2 words before and after) to help you decide if they should be added to the dictionary.
 
 ## 4. Benchmark & Performance Comparison
 
@@ -195,9 +204,9 @@ python scripts/test_viterbi.py
 ### Batch Process a Corpus
 To test against a file and see the output:
 ```bash
-python scripts/test_viterbi.py --source data/khmer_folktales_extracted.txt --limit 500
+python scripts/test_viterbi.py --source dataset/khmer_folktales_extracted.txt --limit 500
 ```
-This will generate `segmentation_results.txt`.
+This will generate `output/segmentation_results.txt`.
 
 ## 7. License
 
@@ -227,7 +236,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 You are free to use, modify, and distribute this software, but you **must acknowledge usage** by retaining the copyright notice and license in your copies.
 
-## 8. Acknowledgements
 
-*   **[khmernltk](https://github.com/VietHoang1512/khmer-nltk)**: Used for initial corpus tokenization and baseline frequency generation.
-*   **[sovichet](https://github.com/sovichet)**: For providing the [Khmer Folktales Corpus](https://github.com/sovichet) and Dictionary resources.

@@ -143,24 +143,25 @@ def process_segmented_file(input_file: str, segmenter: KhmerSegmenter) -> Dict[s
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Find unknown words in segmented output")
     parser.add_argument("--input", "-i", required=True, help="Input segmentation results file")
-    parser.add_argument("--output", "-o", default="unknown_words_from_results.txt", help="Output file path")
+    parser.add_argument("--output", "-o", default="unknown_words_from_results.txt", help="Output file path (saved to output/ by default)")
     args = parser.parse_args()
     
     # Setup paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
-    default_data_dir = os.path.join(project_root, 'data')
+    dict_dir = os.path.join(project_root, 'khmer_segmenter', 'dictionary_data')
+    dataset_dir = os.path.join(project_root, 'dataset')
     
-    dict_path = os.path.join(default_data_dir, "khmer_dictionary_words.txt")
-    freq_path = os.path.join(default_data_dir, "khmer_word_frequencies.json")
+    dict_path = os.path.join(dict_dir, "khmer_dictionary_words.txt")
+    freq_path = os.path.join(dict_dir, "khmer_word_frequencies.json")
 
-    print(f"Loading segmenter resources from {default_data_dir}...")
+    print(f"Loading segmenter resources from {dict_dir}...")
     segmenter = KhmerSegmenter(dict_path, freq_path)
     
     input_path = args.input
     if not os.path.exists(input_path):
-        # Try relative to data dir
-        temp_path = os.path.join(default_data_dir, input_path)
+        # Try relative to dataset dir
+        temp_path = os.path.join(dataset_dir, input_path)
         if os.path.exists(temp_path):
             input_path = temp_path
         else:
@@ -174,7 +175,9 @@ if __name__ == "__main__":
     # Output path
     output_path = args.output
     if not os.path.isabs(output_path):
-        output_path = os.path.join(default_data_dir, output_path)
+        output_dir = os.path.join(project_root, 'output')
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, output_path)
 
     print(f"Writing results to {output_path}...")
     with open(output_path, 'w', encoding='utf-8') as f:

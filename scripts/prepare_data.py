@@ -19,6 +19,7 @@ import struct
 import argparse
 import re
 import shutil
+import subprocess
 from collections import Counter
 
 # Add project root to path
@@ -30,10 +31,7 @@ except ImportError:
     print("Error: Could not import khmer_segmenter package. Run from project root.")
     sys.exit(1)
 
-try:
-    import khmernltk
-except ImportError:
-    print("Warning: khmernltk not found. Some functionality may be limited.")
+
 
 # --- Utility Functions ---
 
@@ -78,14 +76,37 @@ def generate_variants(word):
 
 # --- Pipeline Steps ---
 
+def get_corpus_files(paths):
+    """Recursively finds files in paths. Filters for *_orig.txt in kh_data folders."""
+    all_files = []
+    for p in paths:
+        if os.path.isfile(p):
+            all_files.append(p)
+        elif os.path.isdir(p):
+            print(f"  > Scanning directory: {p}")
+            for root, _, files in os.walk(p):
+                for file in files:
+                    if not file.endswith(".txt"): continue
+                    
+                    # Specific filter for experimental dataset
+                    if "kh_data" in root and not file.endswith("_orig.txt"):
+                        continue
+                        
+                    all_files.append(os.path.join(root, file))
+    return all_files
+
 def step_normalize_corpus(input_paths, output_path):
     print(f"[*] Step 1: Normalizing Corpus...")
     norm = KhmerNormalizer()
     count = 0
+    
+    files = get_corpus_files(input_paths)
+    print(f"  > Found {len(files)} files to process.")
+    
     with open(output_path, 'w', encoding='utf-8') as f_out:
-        for path in input_paths:
+        for path in files:
             if not os.path.exists(path): continue
-            print(f"  > Processing {path}")
+            # print(f"  > Processing {path}") # Too verbose for many files
             with open(path, 'r', encoding='utf-8') as f_in:
                 for line in f_in:
                     # KhmerNormalizer.normalize already strips ZWS/ZWNJ/ZWJ
@@ -93,8 +114,8 @@ def step_normalize_corpus(input_paths, output_path):
                     count += 1
     print(f"  > Normalized {count} lines to {output_path}")
 
-def step_generate_frequencies(corpus_path, dict_path, output_json, limit=None, engine="khmernltk"):
-    print(f"[*] Step 2: Generating Frequencies...")
+def step_generate_frequencies_iterative(corpus_path, dict_path, output_json, limit=None, iterations=3):
+    print(f"[*] Step 2: Generating Frequencies (Iterative Approach)...")
     
     # Load Dict for filtering
     valid_words = set()
@@ -103,39 +124,129 @@ def step_generate_frequencies(corpus_path, dict_path, output_json, limit=None, e
             w = strip_control_chars(line.strip())
             if w: valid_words.add(w)
             
-    word_counts = Counter()
-    
-    # Setup Segmenter
-    internal_seg = None
-    if engine == "internal":
-        internal_seg = KhmerSegmenter(dict_path, None) # No freq yet
-        
-    processed = 0
-    with open(corpus_path, "r", encoding="utf-8") as f:
-        for line in f:
-            if limit and processed >= limit: break
-            line = line.strip()
-            if not line: continue
             
-            if engine == "khmernltk":
-                try: tokens = khmernltk.word_tokenize(line)
-                except: continue
-            else:
-                try: tokens = internal_seg.segment(line)
-                except: continue
-                
-            for t in tokens:
-                t = strip_control_chars(t)
-                if t in valid_words:
-                    word_counts[t] += 1
-            processed += 1
-            if processed % 10000 == 0: print(f"  > Processed {processed} lines...")
+    # Iteration Loop
+    os.makedirs("temp", exist_ok=True)
+    temp_freq_file = "temp/temp_frequencies.json"
+    temp_freq_bin = "temp/temp_frequencies.bin"
+    temp_segmented_output = "temp/temp_segmented.txt"
+    current_freq_file = None 
+    
+    # Store previous iterations' counts for convergence check
+    previous_counts = {}
 
-    sorted_counts = dict(sorted(word_counts.items(), key=lambda x: x[1], reverse=True))
-    with open(output_json, "w", encoding="utf-8") as f:
-        json.dump(sorted_counts, f, ensure_ascii=False, indent=4)
+    # Path to C Binary
+    # Adjust based on platform if needed, but assuming Windows per user context
+    c_binary = os.path.normpath("port/c/zig-out/win/bin/khmer_segmenter.exe")
+    if not os.path.exists(c_binary):
+        print(f"Error: C binary not found at {c_binary}. Please run 'zig build release' in port/c/")
+        return {}
+
+    for i in range(iterations):
+        print(f"  > Iteration {i+1}/{iterations} (Using C Port)...")
+        
+        # 1. Export Current Frequencies to Binary (if exists)
+        if current_freq_file and os.path.exists(current_freq_file):
+            step_export_binary_frequencies(current_freq_file, temp_freq_bin)
+        else:
+            # Create a "default" binary file if it doesn't exist?
+            # Or pass nothing/default to C?
+            # The C port likely needs a valid binary file if --freq is passed.
+            # If default costs are needed, we can create a minimal binary file with no words but default costs.
+            # OR, we can just NOT pass --freq for the first run if C supports it?
+            # Let's create a minimal binary file with defaults.
+            _create_default_binary_freq(temp_freq_bin)
+
+        # 2. Run C Segmenter
+        # khmer_segmenter.exe --input <corpus> --output <temp_out> --threads 10 --dict <dict> --freq <bin>
+        cmd = [
+            c_binary,
+            "--input", corpus_path,
+            "--output", temp_segmented_output,
+            "--threads", "10",
+            "--dict", dict_path,
+            "--freq", temp_freq_bin
+        ]
+        
+        if limit:
+            cmd.extend(["--limit", str(limit)])
+            
+        print(f"    > Running C segmenter...")
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error running C segmenter: {e}")
+            break
+            
+        # 3. Process Output and Count
+        print(f"    > Counting frequencies from output...")
+        word_counts = Counter()
+        processed = 0
+        with open(temp_segmented_output, "r", encoding="utf-8") as f:
+            for line in f:
+                parts = line.strip().split("|") # Assuming | is delimiter
+                for t in parts:
+                    t = strip_control_chars(t.strip())
+                    if t in valid_words:
+                        word_counts[t] += 1
+                processed += 1
+                if processed % 100000 == 0: print(f"    > Processed {processed} segmented lines...")
+                
+        # Save intermediate frequencies for next iteration
+        sorted_counts = dict(sorted(word_counts.items(), key=lambda x: x[1], reverse=True))
+        with open(temp_freq_file, "w", encoding="utf-8") as f:
+            json.dump(sorted_counts, f, ensure_ascii=False, indent=4)
+            
+        current_freq_file = temp_freq_file
+        print(f"    > Iteration {i+1} complete. Found {len(sorted_counts)} unique words.")
+
+        # Convergence Check
+        if previous_counts:
+            # 1. Total Words Change
+            prev_keys = set(previous_counts.keys())
+            curr_keys = set(sorted_counts.keys())
+            added = len(curr_keys - prev_keys)
+            removed = len(prev_keys - curr_keys)
+            
+            # 2. Count Delta (for common words)
+            common = prev_keys & curr_keys
+            total_delta = 0
+            for w in common:
+                total_delta += abs(sorted_counts[w] - previous_counts[w])
+            
+            avg_delta = total_delta / len(common) if common else 0
+            
+            print(f"    [Convergence Metrics] vs Iteration {i}:")
+            print(f"      - Words Added: {added}, Removed: {removed}")
+            print(f"      - Common Words Count Delta (Avg): {avg_delta:.4f}")
+            
+            # Stop if converged? (Optional, but user asked to observe evolution)
+            
+        previous_counts = sorted_counts
+
+    # Final Save
+    shutil.copy2(temp_freq_file, output_json)
+    
+    # Cleanup
+    for f_path in [temp_freq_file, temp_freq_bin, temp_segmented_output]:
+        if os.path.exists(f_path):
+            try:
+                os.remove(f_path)
+            except OSError as e:
+                print(f"Warning: Could not remove temporary file {f_path}: {e}")
+        
     print(f"  > Frequencies saved to {output_json}")
     return sorted_counts
+
+def _create_default_binary_freq(output_path):
+    # Create a minimal KLIB with default costs
+    # default_cost = 10.0?, unknown = 15.0?
+    # Logic similar to export but empty
+    with open(output_path, 'wb') as f:
+        f.write(b'KLIB')
+        f.write(struct.pack('<I', 1)) 
+        f.write(struct.pack('<ff', 10.0, 15.0)) # Default costs
+        f.write(struct.pack('<I', 0)) # 0 words
 
 def step_export_binary_frequencies(freq_json_path, output_bin_path):
     print(f"[*] Step 3: Exporting Binary Frequencies (KLIB)...")
@@ -205,7 +316,7 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
                 if all((p in words or p == "") for p in parts): words_to_remove.add(w)
     
     if words_to_remove:
-        print(f"  > Removing {len(words_to_remove)} 'ឬ' compounds for split enforcement.")
+        print(f"  > Removing {len(words_to_remove)} compound OR words (unicode: U+17AC) for split enforcement.")
         words -= words_to_remove
 
     # 2. Costs
@@ -270,34 +381,31 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
 
 def main():
     parser = argparse.ArgumentParser(description="Consolidated Data Pipeline for Khmer Segmenter")
-    parser.add_argument("--corpus", nargs="+", default=["data/khmer_wiki_corpus.txt", "data/khmer_folktales_extracted.txt"], help="Input corpus paths")
-    parser.add_argument("--dict", default="data/khmer_dictionary_words.txt", help="Input dictionary text file")
-    parser.add_argument("--output-json", default="data/khmer_word_frequencies.json", help="Output frequency JSON path")
+    parser.add_argument("--corpus", nargs="+", default=["dataset/khmer_wiki_corpus.txt", "dataset/khmer_folktales_extracted.txt"], help="Input corpus paths")
+    parser.add_argument("--dict", default="khmer_segmenter/dictionary_data/khmer_dictionary_words.txt", help="Input dictionary text file")
+    parser.add_argument("--output-json", default="khmer_segmenter/dictionary_data/khmer_word_frequencies.json", help="Output frequency JSON path")
     parser.add_argument("--output-bin", default="port/common/khmer_frequencies.bin", help="Output frequency binary (KLIB) path")
     parser.add_argument("--output-kdict", default="port/common/khmer_dictionary.kdict", help="Output dictionary binary (KDIC) path")
     parser.add_argument("--limit", type=int, help="Limit lines processed for testing")
-    parser.add_argument("--engine", choices=["khmernltk", "internal"], default="internal", help="Tokenization engine")
+    parser.add_argument("--iterations", type=int, default=3, help="Number of iterations for frequency generation")
     parser.add_argument("--keep-temp", action="store_true", help="Keep temporary normalized corpus file")
     
     args = parser.parse_args()
     
-    temp_norm_path = "data/corpus_normalized.tmp.txt"
+    temp_norm_path = "temp/corpus_normalized.tmp.txt"
     
     try:
         # Step 1: Normalize
         step_normalize_corpus(args.corpus, temp_norm_path)
         
-        # Step 2: Frequencies (JSON)
-        step_generate_frequencies(temp_norm_path, args.dict, args.output_json, args.limit, args.engine)
+        # Step 2: Frequencies (Iterative)
+        step_generate_frequencies_iterative(temp_norm_path, args.dict, args.output_json, args.limit, args.iterations)
         
         # Step 3: Legacy Binary Frequencies
         step_export_binary_frequencies(args.output_json, args.output_bin)
         
         # Step 4: KDict Compilation
         step_compile_kdict(args.dict, args.output_json, args.output_kdict)
-        
-        # Also copy KDict to root for convenience
-        shutil.copy2(args.output_kdict, os.path.join(os.getcwd(), "khmer_dictionary.kdict"))
         
         print("\n[!] Pipeline completed successfully.")
         

@@ -6,14 +6,14 @@ This guide provides a step-by-step manual for porting the `KhmerSegmenter` to ne
 
 All ports must load data from the `port/common/` directory to ensure synchronization.
 
-### 1.1 Dictionary (`khmer_dictionary_words.txt`)
+### 1.1 Dictionary (`khmer_segmenter/dictionary_data/khmer_dictionary_words.txt`)
 - **Format**: Plain text, one word per line, UTF-8.
 - **Loading**:
     - Read line by line.
     - Trim whitespace.
     - Store in a **HashSet** or **Trie** for O(1) / O(L) lookup.
 
-### 1.2 Binary Frequencies (`khmer_frequencies.bin`)
+### 1.2 Binary Frequencies (`port/common/khmer_frequencies.bin`)
 Designed for fast loading (mmap-friendly). All integers are **Little Endian**.
 
 | Offset | Type | Description |
@@ -42,7 +42,7 @@ The C port uses a custom "Baked" format (`.kdict`) for zero-parsing startup. Thi
 
 **Vs. `khmer_frequencies.bin`?**
 *   `khmer_frequencies.bin` (KLIB) is a raw list of Words + Costs. It requires the loader to parse, hash, and insert into a hash map at runtime (Slow).
-*   `khmer_dictionary.kdict` (KDIC) **is** the hash map. The `prepare_data.py` script pre-calculates the hashes and layout. The C port simply loads this file into memory and casts a pointer to it (Instant).
+*   `khmer_dictionary.kdict` (KDIC) **is** the hash map. The `scripts/prepare_data.py` pipeline pre-calculates the hashes and layout using an iterative self-supervised process using the C port.
 
 **File Structure:**
 

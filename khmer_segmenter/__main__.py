@@ -40,17 +40,17 @@ def main():
     # We assume 'data/' is at the root of the repo, i.e., sibling to 'khmer_segmenter/' directory.
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir)
-    default_data_dir = os.path.join(project_root, 'data')
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    default_data_dir = os.path.join(current_dir, 'dictionary_data')
     
     dict_path = os.path.join(default_data_dir, "khmer_dictionary_words.txt")
     freq_path = os.path.join(default_data_dir, "khmer_word_frequencies.json")
     
     if not os.path.exists(dict_path):
         # Fallback to current directory or other typical locations
-        if os.path.exists("data/khmer_dictionary_words.txt"):
-            dict_path = "data/khmer_dictionary_words.txt"
-            freq_path = "data/khmer_word_frequencies.json"
+        if os.path.exists("khmer_segmenter/dictionary_data/khmer_dictionary_words.txt"):
+            dict_path = "khmer_segmenter/dictionary_data/khmer_dictionary_words.txt"
+            freq_path = "khmer_segmenter/dictionary_data/khmer_word_frequencies.json"
         elif os.path.exists("khmer_dictionary_words.txt"):
             dict_path = "khmer_dictionary_words.txt"
             freq_path = "khmer_word_frequencies.json"

@@ -44,8 +44,12 @@ def main():
     actual_limit = len(lines)
     print(f"Loaded {actual_limit} lines.")
 
+    # Create output dir
+    output_dir = os.path.abspath("output")
+    os.makedirs(output_dir, exist_ok=True)
+
     # Save to temp file for C segmenter
-    temp_input = "temp_wiki_100k.txt"
+    temp_input = os.path.join(output_dir, "temp_wiki_100k.txt")
     with open(temp_input, "w", encoding="utf-8") as f:
         for line in lines:
             f.write(line + "\n")
@@ -53,7 +57,7 @@ def main():
     # 1. Run C segmenter
     print(f"\n[C Port] Running with {threads} threads...")
     c_exe = "./port/c/zig-out/win/bin/khmer_segmenter.exe"
-    c_output = "results_c.txt"
+    c_output = os.path.join(output_dir, "results_c.txt")
     
     start_c = time.time()
     subprocess.run([

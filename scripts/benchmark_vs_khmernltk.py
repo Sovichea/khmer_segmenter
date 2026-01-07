@@ -95,8 +95,8 @@ def main():
     # Resolve paths relative to repo root (scripts/../data)
     script_dir = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.dirname(script_dir)
-    dict_path = os.path.join(repo_root, "data", "khmer_dictionary_words.txt")
-    freq_path = os.path.join(repo_root, "data", "khmer_word_frequencies.json")
+    dict_path = os.path.join(repo_root, "khmer_segmenter", "dictionary_data", "khmer_dictionary_words.txt")
+    freq_path = os.path.join(repo_root, "khmer_segmenter", "dictionary_data", "khmer_word_frequencies.json")
     
     t0 = time.time()
     seg = KhmerSegmenter(dict_path, freq_path)

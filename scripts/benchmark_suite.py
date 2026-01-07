@@ -45,7 +45,7 @@ def benchmark_suite():
     # Setup
     print(f"Initial Memory: {get_memory_mb():.2f} MB")
     
-    data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+    data_dir = os.path.join(os.path.dirname(__file__), '..', 'khmer_segmenter', 'dictionary_data')
     dict_path = os.path.join(data_dir, "khmer_dictionary_words.txt")
     freq_path = os.path.join(data_dir, "khmer_word_frequencies.json")
     

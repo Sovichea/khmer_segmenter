@@ -11,7 +11,7 @@ def create_segmenter():
     # Setup paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
-    default_data_dir = os.path.join(project_root, 'data')
+    default_data_dir = os.path.join(project_root, 'khmer_segmenter', 'dictionary_data')
     
     dict_path = os.path.join(default_data_dir, "khmer_dictionary_words.txt")
     freq_path = os.path.join(default_data_dir, "khmer_word_frequencies.json")
@@ -42,7 +42,7 @@ def test_segmentation():
 def batch_process(corpus_file, limit):
     segmenter = create_segmenter()
     
-    output_file = "segmentation_results.txt"
+    output_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "output", "segmentation_results.txt")
     print(f"Processing {corpus_file} to {output_file}...")
     
     count = 0

@@ -643,9 +643,9 @@ int main(int argc, char** argv) {
         if (check) freq_path = "../common/khmer_frequencies.bin";
     }
     if (!check) {
-        dict_path = "data/khmer_dictionary_words.txt";
+        dict_path = "khmer_segmenter/dictionary_data/khmer_dictionary_words.txt";
         check = fopen(dict_path, "r");
-        if (check) freq_path = "data/khmer_frequencies.bin";
+        if (check) freq_path = "port/common/khmer_frequencies.bin";
     }
     
     if (check) fclose(check);

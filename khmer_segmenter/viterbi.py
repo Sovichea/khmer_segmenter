@@ -653,8 +653,8 @@ class KhmerSegmenter:
 
 if __name__ == "__main__":
     import sys
-    dict_file = "khmer_dictionary_words.txt"
-    freq_file = "khmer_word_frequencies.json"
+    dict_file = os.path.join(os.path.dirname(__file__), "dictionary_data", "khmer_dictionary_words.txt")
+    freq_file = os.path.join(os.path.dirname(__file__), "dictionary_data", "khmer_word_frequencies.json")
     
     if len(sys.argv) > 1:
         dict_file = sys.argv[1]
