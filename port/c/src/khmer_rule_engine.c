@@ -319,6 +319,49 @@ void rule_engine_apply(RuleEngine* eng, SegmentList* segments, MemArena* arena) 
         
         if (rule_applied) continue;
 
+        // Rule 4: "Specific Char Merge Previous"
+        // ឃ(83), ជ(87), ឈ(88), ឋ(8B), ឌ(8C), ឍ(8D), ណ(8E), ថ(90), ធ(92), ន(93), យ(99), ហ(A0)
+        if (len == 3 && txt[0] == 0xE1 && txt[1] == 0x9E) {
+            unsigned char c = txt[2];
+            int match = 0;
+            if (c == 0x83 || c == 0x87 || c == 0x88 || c == 0x8B || c == 0x8C || c == 0x8D ||
+                c == 0x8E || c == 0x90 || c == 0x92 || c == 0x93 || c == 0x99 || c == 0xA0) {
+                match = 1;
+            }
+            
+            if (match) {
+                int p_sep = 1; 
+                if (i > 0) p_sep = is_separator(segments->items[i-1]);
+                
+                if (!p_sep) {
+                     if (i > 0) {
+                        char* prev = segments->items[i-1];
+                        size_t new_len = strlen(prev) + len + 1;
+                        char* new_seg;
+                        
+                        if (arena) new_seg = (char*)arena_alloc(arena, new_len);
+                        else new_seg = (char*)malloc(new_len);
+                        
+                        strcpy(new_seg, prev);
+                        strcat(new_seg, seg);
+                        
+                        if (!arena) free(segments->items[i-1]);
+                        segments->items[i-1] = new_seg;
+                        
+                        if (!arena) free(segments->items[i]);
+                        for (int k = i; k < (int)segments->count - 1; k++) {
+                            segments->items[k] = segments->items[k+1];
+                        }
+                        segments->count--;
+                        i--;
+                        rule_applied = 1;
+                     }
+                }
+            }
+        }
+
+        if (rule_applied) continue;
+
         // Rule 5: Invalid Single Consonant Cleanup
         if (is_invalid_single(seg)) {
             int p_sep = 1; 

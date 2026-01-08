@@ -137,13 +137,26 @@ static char* read_line(FILE* f) {
         return NULL;
     }
 
-    // Strip trailing newline/cr
-    while (len > 0 && (data[len - 1] == '\r' || data[len - 1] == '\n')) {
+    // Strip trailing newline/cr/whitespace
+    while (len > 0 && (unsigned char)data[len - 1] <= 32) {
         data[--len] = '\0';
     }
 
     // Shrink buffer to fit actual content to save memory
     // (Otherwise we waste ~4KB per line)
+    // Also strip leading whitespace
+    size_t start = 0;
+    while (start < len && (unsigned char)data[start] <= 32) {
+        start++;
+    }
+    
+    if (start > 0) {
+        size_t new_len = len - start;
+        memmove(data, data + start, new_len);
+        data[new_len] = 0;
+        len = new_len;
+    }
+
     char* shrunk = (char*)realloc(data, len + 1);
     if (shrunk) data = shrunk;
 

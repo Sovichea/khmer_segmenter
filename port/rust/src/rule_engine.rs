@@ -84,6 +84,38 @@ impl RuleEngine {
 
              if rule_applied { continue; }
 
+            // Rule 4: Specific Char Merge Previous
+            // ឃ(1783), ជ(1787), ឈ(1788), ឋ(178B), ឌ(178C), ឍ(178D), ណ(178E), ថ(1790), ធ(1792), ន(1793), យ(1799), ហ(17A0)
+            if len == 1 {
+                let c = chars[0];
+                let is_target = match c {
+                    '\u{1783}' | '\u{1787}' | '\u{1788}' | '\u{178B}' | '\u{178C}' | '\u{178D}' | 
+                    '\u{178E}' | '\u{1790}' | '\u{1792}' | '\u{1793}' | '\u{1799}' | '\u{17A0}' => true,
+                    _ => false,
+                };
+
+                if is_target {
+                    let p_sep = if i > 0 { 
+                        let (p_start, p_end) = segments[i-1];
+                        is_separator(&text[p_start..p_end]) 
+                    } else { 
+                        true 
+                    };
+
+                    if !p_sep {
+                        if i > 0 {
+                            let (_, curr_end) = segments[i];
+                            segments[i-1].1 = curr_end;
+                            segments.remove(i);
+                            i -= 1;
+                            rule_applied = true;
+                        }
+                    }
+                }
+            }
+
+            if rule_applied { continue; }
+
             // Rule 5: Invalid Single Consonant Cleanup
             if is_invalid_single(seg) {
                 let p_sep = if i > 0 { 

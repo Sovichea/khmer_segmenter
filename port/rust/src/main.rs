@@ -161,7 +161,8 @@ fn main() -> io::Result<()> {
                          } else {
                              l
                          };
-                         lines.push(clean);
+                         let clean_trimmed = clean.trim().to_string();
+                         lines.push(clean_trimmed);
                          if limit != -1 { current_limit -= 1; }
                      }
                  }
