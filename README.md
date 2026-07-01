@@ -37,6 +37,18 @@ runtime machine-learning model is required.
 *   **[sovichet](https://github.com/sovichet)**: For providing the [Khmer Folktales Corpus](https://github.com/sovichet) and Dictionary resources.
 *   **[phylypo](https://github.com/phylypo/segmentation-crf-khmer)**: For providing the `kh_data_10000b` dataset used for frequency analysis.
 
+### Data Sources and Credits
+
+| Project data | Source | Credit | Source terms |
+|:---|:---|:---|:---|
+| RAC/NCKL Khmer Dictionary 2022 headwords | [Seanghay Hay's `khmer-dictionary-44k` extraction](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k) | National Council of Khmer Language, Royal Academy of Cambodia (dictionary authority); Seanghay Hay / `seanghay` (extraction and publication) | Research only; not for commercial use, as stated by the dataset card |
+| khPOS training and evaluation tokens | [`ye-kyaw-thu/khPOS`](https://github.com/ye-kyaw-thu/khPOS) | Vichet Chea and Ye Kyaw Thu; manual POS annotation acknowledged to Sorn Kea and Leng Greyhuy | CC BY-NC-SA 4.0 |
+| Khmer ALT training and evaluation tokens | [Zenodo record 3937914](https://doi.org/10.5281/zenodo.3937914) | Chenchen Ding, Masao Utiyama, and Eiichiro Sumita; developed by NICT and NIPTICT | The description states CC BY-NC-SA 4.0, while Zenodo's rights field displays CC BY 4.0; review the record before redistribution |
+
+Source metadata was checked on 2026-07-01. Derived data retains upstream
+usage and attribution requirements; the repository's MIT license applies only
+to project code and does not relicense those datasets.
+
 
 > [!IMPORTANT]
 > This is a lexical segmenter, not a semantic parser. Its production scope is
@@ -213,7 +225,9 @@ The runtime dictionary combines two explicitly separated vocabularies:
   that reference. These entries are retained because names, compounds,
   loanwords, and modern terms are not invalid merely because they are absent.
 
-Synchronize from the research-use TSV extraction with:
+Synchronize from [Seanghay Hay's research-use TSV extraction](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k),
+which credits the National Council of Khmer Language at the Royal Academy of
+Cambodia as the dictionary authority:
 
 ```bash
 python scripts/sync_rac_dictionary.py --rac-tsv path/to/pairs.tsv
@@ -373,12 +387,17 @@ Use `--limit 100` for a smoke test or `--dataset-path PATH` for an existing
 recall and F1, exact sentence match, predicted-token unknown rate, latency, and
 per-sentence boundary disagreements.
 
-khPOS publishes one 12,000-sentence source split under CC BY-NC-SA 4.0. The
+[khPOS](https://github.com/ye-kyaw-thu/khPOS) publishes one 12,000-sentence
+source split under CC BY-NC-SA 4.0. Credit goes to contributors Vichet Chea
+and Ye Kyaw Thu, with manual annotation assistance acknowledged to Sorn Kea
+and Leng Greyhuy. The
 loader derives stable 80/10/10 train/dev/test partitions from SHA-256 hashes of
 sentence IDs. Only `train` may be used to build frequencies; report final
 accuracy on `test`.
 
-Khmer ALT POS is also supported from the official `km-nova.zip` release:
+[Khmer ALT POS](https://doi.org/10.5281/zenodo.3937914) is also supported from
+the official `km-nova.zip` release, credited to Chenchen Ding, Masao Utiyama,
+and Eiichiro Sumita (NICT), with development by NICT and NIPTICT:
 
 ```bash
 python scripts/evaluate_segmentation.py \

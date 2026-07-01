@@ -16,6 +16,27 @@ from khmer_segmenter.evaluation import load_khmer_alt, load_khpos
 from khmer_segmenter.normalization import KhmerNormalizer
 
 
+DATASET_SOURCES = {
+    "khpos": {
+        "name": "khPOS (Khmer Part-of-Speech) Corpus",
+        "source": "https://github.com/ye-kyaw-thu/khPOS",
+        "credited_to": ["Vichet Chea", "Ye Kyaw Thu"],
+        "annotation_credit": ["Sorn Kea", "Leng Greyhuy"],
+        "license": "CC BY-NC-SA 4.0",
+    },
+    "khmer_alt_pos": {
+        "name": "Tokenized and POS-Tagged Khmer Data of the Asian Language Treebank Project",
+        "source": "https://doi.org/10.5281/zenodo.3937914",
+        "credited_to": ["Chenchen Ding", "Masao Utiyama", "Eiichiro Sumita"],
+        "developed_by": ["NICT", "NIPTICT"],
+        "license_note": (
+            "The dataset description states CC BY-NC-SA 4.0; the Zenodo "
+            "record rights field displays CC BY 4.0. Review the source record."
+        ),
+    },
+}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -85,6 +106,10 @@ def main() -> None:
     metadata = {
         "method": "corpus occurrence counts plus gold-train occurrence counts",
         "datasets": args.datasets,
+        "dataset_sources": {
+            dataset: DATASET_SOURCES[dataset] for dataset in args.datasets
+        },
+        "source_metadata_accessed": "2026-07-01",
         "split_policy": "SHA-256 sentence ID buckets: 80% train, 10% dev, 10% test",
         "base_file": args.base.name,
         "base_unique_words": len(base),

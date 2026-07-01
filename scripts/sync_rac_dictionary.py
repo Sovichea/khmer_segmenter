@@ -22,6 +22,7 @@ REFERENCE_AUTHORITY = (
 EXTRACTION_URL = (
     "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k"
 )
+EXTRACTION_CREDIT = "Seanghay Hay (Hugging Face user seanghay)"
 
 
 def read_words(path: Path, tsv: bool = False) -> tuple[list[str], int]:
@@ -91,6 +92,9 @@ def main() -> None:
             "name": REFERENCE_NAME,
             "authority": REFERENCE_AUTHORITY,
             "extraction": EXTRACTION_URL,
+            "extraction_credit": EXTRACTION_CREDIT,
+            "source_metadata_accessed": "2026-07-01",
+            "terms": "Research purpose only; not for commercial use",
             "usage": "Community-approved for this non-profit open-source project",
             "source_rows": len(reference_rows) + reference_rejected,
             "accepted_unique_headwords": len(official),
