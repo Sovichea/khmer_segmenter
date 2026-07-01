@@ -293,7 +293,7 @@ static size_t get_number_length(const char* text, size_t n, size_t start_idx) {
         
         // Separators: , . Space
         // Must be followed by digit
-        if (next_cp == ',' || next_cp == '.' || next_cp == ' ') {
+        if (next_cp == ',' || next_cp == '.') {
             if (i + next_len < n) {
                 int f_cp;
                 int f_len = utf8_decode(text + i + next_len, &f_cp);
@@ -741,6 +741,25 @@ char* khmer_segmenter_segment(KhmerSegmenter* seg, const char* raw_text, const c
                 new_items[new_count++] = (char*)s;
             } else {
                 // Accumulate unknown segment
+                 if (unknown_buffer && buffer_len > 0) {
+                     // Check script continuity
+                     int last_cp;
+                     size_t upos = buffer_len - 1;
+                     while (upos > 0 && (unknown_buffer[upos] & 0xC0) == 0x80) upos--;
+                     utf8_decode(unknown_buffer + upos, &last_cp);
+                     
+                     int curr_cp;
+                     utf8_decode(s, &curr_cp);
+                     
+                     if (is_khmer_char(last_cp) != is_khmer_char(curr_cp)) {
+                          // Flush current buffer
+                          new_items[new_count++] = arena_strdup(&arena, unknown_buffer);
+                          // Reset buffer
+                          buffer_len = 0;
+                          unknown_buffer[0] = 0;
+                     }
+                 }
+
                  if (buffer_len + slen + 1 > buffer_cap) {
                     buffer_cap = (buffer_len + slen + 1) * 2;
                     if (buffer_cap < 64) buffer_cap = 64;

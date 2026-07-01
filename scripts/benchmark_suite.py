@@ -104,7 +104,7 @@ def benchmark_suite():
         print(f"Speedup: {t_nltk/t_ours:.2f}x")
 
     # 3. Concurrent Speed
-    WORKERS = 10
+    WORKERS = 4
     ITERATIONS_CONC = 5000
     print(f"\n--- 3. Concurrent Speed ({WORKERS} workers, {ITERATIONS_CONC} total calls) ---")
     
@@ -126,6 +126,50 @@ def benchmark_suite():
             print(f"Throughput Advantage: {tps_ours/tps_nltk:.2f}x")
         except Exception as e:
             print(f"khmernltk concurrent failed: {e}")
+
+    # 4. Macro Benchmark (File Throughput)
+    print("\n--- 4. Macro Benchmark (File Throughput) ---")
+    corpus_path = os.path.join(os.path.dirname(__file__), '..', 'dataset', 'khmer_wiki_corpus.txt')
+    
+    if os.path.exists(corpus_path):
+        with open(corpus_path, 'r', encoding='utf-8') as f:
+            lines = [line.strip() for line in f if line.strip()]
+            # Limit to 50k lines for quick benchmark if too large
+            if len(lines) > 50000:
+                lines = lines[:50000]
+        
+        print(f"Loaded {len(lines)} lines from corpus.")
+        
+        # Define batch processing function
+        def process_lines(seg_func, lines):
+            for line in lines:
+                seg_func(line)
+                
+        # KhmerSegmenter Macro
+        print("Benchmarking KhmerSegmenter (Macro)...")
+        start_mem = get_memory_mb()
+        start_time = time.time()
+        process_lines(seg.segment, lines)
+        duration = time.time() - start_time
+        end_mem = get_memory_mb()
+        
+        tps_ours_macro = len(lines) / duration
+        print(f"KhmerSegmenter: {tps_ours_macro:.2f} lines/sec (Time: {duration:.2f}s, Mem Delta: {end_mem-start_mem:.2f} MB)")
+        
+        # khmernltk Macro
+        if HAS_KHMERNLTK:
+            print("Benchmarking khmernltk (Macro)...")
+            start_mem = get_memory_mb()
+            start_time = time.time()
+            process_lines(word_tokenize, lines)
+            duration = time.time() - start_time
+            end_mem = get_memory_mb()
+            
+            tps_nltk_macro = len(lines) / duration
+            print(f"khmernltk:      {tps_nltk_macro:.2f} lines/sec (Time: {duration:.2f}s, Mem Delta: {end_mem-start_mem:.2f} MB)")
+            print(f"Throughput Advantage: {tps_ours_macro/tps_nltk_macro:.2f}x")
+    else:
+        print(f"Corpus not found at {corpus_path}. Skipping macro benchmark.")
 
 if __name__ == "__main__":
     benchmark_suite()

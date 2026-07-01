@@ -7,6 +7,29 @@ It combines Khmer Unicode normalization, dictionary lookup, frequency-weighted
 Viterbi decoding, rule-based handling, and unknown-word recovery. No LLM or
 runtime machine-learning model is required.
 
+## Try it out!
+
+🚀 **[Live Demo](https://sovichea.github.io/khmer_segment_webui_demo/)**
+
+### 1. Editor Mode
+
+<img src="assets/webui_editor_mode.png" width="800" alt="Editor Mode">
+
+**Real-time Segmentation & Editing**
+*   **Native Typing Experience**: Type quickly with zero lag.
+*   **Instant Feedback**: Unknown words are underlined in red, updating in real-time (~0.3ms latency) as you type.
+*   **Smart Paste**: Automatically re-segments pasted text while preserving formatting signals.
+
+### 2. View Mode
+
+<img src="assets/webui_view_mode.png" width="800" alt="View Mode">
+
+**Visual Analysis & Navigation**
+*   **Segmentation Blocks**: See exactly how the algorithm splits each word.
+*   **Navigation Tools**: Jump instantly between unknown words to verify potential errors or new vocabulary.
+*   **Analytics**: View word count and unknown word statistics.
+
+
 
 ## Acknowledgements
 
@@ -121,6 +144,26 @@ To add new words:
 2.  Run `python scripts/prepare_data.py`.
 3.  The new word is now compiled into `khmer_dictionary.kdict` and ready for the C port.
 
+### Incremental Updates (`scripts/incremental_update.py`)
+
+If you are adding new words and want to assign them frequencies based on your existing corpus (using the unknown word frequencies captured during `prepare_data.py`), use the incremental update script. This is faster than re-running the full pipeline.
+
+1.  **Ensure you have unknown word data**: Run `prepare_data.py` at least once to generate `khmer_segmenter/dictionary_data/unknown_word_frequencies.json`.
+2.  **Add new words**: Add your new words to `khmer_segmenter/dictionary_data/khmer_dictionary_words.txt`.
+3.  **Run the update**:
+    ```bash
+    python scripts/incremental_update.py \
+      --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt \
+      --freq khmer_segmenter/dictionary_data/khmer_word_frequencies.json \
+      --unknown-freq khmer_segmenter/dictionary_data/unknown_word_frequencies.json
+    ```
+    This script will:
+    *   Find words in your dictionary that are missing from the frequency list.
+    *   Look up their count in `unknown_word_frequencies.json`.
+    *   If not found, try to derive frequency from component words (for compounds).
+    *   Otherwise, assign a default floor frequency.
+    *   Update `khmer_word_frequencies.json`.
+
 ## 2. The Segmentation Algorithm
 
 For a detailed step-by-step explanation of the Viterbi algorithm, Normalization logic, and Rules I use in this project, please refer to the **[Porting Guide & Algorithm Reference](port/README.md)**.
@@ -201,33 +244,23 @@ frequency entries. Counts and document frequencies are recorded separately in
 Two runtime benchmarks are provided: **Real-Time Latency** (single sentence,
 micro-benchmark) and **Batch Throughput** (large corpus, macro-benchmark).
 
-### Scenario A: Real-Time / Latency (Micro-benchmark)
-*Context: Processing a single complex paragraph repeated (simulates typing, chatbot, UI).*
+### Benchmark Results
+*Context: Comparison across two scenarios: (1) **Micro-Benchmark** (Latency/Real-time) simulating single-sentence requests, and (2) **Macro-Benchmark** (Throughput) processing a large 50k-line corpus.*
 
-|Feature|khmernltk (Python)|KhmerSegmenter (Python)|KhmerSegmenter (C Port)|
-|:---|:---|:---|:---|
-|**Cold Start (Load)**|~1.83s|~0.30s (6x Faster)|**< 0.05s** (Instant)|
-|**Memory Usage**|~113.6 MB|~21.6 MB (5x Leaner)|**~4.8 MB** (Lowest)|
-|**Execution Speed (Seq)**|~5.77ms / call|~5.77ms / call (Baseline)|**~0.34ms / call** (WSL)|
-|**Concurrent (10 Workers)**|~318 calls / sec (GIL)|~447 calls / sec (GIL)|**~13,600 calls / sec** (WSL)|
-|**Concurrent Memory Delta**|~12.1 MB|~19.0 MB|**~0.17 MB** (Efficient)|
-|**Characteristics**|ML/Rule Hybrid|Pure Logic (Python)|**Pure Logic (SIMD Optimized)**|
+| Scenario | Metric | khmernltk | Python (v3) | C Port | Rust Port | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Micro-Benchmark** | Latency (Seq) | ~2.90 ms | ~2.21 ms | ~0.36 ms | **~0.34 ms** | Lower is better |
+| **Micro-Benchmark** | Throughput (4-Thread) | ~330 calls/s | ~503 calls/s | ~10,970 calls/s | **~10,909 calls/s** | Higher is better |
+| **Macro-Benchmark** | Throughput (4-Thread) | ~378 lines/s | ~585 lines/s | ~30,838 lines/s | **~31,250 lines/s** | File I/O + Process |
+| **Memory Usage** | Baseline (Init) | ~113 MB | ~36 MB | ~4.8 MB | **~2.2 MB** | Dict Load |
+| **Memory Usage** | Overhead (Conc) | ~12 MB | ~18 MB | ~0.2 MB | **~0.0 MB** | Efficiency |
 
-### Scenario B: Batch Processing / Throughput (Macro-benchmark)
-*Context: Processing large datasets (Khmer Wiki Corpus, 50,000 lines).*
-
-|Metric|khmernltk (Python)|KhmerSegmenter (Python)|KhmerSegmenter (C Port)|
-|:---|:---|:---|:---|
-|**Load Time**|~1.84s|~0.28s (6x Faster)|**< 0.05s** (Instant)|
-|**Memory Overhead**|~53.7 MB|~27.8 MB|**~23 MB**|
-|**Throughput (Seq)**|~429 lines / sec|~585 lines / sec|**~5,310 lines / sec** (12x)|
-|**Throughput (10 Threads)**|~391 lines / sec (GIL)|~553 lines / sec (GIL)|**~45,173 lines / sec** (115x)|
-|**Complex Input**|Splits numbers/acronyms|Correctly Groups (Rules)|**Correctly Groups**|
+*> Note: Benchmarks run on standard consumer hardware (Linux/Ryzen 7) with 4 threads.*
 
 ### Performance Analysis
 
 #### 1. Massive Throughput (C Port)
-With file-based benchmarking on WSL, the C port processes **45,173 lines per second** using 10 threads, compared to ~553 lines/sec in Python. This **~115x speedup** validates the linear scaling and SIMD optimizations of the C implementation on multi-core systems, making it suitable for high-volume ETL pipelines.
+With file-based benchmarking on Linux, the C port processes **~30,838 lines per second** using 4 threads, compared to ~553 lines/sec in Python. This **~55x speedup** validates the linear scaling and SIMD optimizations of the C implementation on multi-core systems, making it suitable for high-volume ETL pipelines.
 
 #### 2. Concurrency & The GIL
 Python-based segmenters (both ours and `khmernltk`) see **negative scaling** (0.9x speedup) when adding threads due to the **Global Interpreter Lock (GIL)** and overhead. Python is strictly limited to single-core CPU speeds for this workload.
@@ -244,10 +277,10 @@ Python-based segmenters (both ours and `khmernltk`) see **negative scaling** (0.
 > `ក្រុមហ៊ុន` | `ទទួលបាន` | `ប្រាក់` | `ចំណូល` | ` ` | `១` | ` ` | `០០០` | ` ` | `០០០` | ` ` | `ដុល្លារ` | `ក្នុង` | `ឆ្នាំ` | `នេះ` | ` ` | `ខណៈ` | `ដែល` | `តម្លៃ` | `ភាគហ៊ុន` | `កើនឡើង` | ` ` | `៥%` | ` ` | `ស្មើនឹង` | ` ` | `50.` | `00$` | `។` | ` ` | `លោក` | ` ` | `ទេព` | ` ` | `សុវិចិត្រ` | ` ` | `នាយក` | `ប្រតិបត្តិ` | `ដែល` | `បញ្ចប់` | `ការសិក្សា` | `ពី` | `សាកលវិទ្យាល័យ` | `ភូមិន្ទ` | `ភ្នំពេញ` | ` ` | `(` | `ស.` | `ភ.` | `ភ.` | `ព.` | `)` | ` ` | `បាន` | `ថ្លែង` | `ថា` | ` ` | `ភាពជោគជ័យ` | `ផ្នែក` | `ហិរញ្ញវត្ថុ` | `នា` | `ឆ្នាំ` | `នេះ` | ` ` | `គឺជា` | `សក្ខីភាព` | `នៃ` | `កិច្ច` | `ខិតខំ` | `ប្រឹងប្រែង` | `របស់` | `ក្រុមការងារ` | `ទាំងមូល` | ` ` | `និង` | `ការជឿទុកចិត្ត` | `ពីសំណាក់` | `វិនិយោគិន` | `។`
 
 **KhmerSegmenter Result:**
-> `ក្រុមហ៊ុន` | `ទទួល` | `បាន` | `ប្រាក់ចំណូល` | ` ` | `១ ០០០ ០០០` | ` ` | `ដុល្លារ` | `ក្នុង` | `ឆ្នាំ` | `នេះ` | ` ` | `ខណៈ` | `ដែល` | `តម្លៃ` | `ភាគហ៊ុន` | `កើនឡើង` | ` ` | `៥` | `%` | ` ` | `ស្មើនឹង` | ` ` | `50.00` | `$` | `។` | ` ` | `លោក` | ` ` | `ទេព` | ` ` | `សុវិចិត្រ` | ` ` | `នាយក` | `ប្រតិបត្តិ` | `ដែល` | `បញ្ចប់` | `ការសិក្សា` | `ពី` | `សាកលវិទ្យាល័យ` | `ភូមិន្ទ` | `ភ្នំពេញ` | ` ` | `(` | `ស.ភ.ភ.ព.` | `)` | ` ` | `បាន` | `ថ្លែង` | `ថា` | ` ` | `ភាព` | `ជោគជ័យ` | `ផ្នែក` | `ហិរញ្ញវត្ថុ` | `នា` | `ឆ្នាំ` | `នេះ` | ` ` | `គឺជា` | `សក្ខីភាព` | `នៃ` | `កិច្ច` | `ខិតខំ` | `ប្រឹងប្រែង` | `របស់` | `ក្រុមការងារ` | `ទាំងមូល` | ` ` | `និង` | `ការ` | `ជឿ` | `ទុកចិត្ត` | `ពីសំណាក់` | `វិនិយោគិន` | `។`
+> `ក្រុមហ៊ុន` | `ទទួល` | `បាន` | `ប្រាក់ចំណូល` | ` ` | `១` | ` ` | `០០០` | ` ` | `០០០` | ` ` | `ដុល្លារ` | `ក្នុង` | `ឆ្នាំ` | `នេះ` | ` ` | `ខណៈ` | `ដែល` | `តម្លៃ` | `ភាគហ៊ុន` | `កើនឡើង` | ` ` | `៥` | `%` | ` ` | `ស្មើនឹង` | ` ` | `50.00` | `$` | `។` | ` ` | `លោក` | ` ` | `ទេព` | ` ` | `សុវិចិត្រ` | ` ` | `នាយក` | `ប្រតិបត្តិ` | `ដែល` | `បញ្ចប់` | `ការសិក្សា` | `ពី` | `សាកលវិទ្យាល័យ` | `ភូមិន្ទ` | `ភ្នំពេញ` | ` ` | `(` | `ស.ភ.ភ.ព.` | `)` | ` ` | `បាន` | `ថ្លែង` | `ថា` | ` ` | `ភាព` | `ជោគជ័យ` | `ផ្នែក` | `ហិរញ្ញវត្ថុ` | `នា` | `ឆ្នាំ` | `នេះ` | ` ` | `គឺជា` | `សក្ខីភាព` | `នៃ` | `កិច្ច` | `ខិតខំ` | `ប្រឹងប្រែង` | `របស់` | `ក្រុមការងារ` | `ទាំងមូល` | ` ` | `និង` | `ការ` | `ជឿ` | `ទុកចិត្ត` | `ពីសំណាក់` | `វិនិយោគិន` | `។`
 
 **Key Differences:**
-1.  **Numbers**: `khmernltk` splits `១ ០០០ ០០០` into 5 tokens. `KhmerSegmenter` keeps it as **one**.
+1.  **Numbers**: `khmernltk` splits `១ ០០០ ០០០` into 5 tokens. `KhmerSegmenter` also splits them to support granular processing.
 2.  **Acronyms**: `khmernltk` destroys `(ស.ភ.ភ.ព.)` into multiple tokens. `KhmerSegmenter` keeps it as **one**.
 3.  **Dictionary Adherence**: `KhmerSegmenter` strictly adheres to the dictionary. For example, it correctly splits `ភាគហ៊ុន` into `ភាគ` | `ហ៊ុន` if `ភាគហ៊ុន` isn't in the loaded dictionary but the parts are (or vice versa depending on dictionary state). *Note: Benchmarks reflect the current state of `khmer_dictionary_words.txt`. As you add words like `ភាគហ៊ុន`, the segmenter will automatically group them.*
 

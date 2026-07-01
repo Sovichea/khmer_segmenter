@@ -134,10 +134,10 @@ Run performance tests using the built-in sample or your own data. Results are al
 
 ```bash
 # Use built-in sample text (saves to benchmark_results.txt)
-./zig-out/macos/bin/khmer_segmenter --benchmark --threads 10
+./zig-out/macos/bin/khmer_segmenter --benchmark --threads 4
 
 # Benchmark using your actual data
-./zig-out/win/bin/khmer_segmenter.exe --input corpus.txt --benchmark --threads 12 --limit 5000 --output segmented_benchmark.txt
+./zig-out/win/bin/khmer_segmenter.exe --input corpus.txt --benchmark --threads 4 --limit 50000 --output segmented_benchmark.txt
 ```
 
 > [!NOTE]
@@ -145,17 +145,18 @@ Run performance tests using the built-in sample or your own data. Results are al
 
 ## Performance Comparison
 
-Comparing segmentation speed on various workloads:
+Performance metrics on various workloads:
 
-| Scenario | Version | Threads | Throughput | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **Micro-Benchmark** (Latency) | **Python** | 1 | ~173 calls/s | Baseline logic |
-| **Micro-Benchmark** (Latency) | **C Port** | 1 | ~2,950 calls/s | Single Thread (Seq) |
-| **Micro-Benchmark** (Latency) | **C Port** | 10 | **~13,600 calls/s** | Concurrent (10 Threads) |
-| **Macro-Benchmark** (Throughput) | **Python** | 10 | ~553 lines/s | File I/O + GIL bottleneck |
-| **Macro-Benchmark** (Throughput) | **C Port** | 10 | **~45,173 lines/s** | **SIMD Optimized (AVX2)** |
 
-*> Note: Benchmarks run on standard consumer hardware (WSL). Multi-threaded throughput scales linearly with core count.*
+| Metric | Performance | Notes |
+| :--- | :--- | :--- |
+| **Micro Latency** | ~0.36 ms | Single Thread (Seq) |
+| **Micro Throughput** | ~10,970 calls/s | 4 Threads |
+| **Macro Throughput** | ~30,838 lines/s | 4 Threads (File I/O) |
+| **Memory (Init)** | ~4.8 MB | Dictionary Load |
+| **Memory (Overhead)** | ~0.2 MB | Multi-thread overhead |
+
+*> Note: Benchmarks run on standard consumer hardware (Linux/Ryzen 7) with 4 threads.*
 
 ## Platform-Specific Notes
 

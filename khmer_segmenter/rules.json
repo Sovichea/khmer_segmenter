@@ -1,5 +1,28 @@
 [
     {
+        "name": "Specific Char Merge Previous",
+        "description": "Merge specific single chars (ឃ, ជ, ឈ...) with previous if not isolated.",
+        "priority": 50,
+        "trigger": {
+            "type": "regex",
+            "value": "^[ឃជឈឋឌឍណថធនយហ]$"
+        },
+        "checks": [
+            {
+                "target": "context",
+                "check": "is_isolated",
+                "value": false
+            },
+            {
+                "target": "prev",
+                "check": "is_separator",
+                "value": false,
+                "exists": true
+            }
+        ],
+        "action": "merge_prev"
+    },
+    {
         "name": "Ahsda Exception Keep",
         "description": "Keep 'ក៏' and 'ដ៏' as single words.",
         "priority": 110,
