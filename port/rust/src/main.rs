@@ -1,9 +1,9 @@
+use rayon::prelude::*;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 use std::time::Instant;
-use rayon::prelude::*;
 
 use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmenterConfig};
 
@@ -11,7 +11,7 @@ use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmenterConfig};
 fn get_memory_mb() -> f64 {
     use std::fs::File;
     use std::io::{BufRead, BufReader};
-    
+
     if let Ok(file) = File::open("/proc/self/status") {
         let reader = BufReader::new(file);
         for line in reader.lines() {
@@ -35,8 +35,6 @@ fn get_memory_mb() -> f64 {
     0.0
 }
 
-
-
 fn main() -> io::Result<()> {
     // Config defaults
     let mut config = SegmenterConfig::default();
@@ -56,24 +54,24 @@ fn main() -> io::Result<()> {
             eprintln!("DEBUG: Set benchmark match {}", arg);
         } else if arg == "--input" || arg == "--file" {
             eprintln!("DEBUG: Found input flag at {}", i);
-            while i + 1 < args.len() && !args[i+1].starts_with('-') {
-                eprintln!("DEBUG: Pushing input file: {}", args[i+1]);
-                input_files.push(args[i+1].clone());
+            while i + 1 < args.len() && !args[i + 1].starts_with('-') {
+                eprintln!("DEBUG: Pushing input file: {}", args[i + 1]);
+                input_files.push(args[i + 1].clone());
                 i += 1;
             }
         } else if arg == "--output" {
             if i + 1 < args.len() {
-                output_file = Some(args[i+1].clone());
+                output_file = Some(args[i + 1].clone());
                 i += 1;
             }
         } else if arg == "--threads" {
             if i + 1 < args.len() {
-                threads = args[i+1].parse().unwrap_or(4);
+                threads = args[i + 1].parse().unwrap_or(4);
                 i += 1;
             }
         } else if arg == "--limit" {
-             if i + 1 < args.len() {
-                limit = args[i+1].parse().unwrap_or(-1);
+            if i + 1 < args.len() {
+                limit = args[i + 1].parse().unwrap_or(-1);
                 i += 1;
             }
         } else if arg == "--no-norm" {
@@ -97,7 +95,6 @@ fn main() -> io::Result<()> {
         i += 1;
     }
 
-    
     eprintln!("DEBUG: Args: {:?}", args);
     eprintln!("DEBUG: Parsed Input Files: {:?}", input_files);
     eprintln!("DEBUG: Benchmark Mode: {}", mode_benchmark);
@@ -113,7 +110,7 @@ fn main() -> io::Result<()> {
         "../common/khmer_dictionary.kdict", // Just in case
         "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_dictionary.kdict", // Absolute fallback
     ];
-    
+
     let mut dict_path: Option<&str> = None;
     for p in &dict_paths {
         if Path::new(p).exists() {
@@ -133,71 +130,87 @@ fn main() -> io::Result<()> {
             return Ok(());
         }
     };
-    
+
     if mode_benchmark || !input_files.is_empty() {
         eprintln!("Initialization complete.");
     }
 
     // Set thread pool? Rayon auto-configures but we can force it if we want strict control.
-    rayon::ThreadPoolBuilder::new().num_threads(threads).build_global().unwrap();
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(threads)
+        .build_global()
+        .unwrap();
 
     if mode_benchmark {
         if !input_files.is_empty() {
             let mut lines = Vec::new();
             let mut current_limit = limit;
-            
+
             eprintln!("DEBUG: Input files: {:?}", input_files);
-            
+
             for file in &input_files {
-                 eprintln!("DEBUG: Reading file: {}", file);
-                 let f = File::open(file)?;
-                 let reader = BufReader::new(f);
-                 for line in reader.lines() {
-                     if limit != -1 && current_limit <= 0 { break; }
-                     if let Ok(l) = line {
-                         // Remove BOM
-                         let clean = if l.starts_with("\u{FEFF}") {
-                             l.chars().skip(1).collect()
-                         } else {
-                             l
-                         };
-                         let clean_trimmed = clean.trim().to_string();
-                         lines.push(clean_trimmed);
-                         if limit != -1 { current_limit -= 1; }
-                     }
-                 }
-                 if limit != -1 && current_limit <= 0 { break; }
+                eprintln!("DEBUG: Reading file: {}", file);
+                let f = File::open(file)?;
+                let reader = BufReader::new(f);
+                for line in reader.lines() {
+                    if limit != -1 && current_limit <= 0 {
+                        break;
+                    }
+                    if let Ok(l) = line {
+                        // Remove BOM
+                        let clean = if l.starts_with("\u{FEFF}") {
+                            l.chars().skip(1).collect()
+                        } else {
+                            l
+                        };
+                        let clean_trimmed = clean.trim().to_string();
+                        lines.push(clean_trimmed);
+                        if limit != -1 {
+                            current_limit -= 1;
+                        }
+                    }
+                }
+                if limit != -1 && current_limit <= 0 {
+                    break;
+                }
             }
-                        eprintln!("DEBUG: Read {} lines", lines.len());
-             
-             // Calculate size
-             let total_bytes: usize = lines.iter().map(|l| l.len()).sum();
-             let total_mb = total_bytes as f64 / (1024.0 * 1024.0);
-             
-             eprintln!("\n--- Input Benchmark ({} lines, {:.2} MB) ---", lines.len(), total_mb);
-             let start_mem = get_memory_mb();
-             eprintln!("Initial Memory: {:.2} MB", start_mem);
-            
+            eprintln!("DEBUG: Read {} lines", lines.len());
+
+            // Calculate size
+            let total_bytes: usize = lines.iter().map(|l| l.len()).sum();
+            let total_mb = total_bytes as f64 / (1024.0 * 1024.0);
+
+            eprintln!(
+                "\n--- Input Benchmark ({} lines, {:.2} MB) ---",
+                lines.len(),
+                total_mb
+            );
+            let start_mem = get_memory_mb();
+            eprintln!("Initial Memory: {:.2} MB", start_mem);
+
             // 1. Sequential
             eprint!("[1 Thread] Processing...");
             let start_mem = get_memory_mb();
             let start = Instant::now();
-            let results_seq: Vec<String> = lines.iter()
-                .map(|l| seg.segment(l, Some(" | ")))
-                .collect();
-             let duration = start.elapsed();
-             let end_mem = get_memory_mb();
-             eprintln!(" Done in {:.3}s ({:.2} lines/sec)", duration.as_secs_f64(), lines.len() as f64 / duration.as_secs_f64());
-             eprintln!("Mem Delta: {:.2} MB", end_mem - start_mem);
-            
+            let results_seq: Vec<String> =
+                lines.iter().map(|l| seg.segment(l, Some(" | "))).collect();
+            let duration = start.elapsed();
+            let end_mem = get_memory_mb();
+            eprintln!(
+                " Done in {:.3}s ({:.2} lines/sec)",
+                duration.as_secs_f64(),
+                lines.len() as f64 / duration.as_secs_f64()
+            );
+            eprintln!("Mem Delta: {:.2} MB", end_mem - start_mem);
+
             if let Some(out_path) = &output_file {
-                 let mut f = File::create(out_path)?;
-                 for (orig, res) in lines.iter().zip(results_seq.iter()) {
-                     writeln!(f, "Original:  {}", orig)?;
-                     writeln!(f, "Segmented: {}", res)?;
-                     writeln!(f, "----------------------------------------")?;
-                 }
-                 eprintln!("Results saved to {}", out_path);
+                let mut f = File::create(out_path)?;
+                for (orig, res) in lines.iter().zip(results_seq.iter()) {
+                    writeln!(f, "Original:  {}", orig)?;
+                    writeln!(f, "Segmented: {}", res)?;
+                    writeln!(f, "----------------------------------------")?;
+                }
+                eprintln!("Results saved to {}", out_path);
             }
 
             // 2. Parallel
@@ -205,124 +218,146 @@ fn main() -> io::Result<()> {
                 eprint!("[{} Threads] Processing...", threads);
                 let start_mem = get_memory_mb();
                 let start = Instant::now();
-                let _results_par: Vec<String> = lines.par_iter()
+                let _results_par: Vec<String> = lines
+                    .par_iter()
                     .map(|l| seg.segment(l, Some(" | ")))
                     .collect();
-                 let duration_par = start.elapsed();
-                 let end_mem = get_memory_mb();
-                 eprintln!(" Done in {:.3}s ({:.2} lines/sec)", duration_par.as_secs_f64(), lines.len() as f64 / duration_par.as_secs_f64());
-                 eprintln!("Mem Delta: {:.2} MB", end_mem - start_mem);
-                 eprintln!("Speedup: {:.2}x", duration.as_secs_f64() / duration_par.as_secs_f64());
+                let duration_par = start.elapsed();
+                let end_mem = get_memory_mb();
+                eprintln!(
+                    " Done in {:.3}s ({:.2} lines/sec)",
+                    duration_par.as_secs_f64(),
+                    lines.len() as f64 / duration_par.as_secs_f64()
+                );
+                eprintln!("Mem Delta: {:.2} MB", end_mem - start_mem);
+                eprintln!(
+                    "Speedup: {:.2}x",
+                    duration.as_secs_f64() / duration_par.as_secs_f64()
+                );
+            }
+        } else {
+            // Standard text benchmark
+            let text = "ក្រុមហ៊ុនទទួលបានប្រាក់ចំណូល ១ ០០០ ០០០ ដុល្លារក្នុងឆ្នាំនេះ ខណៈដែលតម្លៃភាគហ៊ុនកើនឡើង ៥% ស្មើនឹង 50.00$។លោក ទេព សុវិចិត្រ នាយកប្រតិបត្តិដែលបញ្ចប់ការសិក្សាពីសាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ (ស.ភ.ភ.ព.) បានថ្លែងថា ភាពជោគជ័យផ្នែកហិរញ្ញវត្ថុនាឆ្នាំនេះ គឺជាសក្ខីភាពនៃកិច្ចខិតខំប្រឹងប្រែងរបស់ក្រុមការងារទាំងមូល និងការជឿទុកចិត្តពីសំណាក់វិនិយោគិន។";
+            let iterations_seq = 1000;
+            let iterations_conc = 5000;
+
+            println!("\n--- Benchmark Suite ---");
+            println!("Text Length: {} chars", text.chars().count());
+            println!("Initial Memory: {:.2} MB", get_memory_mb());
+
+            // Warmup
+            let check = seg.segment(text, Some(" | "));
+            println!("\n[Output Check]\n{}\n", check);
+
+            if let Some(out_path) = output_file {
+                let mut f = File::create(out_path)?;
+                writeln!(f, "Original:  {}", text)?;
+                writeln!(f, "Segmented: {}", check)?;
+                writeln!(f, "----------------------------------------")?;
+            } else {
+                let mut f = File::create("benchmark_results.txt")?;
+                writeln!(f, "Original:  {}", text)?;
+                writeln!(f, "Segmented: {}", check)?;
+                writeln!(f, "----------------------------------------")?;
             }
 
-        } else {
-             // Standard text benchmark
-             let text = "ក្រុមហ៊ុនទទួលបានប្រាក់ចំណូល ១ ០០០ ០០០ ដុល្លារក្នុងឆ្នាំនេះ ខណៈដែលតម្លៃភាគហ៊ុនកើនឡើង ៥% ស្មើនឹង 50.00$។លោក ទេព សុវិចិត្រ នាយកប្រតិបត្តិដែលបញ្ចប់ការសិក្សាពីសាកលវិទ្យាល័យភូមិន្ទភ្នំពេញ (ស.ភ.ភ.ព.) បានថ្លែងថា ភាពជោគជ័យផ្នែកហិរញ្ញវត្ថុនាឆ្នាំនេះ គឺជាសក្ខីភាពនៃកិច្ចខិតខំប្រឹងប្រែងរបស់ក្រុមការងារទាំងមូល និងការជឿទុកចិត្តពីសំណាក់វិនិយោគិន។";
-             let iterations_seq = 1000;
-             let iterations_conc = 5000;
-             
-             println!("\n--- Benchmark Suite ---");
-             println!("Text Length: {} chars", text.chars().count());
-             println!("Initial Memory: {:.2} MB", get_memory_mb());
-             
-             // Warmup
-             let check = seg.segment(text, Some(" | "));
-             println!("\n[Output Check]\n{}\n", check);
-             
-             if let Some(out_path) = output_file {
-                 let mut f = File::create(out_path)?;
-                 writeln!(f, "Original:  {}", text)?;
-                 writeln!(f, "Segmented: {}", check)?;
-                 writeln!(f, "----------------------------------------")?;
-             } else {
-                  let mut f = File::create("benchmark_results.txt")?;
-                  writeln!(f, "Original:  {}", text)?;
-                  writeln!(f, "Segmented: {}", check)?;
-                  writeln!(f, "----------------------------------------")?;
-             }
-             
-             // Sequential
-             println!("\n[Sequential] Running {} iterations...", iterations_seq);
-             let start_mem = get_memory_mb();
-             let start = Instant::now();
-             for _ in 0..iterations_seq {
-                 let _ = seg.segment(text, None); // NULL separator in C means "no separator"? No, C uses default if NULL. BUT benchmark passes NULL?
-                 // In C benchmark loop: khmer_segmenter_segment(seg, text, NULL);
-                 // In C khmer_segmenter_segment: if (!separator) separator = "\xE2\x80\x8B";
-                 // In Rust segment: if separator is None, use ZWS.
-             }
-             let duration = start.elapsed();
-             let end_mem = get_memory_mb();
-             println!("Time: {:.3}s", duration.as_secs_f64());
-             println!("Avg: {:.3} ms/call", (duration.as_secs_f64() * 1000.0) / iterations_seq as f64);
-             println!("Mem Delta: {:.2} MB", end_mem - start_mem);
-             
-             // Concurrent
-             println!("\n[Concurrent] Running {} iterations with {} threads...", iterations_conc, threads);
-             let start_mem = get_memory_mb();
-             let start = Instant::now();
-             (0..iterations_conc).into_par_iter().for_each(|_| {
-                 let _ = seg.segment(text, None);
-             });
-             let duration = start.elapsed();
-             let end_mem = get_memory_mb();
-             println!("Time: {:.3}s", duration.as_secs_f64());
-             println!("Throughput: {:.2} calls/sec", iterations_conc as f64 / duration.as_secs_f64());
-             println!("Mem Delta: {:.2} MB", end_mem - start_mem);
+            // Sequential
+            println!("\n[Sequential] Running {} iterations...", iterations_seq);
+            let start_mem = get_memory_mb();
+            let start = Instant::now();
+            for _ in 0..iterations_seq {
+                let _ = seg.segment(text, None); // NULL separator in C means "no separator"? No, C uses default if NULL. BUT benchmark passes NULL?
+                                                 // In C benchmark loop: khmer_segmenter_segment(seg, text, NULL);
+                                                 // In C khmer_segmenter_segment: if (!separator) separator = "\xE2\x80\x8B";
+                                                 // In Rust segment: if separator is None, use ZWS.
+            }
+            let duration = start.elapsed();
+            let end_mem = get_memory_mb();
+            println!("Time: {:.3}s", duration.as_secs_f64());
+            println!(
+                "Avg: {:.3} ms/call",
+                (duration.as_secs_f64() * 1000.0) / iterations_seq as f64
+            );
+            println!("Mem Delta: {:.2} MB", end_mem - start_mem);
+
+            // Concurrent
+            println!(
+                "\n[Concurrent] Running {} iterations with {} threads...",
+                iterations_conc, threads
+            );
+            let start_mem = get_memory_mb();
+            let start = Instant::now();
+            (0..iterations_conc).into_par_iter().for_each(|_| {
+                let _ = seg.segment(text, None);
+            });
+            let duration = start.elapsed();
+            let end_mem = get_memory_mb();
+            println!("Time: {:.3}s", duration.as_secs_f64());
+            println!(
+                "Throughput: {:.2} calls/sec",
+                iterations_conc as f64 / duration.as_secs_f64()
+            );
+            println!("Mem Delta: {:.2} MB", end_mem - start_mem);
         }
     } else if !input_files.is_empty() {
         let mut out: Box<dyn Write> = if let Some(path) = output_file {
             Box::new(File::create(path)?)
         } else {
-             Box::new(io::stdout())
+            Box::new(io::stdout())
         };
-        
+
         let mut lines = Vec::new();
         let mut current_limit = limit;
         for file in &input_files {
-             let f = File::open(file)?;
-             let reader = BufReader::new(f);
-             for line in reader.lines() {
-                 if limit != -1 && current_limit <= 0 { break; }
-                 if let Ok(l) = line {
-                     // Remove BOM
-                        let clean = if l.starts_with("\u{FEFF}") {
-                             l.chars().skip(1).collect()
-                         } else {
-                             l
-                         };
-                     lines.push(clean);
-                     if limit != -1 { current_limit -= 1; }
-                 }
-             }
-             if limit != -1 && current_limit <= 0 { break; }
+            let f = File::open(file)?;
+            let reader = BufReader::new(f);
+            for line in reader.lines() {
+                if limit != -1 && current_limit <= 0 {
+                    break;
+                }
+                if let Ok(l) = line {
+                    // Remove BOM
+                    let clean = if l.starts_with("\u{FEFF}") {
+                        l.chars().skip(1).collect()
+                    } else {
+                        l
+                    };
+                    lines.push(clean);
+                    if limit != -1 {
+                        current_limit -= 1;
+                    }
+                }
+            }
+            if limit != -1 && current_limit <= 0 {
+                break;
+            }
         }
-        
+
         // Use parallel processing if threads > 1
         if threads > 1 {
-             let results: Vec<String> = lines.par_iter()
+            let results: Vec<String> = lines
+                .par_iter()
                 .map(|l| seg.segment(l, Some(" | ")))
                 .collect();
-             
-             for (orig, res) in lines.iter().zip(results.iter()) {
-                 writeln!(out, "Original:  {}", orig)?;
-                 writeln!(out, "Segmented: {}", res)?;
-                 writeln!(out, "----------------------------------------")?;
-             }
+
+            for (orig, res) in lines.iter().zip(results.iter()) {
+                writeln!(out, "Original:  {}", orig)?;
+                writeln!(out, "Segmented: {}", res)?;
+                writeln!(out, "----------------------------------------")?;
+            }
         } else {
-             for l in lines {
-                 let res = seg.segment(&l, Some(" | "));
-                 writeln!(out, "Original:  {}", l)?;
-                 writeln!(out, "Segmented: {}", res)?;
-                 writeln!(out, "----------------------------------------")?;
-             }
+            for l in lines {
+                let res = seg.segment(&l, Some(" | "));
+                writeln!(out, "Original:  {}", l)?;
+                writeln!(out, "Segmented: {}", res)?;
+                writeln!(out, "----------------------------------------")?;
+            }
         }
-        
     } else if let Some(text) = input_text {
         let res = seg.segment(&text, Some(" | "));
         println!("Input: {}", text);
         println!("Output: {}", res);
-        
+
         // Save
         let out_path = output_file.unwrap_or("segmentation_results.txt".to_string());
         let mut f = File::create(&out_path)?;

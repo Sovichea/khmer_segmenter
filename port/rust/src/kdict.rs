@@ -1,5 +1,6 @@
 use memmap2::Mmap;
 use std::fs::File;
+use std::path::Path;
 
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
@@ -20,7 +21,6 @@ pub struct KDictEntry {
     pub name_offset: u32,
     pub cost: f32,
 }
-
 
 #[derive(Debug)]
 pub enum DataSource {
@@ -59,7 +59,7 @@ pub struct KDict {
 
 impl KDict {
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn load(path: &str) -> std::io::Result<Self> {
+    pub fn load(path: impl AsRef<Path>) -> std::io::Result<Self> {
         let file = File::open(path)?;
         let mmap = unsafe { Mmap::map(&file)? };
         Self::from_source(DataSource::Mmap(mmap))
@@ -71,7 +71,10 @@ impl KDict {
 
     fn from_source(source: DataSource) -> std::io::Result<Self> {
         if source.len() < std::mem::size_of::<KDictHeader>() {
-             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "File too small"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "File too small",
+            ));
         }
 
         let base_ptr = source.as_ptr();
@@ -79,20 +82,26 @@ impl KDict {
         let header = unsafe { &*header_ptr };
 
         if &header.magic != b"KDIC" {
-            return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid magic"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Invalid magic",
+            ));
         }
 
         let table_offset = std::mem::size_of::<KDictHeader>();
         // Check bounds would be good here
         let table_ptr = unsafe { base_ptr.add(table_offset) } as *const KDictEntry;
-        
+
         let table_bytes = header.table_size as usize * std::mem::size_of::<KDictEntry>();
         let pool_offset = table_offset + table_bytes;
-        
+
         if pool_offset > source.len() {
-             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "File truncated"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "File truncated",
+            ));
         }
-        
+
         let pool_ptr = unsafe { base_ptr.add(pool_offset) };
 
         Ok(KDict {
@@ -116,9 +125,7 @@ impl KDict {
     }
 
     pub fn get_pool_ptr(&self, offset: u32) -> *const u8 {
-        unsafe {
-            self.string_pool.add(offset as usize)
-        }
+        unsafe { self.string_pool.add(offset as usize) }
     }
 }
 
