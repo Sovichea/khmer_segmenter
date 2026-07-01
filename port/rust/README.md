@@ -40,6 +40,19 @@ cargo run --release -- --benchmark
 cargo run --release -- --input ../../dataset/corpus.txt --benchmark
 ```
 
+### Hyphenation Lookups
+You can query the compiled `khmer_hyphenation.kdict` directly to fetch sub-word hyphenation break points (inserted with invisible Zero Width Space characters).
+
+```bash
+# Query a single word for its hyphenation mapping
+cargo run --release -- --test-hyphenation "កក្រើករំជួល"
+# Output: កក្រើក-រំជួល
+
+# Segment an entire sentence and apply hyphenation lookups to each token
+cargo run --release -- --hyphenate-sentence "សហប្រតិបត្តិការពហុភាគីគឺជារបាំងធុរកិច្ចដ៏សំខាន់មួយ។"
+# Output: សហ-ប្រតិបត្តិការ | ពហុ-ភាគី | គឺជា | របាំង-ធុរកិច្ច | ដ៏ | សំ-ខាន់ | មួយ | ។
+```
+
 ## Performance
 
 

@@ -211,6 +211,20 @@ If you are adding new words and want to assign them frequencies based on your ex
     *   Otherwise, assign a default floor frequency.
     *   Update `khmer_word_frequencies.json`.
 
+### Hyphenation (Word Processor Support)
+
+For text editors and rendering engines that need to line-break long compound Khmer words without breaking semantic rules, `KhmerSegmenter` supports generating and querying **Hyphenation Pairs**.
+
+1.  **Generate Text Pairs**: 
+    Run `python generate_hyphenation_pairs.py` to process the official dictionary. This forces the Viterbi segmenter to break down long compound words into sub-dictionary words, producing `khmer_segmenter/dictionary_data/khmer_dictionary_hyphenation_pairs.txt` (e.g., `សហប្រតិបត្តិការ` -> `សហ-ប្រតិបត្តិការ`).
+2.  **Build Binary KHYP Dict**:
+    Run `python build_hyphenation_kdict.py` to compile the text pairs into an ultra-fast `O(1)` binary hash table (`port/common/khmer_hyphenation.kdict`) designed for zero-parsing startup in C/Rust ports.
+3.  **Use in Rust/C**:
+    The Rust CLI has built-in testing flags to demonstrate hyphenation lookups on segmented text using the invisible Zero Width Space (`\u200b`):
+    ```bash
+    cargo run --release --bin khmer_segmenter -- --hyphenate-sentence "សហប្រតិបត្តិការពហុភាគីគឺជារបាំងធុរកិច្ចដ៏សំខាន់មួយ។"
+    ```
+
 ## 2. The Segmentation Algorithm
 
 For a detailed step-by-step explanation of the Viterbi algorithm, Normalization logic, and Rules I use in this project, please refer to the **[Porting Guide & Algorithm Reference](port/README.md)**.

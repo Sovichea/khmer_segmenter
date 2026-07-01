@@ -44,6 +44,7 @@ fn main() -> io::Result<()> {
     let mut mode_benchmark = false;
     let mut threads = 4;
     let mut limit: i32 = -1;
+    let mut test_hyphenation_word: Option<String> = None;
 
     let args: Vec<String> = env::args().collect();
     let mut i = 1;
@@ -84,6 +85,17 @@ fn main() -> io::Result<()> {
             config.enable_unknown_merging = false;
         } else if arg == "--no-freq" {
             config.enable_frequency_costs = false; // Not used in binary dict but kept for compat
+        } else if arg == "--test-hyphenation" {
+            if i + 1 < args.len() {
+                test_hyphenation_word = Some(args[i + 1].clone());
+                i += 1;
+            }
+        } else if arg == "--hyphenate-sentence" {
+            if i + 1 < args.len() {
+                input_text = Some(args[i + 1].clone());
+                test_hyphenation_word = Some("SENTENCE_TEST".to_string()); // flag
+                i += 1;
+            }
         } else if !arg.starts_with('-') {
             if let Some(ref mut text) = input_text {
                 text.push(' ');
@@ -99,6 +111,61 @@ fn main() -> io::Result<()> {
     eprintln!("DEBUG: Parsed Input Files: {:?}", input_files);
     eprintln!("DEBUG: Benchmark Mode: {}", mode_benchmark);
 
+    if let Some(test_val) = test_hyphenation_word {
+        let hyp_paths = [
+            "khmer_hyphenation.kdict",
+            "../../port/common/khmer_hyphenation.kdict",
+            "../common/khmer_hyphenation.kdict",
+            "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_hyphenation.kdict",
+        ];
+        
+        let mut hyp_dict_opt = None;
+        for p in &hyp_paths {
+            if Path::new(p).exists() {
+                if let Ok(d) = khmer_segmenter::kdict::KHypDict::load(p) {
+                    hyp_dict_opt = Some(d);
+                    break;
+                }
+            }
+        }
+        
+        if test_val == "SENTENCE_TEST" {
+            if let Some(text) = input_text {
+                let dict_path = Some("../../port/common/khmer_dictionary.kdict");
+                let seg = KhmerSegmenter::new(dict_path, config).unwrap();
+                let segmented = seg.segment(&text, Some(" | "));
+                println!("1. Original:   {}", text);
+                println!("2. Segmented:  {}", segmented);
+                
+                if let Some(dict) = hyp_dict_opt {
+                    let mut final_tokens = Vec::new();
+                    for token in segmented.split(" | ") {
+                        if let Some(hyphenated) = dict.lookup(token) {
+                            final_tokens.push(hyphenated.replace('\u{200b}', "-"));
+                        } else {
+                            final_tokens.push(token.to_string());
+                        }
+                    }
+                    println!("3. Hyphenated: {}", final_tokens.join(" | "));
+                }
+            }
+        } else {
+            // Original word test
+            println!("Testing hyphenation lookup for: {}", test_val);
+            if let Some(dict) = hyp_dict_opt {
+                if let Some(hyphenated) = dict.lookup(&test_val) {
+                    println!("Match found!");
+                    println!("Original: {}", test_val);
+                    println!("Hyphenated: {}", hyphenated.replace('\u{200b}', "-"));
+                } else {
+                    println!("No hyphenation found for '{}'", test_val);
+                }
+            } else {
+                println!("Error: Could not load khmer_hyphenation.kdict from any default paths.");
+            }
+        }
+        return Ok(());
+    }
     if !input_files.is_empty() && output_file.is_none() {
         output_file = Some("segmentation_results.txt".to_string());
     }
@@ -372,6 +439,8 @@ fn main() -> io::Result<()> {
         println!("  --limit <N>       Limit total lines processed");
         println!("  --threads <N>     Number of threads (default: 4)");
         println!("  --benchmark       Run benchmark (uses --input if provided)");
+        println!("  --test-hyphenation <word> Test lookup in khmer_hyphenation.kdict");
+        println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
         println!("  <text>            Process raw text");
     }
 
