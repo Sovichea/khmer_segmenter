@@ -1,0 +1,11 @@
+{
+  "source": "khPOS",
+  "split": "derived train only",
+  "split_policy": "SHA-256 sentence ID buckets: 80% train, 10% dev, 10% test",
+  "sentences": 9619,
+  "tokens": 103180,
+  "lexical_entries": 6992,
+  "unambiguous_entries": 6160,
+  "ambiguous_entries": 832,
+  "semantics": "Lexical candidates only; no contextual POS disambiguation"
+}

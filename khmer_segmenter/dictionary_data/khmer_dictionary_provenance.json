@@ -10,11 +10,9 @@
   },
   "supplemental_policy": "Existing words absent from the RAC extraction are retained as community vocabulary; absence is not proof of invalidity.",
   "counts": {
-    "existing_unique": 82288,
-    "official_already_present": 32656,
-    "official_added": 6015,
+    "official_headwords": 38671,
     "supplemental_retained": 49632,
     "runtime_union": 88303,
-    "existing_rejected": 1
+    "supplemental_rejected": 0
   }
 }

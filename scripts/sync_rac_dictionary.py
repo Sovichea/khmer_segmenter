@@ -70,12 +70,14 @@ def main() -> None:
     report_path = args.dictionary_dir / "khmer_dictionary_provenance.json"
 
     reference_rows, reference_rejected = read_words(args.rac_tsv, tsv=True)
-    existing_rows, existing_rejected = read_words(runtime_path)
+    # Once provenance files exist, they are the canonical inputs. Re-reading the
+    # generated union can accidentally promote merge markers or official words
+    # into the supplemental vocabulary.
+    existing_source = supplemental_path if supplemental_path.exists() else runtime_path
+    existing_rows, existing_rejected = read_words(existing_source)
     official = set(reference_rows)
     existing = set(existing_rows)
-    intersection = official & existing
     supplemental = existing - official
-    missing_official = official - existing
     runtime = official | supplemental
 
     write_words(official_path, official)
@@ -99,12 +101,10 @@ def main() -> None:
             "community vocabulary; absence is not proof of invalidity."
         ),
         "counts": {
-            "existing_unique": len(existing),
-            "official_already_present": len(intersection),
-            "official_added": len(missing_official),
+            "official_headwords": len(official),
             "supplemental_retained": len(supplemental),
             "runtime_union": len(runtime),
-            "existing_rejected": existing_rejected,
+            "supplemental_rejected": existing_rejected,
         },
     }
     report_path.write_text(

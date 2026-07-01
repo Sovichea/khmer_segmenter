@@ -7,7 +7,7 @@ from .normalization import KhmerNormalizer
 from .rule_engine import RuleBasedEngine
 
 class KhmerSegmenter:
-    def __init__(self, dictionary_path, frequency_path="khmer_word_frequencies.json"):
+    def __init__(self, dictionary_path, frequency_path="khmer_word_frequencies.json", pos_path=None):
         """
         Initialize the segmenter by loading the dictionary and word frequencies.
         """
@@ -17,6 +17,10 @@ class KhmerSegmenter:
         
         # Word Costs
         self.word_costs = {}
+        self.word_frequencies = {}
+        self.pos_tags = {}
+        self.official_words = set()
+        self.supplemental_words = set()
         self.default_cost = 10.0 # High cost for dictionary words without frequency
         self.unknown_cost = 20.0 # Very high cost for unknown chunks
         
@@ -28,6 +32,38 @@ class KhmerSegmenter:
         
         self._load_dictionary(dictionary_path)
         self._load_frequencies(frequency_path)
+        data_dir = os.path.dirname(os.path.abspath(dictionary_path))
+        self._load_word_set(
+            os.path.join(data_dir, "khmer_dictionary_official_2022_words.txt"),
+            self.official_words,
+        )
+        self._load_word_set(
+            os.path.join(data_dir, "khmer_dictionary_supplemental_words.txt"),
+            self.supplemental_words,
+        )
+        if pos_path is None:
+            pos_path = os.path.join(data_dir, "khmer_word_pos.json")
+        self._load_pos_tags(pos_path)
+
+    def _load_word_set(self, path, destination):
+        if not os.path.exists(path):
+            return
+        with open(path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                word = self.normalizer.normalize(line.strip())
+                if word:
+                    destination.add(word)
+
+    def _load_pos_tags(self, path):
+        if not path or not os.path.exists(path):
+            return
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        self.pos_tags = {
+            self.normalizer.normalize(word): tuple(sorted(set(tags)))
+            for word, tags in data.items()
+            if word and tags
+        }
 
     def _load_dictionary(self, path):
         if not os.path.exists(path):
@@ -239,6 +275,7 @@ class KhmerSegmenter:
         
         for word, count in data.items():
             word = word.replace('\u200b', '').replace('\u200c', '').replace('\u200d', '')
+            self.word_frequencies[word] = int(count)
             eff = max(count, min_freq_floor)
             effective_counts[word] = eff
             
@@ -280,6 +317,57 @@ class KhmerSegmenter:
         if word in self.words:
             return self.default_cost
         return self.unknown_cost
+
+    def segment_with_metadata(self, text, disable_post_processing=False):
+        """Segment text and return lexical metadata for each token.
+
+        ``pos`` is populated only when the lexical POS candidate is unambiguous.
+        This method does not perform contextual POS disambiguation.
+        Offsets refer to the normalized input returned by the segmentation path.
+        """
+        normalized_text = self.normalizer.normalize(text)
+        tokens = self.segment(text, disable_post_processing=disable_post_processing)
+        result = []
+        offset = 0
+        for token in tokens:
+            start = offset
+            offset += len(token)
+            known = token in self.words
+            candidates = list(self.pos_tags.get(token, ()))
+            if known:
+                token_type = "word"
+            elif self._is_digit(token):
+                token_type = "number"
+            elif self._is_separator(token) or token.isspace():
+                token_type = "separator"
+            else:
+                token_type = "unknown"
+
+            if known and token in self.official_words:
+                source = "rac_2022"
+            elif known and token in self.supplemental_words:
+                source = "community"
+            elif known:
+                source = "dictionary"
+            elif token_type in {"number", "separator"}:
+                source = "rule"
+            else:
+                source = "unknown"
+
+            result.append({
+                "text": token,
+                "start": start,
+                "end": offset,
+                "known": known,
+                "type": token_type,
+                "source": source,
+                "frequency": self.word_frequencies.get(token),
+                "pos": candidates[0] if len(candidates) == 1 else None,
+                "pos_candidates": candidates,
+            })
+        if offset != len(normalized_text):
+            raise ValueError("Segment metadata offsets do not cover normalized input")
+        return result
 
 
 

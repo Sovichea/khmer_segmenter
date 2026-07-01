@@ -105,6 +105,41 @@ print(result)
 - Output represents lexical boundaries; a different valid compound convention may disagree.
 - Pin the dictionary and frequency artifact versions for reproducible deployments.
 
+### Segmentation with Lexical POS Metadata
+
+Use `segment_with_metadata()` when preparing structured corpora:
+
+```python
+tokens = seg.segment_with_metadata("ខ្ញុំសរសេរឯកសារ")
+```
+
+Each item contains:
+
+```python
+{
+    "text": "សរសេរ",
+    "start": 5,
+    "end": 10,
+    "known": True,
+    "type": "word",
+    "source": "rac_2022",
+    "frequency": 123,
+    "pos": None,
+    "pos_candidates": ["NN", "VB"],
+}
+```
+
+`pos_candidates` are deterministic lexical candidates learned from the khPOS
+training partition. `pos` is populated only when exactly one candidate exists.
+This is not contextual POS tagging: ambiguous and unknown tokens return
+`pos: None`. Existing `segment()` behavior remains unchanged.
+
+Rebuild the POS artifact with:
+
+```bash
+python scripts/build_lexical_pos.py
+```
+
 ## C Port (High Performance)
 
 For users requiring maximum performance or embedding in C/C++/Zig applications, a native port is available in the [port/c/](port/c/) directory. All ports share common linguistic data found in [port/common/](port/common/).
