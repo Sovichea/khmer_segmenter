@@ -576,6 +576,8 @@ int main(int argc, char** argv) {
     char* input_text = NULL;
     int threads = 4;
     int limit = -1;
+    char* test_hyphenation_word = NULL;
+    int hyphenate_sentence = 0;
     
     SegmenterConfig config = segmenter_config_default();
     
@@ -601,8 +603,11 @@ int main(int argc, char** argv) {
             config.enable_acronym_detection = 0;
         } else if (strcmp(argv[i], "--no-merging") == 0) {
             config.enable_unknown_merging = 0;
-        } else if (strcmp(argv[i], "--no-freq") == 0) {
-            config.enable_frequency_costs = 0;
+        } else if (strcmp(argv[i], "--test-hyphenation") == 0 && i+1 < argc) {
+            test_hyphenation_word = STRDUP(argv[++i]);
+        } else if (strcmp(argv[i], "--hyphenate-sentence") == 0 && i+1 < argc) {
+            input_text = STRDUP(argv[++i]);
+            hyphenate_sentence = 1;
         } else if (argv[i][0] != '-') {
             // Treat positional as text (concatenate multiple args)
             if (input_text == NULL) {
@@ -741,6 +746,80 @@ int main(int argc, char** argv) {
         }
         
         if (output_file && out != stdout) fclose(out);
+    } else if (test_hyphenation_word || hyphenate_sentence) {
+        // Hyphenation test
+        const char* hyp_path = "khmer_hyphenation.kdict";
+        FILE* ch = fopen(hyp_path, "rb");
+        if (!ch) {
+            hyp_path = "port/common/khmer_hyphenation.kdict";
+            ch = fopen(hyp_path, "rb");
+        }
+        if (!ch) {
+            hyp_path = "../common/khmer_hyphenation.kdict";
+            ch = fopen(hyp_path, "rb");
+        }
+        if (ch) fclose(ch);
+        
+        KHypDict* hyp_dict = khmer_hyphenation_init(hyp_path);
+        if (!hyp_dict) {
+            fprintf(stderr, "Error: Could not load %s\n", hyp_path);
+        } else {
+            if (test_hyphenation_word) {
+                printf("Testing hyphenation lookup for: %s\n", test_hyphenation_word);
+                const char* hyp = khmer_hyphenation_lookup(hyp_dict, test_hyphenation_word);
+                if (hyp) {
+                    printf("Match found!\n");
+                    printf("Original: %s\n", test_hyphenation_word);
+                    // Replace ZWS for visual debugging in C string
+                    char* disp = STRDUP(hyp);
+                    char* p = disp;
+                    while ((p = strstr(p, "\xE2\x80\x8B")) != NULL) {
+                        *p = '-';
+                        memmove(p + 1, p + 3, strlen(p + 3) + 1);
+                    }
+                    printf("Hyphenated: %s\n", disp);
+                    free(disp);
+                } else {
+                    printf("No hyphenation found for '%s'\n", test_hyphenation_word);
+                }
+            } else if (hyphenate_sentence && input_text) {
+                char* segmented = khmer_segmenter_segment(seg, input_text, " | ");
+                printf("1. Original:   %s\n", input_text);
+                printf("2. Segmented:  %s\n", segmented);
+                
+                printf("3. Hyphenated: ");
+                char* saveptr;
+                char* token = strtok_r(segmented, "|", &saveptr);
+                int first = 1;
+                while (token) {
+                    // strip leading/trailing spaces
+                    while (*token == ' ') token++;
+                    char* end = token + strlen(token) - 1;
+                    while (end > token && *end == ' ') { *end = '\0'; end--; }
+                    
+                    if (!first) printf(" | ");
+                    first = 0;
+                    
+                    const char* hyp = khmer_hyphenation_lookup(hyp_dict, token);
+                    if (hyp) {
+                        char* disp = STRDUP(hyp);
+                        char* p = disp;
+                        while ((p = strstr(p, "\xE2\x80\x8B")) != NULL) {
+                            *p = '-';
+                            memmove(p + 1, p + 3, strlen(p + 3) + 1);
+                        }
+                        printf("%s", disp);
+                        free(disp);
+                    } else {
+                        printf("%s", token);
+                    }
+                    token = strtok_r(NULL, "|", &saveptr);
+                }
+                printf("\n");
+                free(segmented);
+            }
+            khmer_hyphenation_free(hyp_dict);
+        }
     } else if (input_text) {
         char* res = khmer_segmenter_segment(seg, input_text, " | ");
         printf("Input: %s\n", input_text);
@@ -772,6 +851,8 @@ int main(int argc, char** argv) {
         printf("  --limit <N>       Limit total lines processed\n");
         printf("  --threads <N>     Number of threads (default: 4)\n");
         printf("  --benchmark       Run benchmark (uses --input if provided)\n");
+        printf("  --test-hyphenation <word> Test lookup in khmer_hyphenation.kdict\n");
+        printf("  --hyphenate-sentence <text> Segment text and apply hyphenation\n");
         printf("  <text>            Process raw text\n");
     }
 

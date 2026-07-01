@@ -46,6 +46,36 @@ char* khmer_segmenter_segment(KhmerSegmenter* segmenter, const char* text, const
  */
 void khmer_segmenter_free(KhmerSegmenter* segmenter);
 
+// ============================================================================
+// Hyphenation API
+// ============================================================================
+
+typedef struct KHypDict KHypDict;
+
+/**
+ * @brief Initialize the Hyphenation Dictionary from a binary .kdict file
+ * 
+ * @param dict_path Path to the khmer_hyphenation.kdict file
+ * @return Pointer to the dictionary instance, or NULL on failure
+ */
+KHypDict* khmer_hyphenation_init(const char* dict_path);
+
+/**
+ * @brief Look up a word's hyphenation map in O(1) time
+ * 
+ * @param dict Pointer to the hyphenation dictionary instance
+ * @param word UTF-8 encoded Khmer word to lookup
+ * @return Hyphenated string containing Zero Width Spaces (must not be freed), or NULL if not found
+ */
+const char* khmer_hyphenation_lookup(KHypDict* dict, const char* word);
+
+/**
+ * @brief Free the hyphenation dictionary instance
+ * 
+ * @param dict Pointer to the dictionary instance
+ */
+void khmer_hyphenation_free(KHypDict* dict);
+
 #ifdef __cplusplus
 }
 #endif

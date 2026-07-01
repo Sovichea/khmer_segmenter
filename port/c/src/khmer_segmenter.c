@@ -460,6 +460,111 @@ KhmerSegmenter* khmer_segmenter_init_ex(const char* dictionary_path, const char*
     return seg;
 }
 
+// ============================================================================
+// Hyphenation API
+// ============================================================================
+
+#pragma pack(push, 1)
+typedef struct {
+    char magic[4];          // "KHYP"
+    uint32_t version;       // 1
+    uint32_t num_entries;
+    uint32_t table_size;
+    uint32_t padding[4];
+} KHypHeader;
+
+typedef struct {
+    uint32_t key_offset;
+    uint32_t val_offset;
+} KHypEntry;
+#pragma pack(pop)
+
+struct KHypDict {
+    void* blob_data;
+    size_t blob_size;
+    
+    KHypHeader* header;
+    KHypEntry* table;
+    char* string_pool;
+    uint32_t table_mask;
+};
+
+KHypDict* khmer_hyphenation_init(const char* dict_path) {
+    if (!dict_path) return NULL;
+    
+    FILE* f = fopen(dict_path, "rb");
+    if (!f) return NULL;
+    
+    fseek(f, 0, SEEK_END);
+    size_t size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    
+    if (size < sizeof(KHypHeader)) {
+        fclose(f);
+        return NULL;
+    }
+    
+    void* data = malloc(size);
+    if (!data) {
+        fclose(f);
+        return NULL;
+    }
+    
+    if (fread(data, 1, size, f) != size) {
+        free(data);
+        fclose(f);
+        return NULL;
+    }
+    fclose(f);
+    
+    KHypHeader* header = (KHypHeader*)data;
+    if (strncmp(header->magic, "KHYP", 4) != 0) {
+        free(data);
+        return NULL;
+    }
+    
+    KHypDict* dict = (KHypDict*)malloc(sizeof(KHypDict));
+    if (!dict) {
+        free(data);
+        return NULL;
+    }
+    
+    dict->blob_data = data;
+    dict->blob_size = size;
+    dict->header = header;
+    dict->table = (KHypEntry*)((char*)data + sizeof(KHypHeader));
+    dict->string_pool = (char*)dict->table + (header->table_size * sizeof(KHypEntry));
+    dict->table_mask = header->table_size - 1;
+    
+    return dict;
+}
+
+const char* khmer_hyphenation_lookup(KHypDict* dict, const char* word) {
+    if (!dict || !word) return NULL;
+    
+    uint32_t hash = djb2_hash(word);
+    uint32_t idx = hash & dict->table_mask;
+    
+    size_t word_len = strlen(word);
+    
+    while (dict->table[idx].key_offset != 0) {
+        const char* key = dict->string_pool + dict->table[idx].key_offset;
+        if (fast_str_eq(key, word, word_len) && key[word_len] == '\0') {
+            return dict->string_pool + dict->table[idx].val_offset;
+        }
+        idx = (idx + 1) & dict->table_mask;
+    }
+    
+    return NULL;
+}
+
+void khmer_hyphenation_free(KHypDict* dict) {
+    if (dict) {
+        if (dict->blob_data) free(dict->blob_data);
+        free(dict);
+    }
+}
+
 KhmerSegmenter* khmer_segmenter_init(const char* dictionary_path, const char* frequency_path) {
     return khmer_segmenter_init_ex(dictionary_path, frequency_path, NULL);
 }

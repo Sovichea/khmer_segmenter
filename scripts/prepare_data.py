@@ -472,6 +472,14 @@ def main():
         # Step 4: KDict Compilation
         step_compile_kdict(args.dict, args.output_json, args.output_kdict)
         
+        # Step 5: Hyphenation Dictionary
+        print("[*] Step 5: Generating Hyphenation Pairs & Compiling KHYP...")
+        try:
+            subprocess.run([sys.executable, "generate_hyphenation_pairs.py"], check=True)
+            subprocess.run([sys.executable, "build_hyphenation_kdict.py"], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error during hyphenation build: {e}")
+            
         print("\n[!] Pipeline completed successfully.")
         
     finally:
