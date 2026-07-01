@@ -1,6 +1,11 @@
-# Khmer Word Segmentation Algorithm
+# Khmer Segmenter
 
-I've implemented a probabilistic word segmentation algorithm for the Khmer language using a **Viterbi** approach (finding the shortest path in a graph of possible segments) weighted by word probabilities derived from a text corpus.
+Khmer Segmenter is a lightweight deterministic Khmer lexical segmentation
+engine for formal documents, technical writing, research papers, search
+indexing, spell-check preprocessing, and other infrastructure-level NLP tasks.
+It combines Khmer Unicode normalization, dictionary lookup, frequency-weighted
+Viterbi decoding, rule-based handling, and unknown-word recovery. No LLM or
+runtime machine-learning model is required.
 
 
 ## Acknowledgements
@@ -11,7 +16,9 @@ I've implemented a probabilistic word segmentation algorithm for the Khmer langu
 
 
 > [!IMPORTANT]
-> **Disclaimer:** My dictionary is still lacking many curated sources of technical words. If anyone can contribute curated Khmer words with credible sources, the algorithm will improve significantly. I highly appreciate your contributions to improving the data quality!
+> This is a lexical segmenter, not a semantic parser. Its production scope is
+> formal Khmer text. Names, new terminology, slang, and mixed-language text may
+> be returned as unknown spans for review instead of being semantically inferred.
 
 
 
@@ -25,7 +32,7 @@ I've implemented a probabilistic word segmentation algorithm for the Khmer langu
 ✅ **Explainable** – Update dictionary/frequency = instant improvement  
 ✅ **Ultra-Fast** – ~0.34ms/call (C port) vs. ~5-50ms for transformers  
 ✅ **Portable** – Runs on embedded systems, mobile, web (WASM), and cloud  
-✅ **No Training** – Works immediately without GPU/annotation costs
+✅ **No Model Inference** – Works without GPU, neural weights, or an LLM
 
 ### Real-World Applications
 
@@ -33,7 +40,8 @@ I've built this as **foundational infrastructure** for:
 
 - **ML Research**: Clean training data for Khmer LLMs by providing dictionary-accurate baselines
 - **Spellcheck/Grammar Tools**: Essential word boundary detection for text editors, IDEs, browsers, and mobile keyboards
-- **Production Systems**: Reliable segmentation for technical documentation, legal/medical applications, and embedded devices
+- **Formal Production Text**: Technical documentation, research papers, and official writing
+- **Unknown-Word Collection**: Review queues for names, terminology, loanwords, and emerging vocabulary
 
 📖 **[Read the full design philosophy and use cases ▸](docs/DESIGN_PHILOSOPHY.md)**
 
@@ -48,10 +56,15 @@ pip install -r requirements.txt
 ## Usage
 
 ```python
+from pathlib import Path
+
 from khmer_segmenter import KhmerSegmenter
 
-# Initialize (Loads dictionary from default path)
-seg = KhmerSegmenter()
+data_dir = Path("khmer_segmenter/dictionary_data")
+seg = KhmerSegmenter(
+    data_dir / "khmer_dictionary_words.txt",
+    data_dir / "khmer_word_frequencies.json",
+)
 
 # Segment text
 text = "ក្រុមហ៊ុនទទួលបានប្រាក់ចំណូល"
@@ -60,6 +73,14 @@ result = seg.segment(text)
 print(result) 
 # Output: ['ក្រុមហ៊ុន', 'ទទួល', 'បាន', 'ប្រាក់ចំណូល']
 ```
+
+### Production Contract
+
+- Identical normalized input and data versions produce identical output.
+- Known vocabulary is decoded using the RAC/community dictionary and observed frequencies.
+- Unknown Khmer clusters are preserved rather than guessed from semantics.
+- Output represents lexical boundaries; a different valid compound convention may disagree.
+- Pin the dictionary and frequency artifact versions for reproducible deployments.
 
 ## C Port (High Performance)
 
@@ -104,13 +125,40 @@ To add new words:
 
 For a detailed step-by-step explanation of the Viterbi algorithm, Normalization logic, and Rules I use in this project, please refer to the **[Porting Guide & Algorithm Reference](port/README.md)**.
 
+### Dictionary Provenance
+
+The runtime dictionary combines two explicitly separated vocabularies:
+
+- `khmer_dictionary_official_2022_words.txt`: normalized RAC/NCKL Khmer
+  Dictionary 2022 headwords. Pronunciation strings are not imported.
+- `khmer_dictionary_supplemental_words.txt`: community vocabulary absent from
+  that reference. These entries are retained because names, compounds,
+  loanwords, and modern terms are not invalid merely because they are absent.
+
+Synchronize from the research-use TSV extraction with:
+
+```bash
+python scripts/sync_rac_dictionary.py --rac-tsv path/to/pairs.tsv
+```
+
+`khmer_dictionary_provenance.json` records the source and overlap counts. This
+project uses the extraction as a non-profit Khmer community resource.
+
+The synchronized extraction contained 44,706 rows. After deduplicating,
+normalizing, and rejecting entries containing whitespace, 38,671 official
+headwords were accepted; 6,015 were newly added to the runtime dictionary.
+For a row such as `កករចិត្ត<TAB>ក-ក-ចិត`, only `កករចិត្ត` is imported.
+
 ## 3. Comparison with khmernltk
 
 I compared the performance and output of `KhmerSegmenter` against `khmernltk` using a complex sentence from a folktale.
 
 ### Finding Unknown Words
 
-You can analyze the segmentation results to find words that were not in the dictionary (potential new words or names):
+Unknown output is expected for valid names, new technical terminology,
+loanwords, and modern vocabulary that is not yet in the dictionary. It should
+be treated as a review category, not automatically as a spelling error. Analyze
+segmented output with:
 
 ```bash
 python scripts/find_unknown_words.py --input segmentation_results.txt
@@ -120,7 +168,38 @@ This will generate `output/unknown_words_from_results.txt` showing the unknown w
 
 ## 4. Benchmark & Performance Comparison
 
-I provide two benchmarks: one for **Real-Time Latency** (single sentence, micro-benchmark) and one for **Batch Throughput** (large corpus, macro-benchmark).
+### Gold-Standard Accuracy
+
+The current frequency model uses only the derived training partitions. The
+following results are from stable, held-out test partitions and use Unicode
+boundary scoring:
+
+| Dataset | Sentences | Boundary Precision | Boundary Recall | Boundary F1 | Exact Sentence | Unknown Tokens |
+|:---|---:|---:|---:|---:|---:|---:|
+| khPOS test | 1,179 | 89.96% | 93.31% | **91.61%** | 37.49% | 3.34% |
+| Khmer ALT POS test | 1,981 | 89.97% | 78.32% | **83.74%** | 0.30% | 4.54% |
+
+khPOS is the more representative result for local formal/news-style Cambodian
+text. Khmer ALT is translated Wikinews and uses a finer, often morpheme-level
+annotation convention, so its lower recall and exact-match rate should not be
+interpreted entirely as lexical errors. Boundary F1 is the primary metric;
+exact sentence match is intentionally strict.
+
+Training-only gold augmentation improved khPOS test F1 from 91.46% to 91.61%.
+It changed ALT test F1 from 83.78% to 83.74%, showing that the two corpora do
+not encode precisely the same segmentation standard.
+
+### Frequency Coverage
+
+The frequency artifacts combine 3,120,579 corpus tokens with 585,396 validated
+tokens from the gold training partitions. The model contains 29,719 observed
+frequency entries. Counts and document frequencies are recorded separately in
+`khmer_word_frequencies_provenance.json`; dev and test sentences are excluded.
+
+### Runtime Performance
+
+Two runtime benchmarks are provided: **Real-Time Latency** (single sentence,
+micro-benchmark) and **Batch Throughput** (large corpus, macro-benchmark).
 
 ### Scenario A: Real-Time / Latency (Micro-benchmark)
 *Context: Processing a single complex paragraph repeated (simulates typing, chatbot, UI).*
@@ -208,6 +287,55 @@ python scripts/test_viterbi.py --source dataset/khmer_folktales_extracted.txt --
 ```
 This will generate `output/segmentation_results.txt`.
 
+### Gold-Corpus Evaluation
+
+The khPOS evaluator downloads the manually segmented corpus on first use, strips
+its internal compound markers (`_`, `~`, and `^`), normalizes each gold token,
+and scores Unicode code-point boundary offsets.
+
+```bash
+python scripts/evaluate_segmentation.py \
+  --dataset khpos \
+  --split test \
+  --output results/khpos_eval.json
+```
+
+Use `--limit 100` for a smoke test or `--dataset-path PATH` for an existing
+`train.all2` file. The report contains micro-averaged boundary precision,
+recall and F1, exact sentence match, predicted-token unknown rate, latency, and
+per-sentence boundary disagreements.
+
+khPOS publishes one 12,000-sentence source split under CC BY-NC-SA 4.0. The
+loader derives stable 80/10/10 train/dev/test partitions from SHA-256 hashes of
+sentence IDs. Only `train` may be used to build frequencies; report final
+accuracy on `test`.
+
+Khmer ALT POS is also supported from the official `km-nova.zip` release:
+
+```bash
+python scripts/evaluate_segmentation.py \
+  --dataset khmer_alt_pos \
+  --split test \
+  --output results/khmer_alt_pos_eval.json
+```
+
+The archive publishes one 20,106-sentence source split and uses the same stable
+80/10/10 derived partition policy. Its own license terms should be reviewed
+before use; later Khmer Treebank material adds an academic-research restriction
+beyond the license label shown in some dataset catalogs.
+
+Training-only gold counts can be combined with the corpus counts reproducibly:
+
+```bash
+python scripts/augment_frequencies_from_gold.py
+```
+
+The corpus-only baseline remains in `khmer_word_frequencies_corpus.json`.
+`khmer_word_frequencies_provenance.json` records gold occurrence counts,
+document frequencies, excluded out-of-dictionary tokens, and split policy.
+Gold-derived data artifacts retain the usage restrictions of their source
+datasets and are not relicensed by the source-code MIT license.
+
 ## 7. License
 
 MIT License
@@ -235,5 +363,3 @@ SOFTWARE.
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 You are free to use, modify, and distribute this software, but you **must acknowledge usage** by retaining the copyright notice and license in your copies.
-
-

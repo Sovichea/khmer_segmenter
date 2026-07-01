@@ -1,0 +1,20 @@
+{
+  "reference": {
+    "name": "Khmer Dictionary 2022",
+    "authority": "National Council of Khmer Language, Royal Academy of Cambodia",
+    "extraction": "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k",
+    "usage": "Community-approved for this non-profit open-source project",
+    "source_rows": 44706,
+    "accepted_unique_headwords": 38671,
+    "rejected_rows": 30
+  },
+  "supplemental_policy": "Existing words absent from the RAC extraction are retained as community vocabulary; absence is not proof of invalidity.",
+  "counts": {
+    "existing_unique": 82288,
+    "official_already_present": 32656,
+    "official_added": 6015,
+    "supplemental_retained": 49632,
+    "runtime_union": 88303,
+    "existing_rejected": 1
+  }
+}

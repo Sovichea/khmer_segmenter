@@ -97,6 +97,9 @@ def get_corpus_files(paths):
 
 def step_normalize_corpus(input_paths, output_path):
     print(f"[*] Step 1: Normalizing Corpus...")
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
     norm = KhmerNormalizer()
     count = 0
     

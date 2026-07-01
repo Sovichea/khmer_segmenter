@@ -6,6 +6,8 @@ __pycache__/
 segmentation_results.txt
 benchmark_results.txt
 unknown_words_from_results.txt
+results/
+dataset/benchmarks/
 
 # IDE / System
 .vscode/
