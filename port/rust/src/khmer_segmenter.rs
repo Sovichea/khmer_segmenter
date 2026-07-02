@@ -1,5 +1,5 @@
 use crate::kdict::KDict;
-use crate::normalization::khmer_normalize;
+use crate::normalization::{khmer_normalize, khmer_normalize_mapped, MappedNormalization, NormalizedUnit};
 use crate::rule_engine::RuleEngine;
 use crate::utils;
 use std::fmt;
@@ -38,6 +38,13 @@ pub struct KhmerSegmenter {
 pub struct Segmentation {
     normalized: String,
     ranges: Vec<Range<usize>>,
+    mapped_segments: Vec<MappedSegment>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MappedSegment {
+    pub normalized_range: Range<usize>,
+    pub source_range: Range<usize>,
 }
 
 impl Segmentation {
@@ -47,6 +54,10 @@ impl Segmentation {
 
     pub fn ranges(&self) -> &[Range<usize>] {
         &self.ranges
+    }
+
+    pub fn mapped_segments(&self) -> &[MappedSegment] {
+        &self.mapped_segments
     }
 
     pub fn tokens(&self) -> impl ExactSizeIterator<Item = &str> {
@@ -149,11 +160,21 @@ impl KhmerSegmenter {
     // Helper to access string pool (Unsafe) - Removed in favor of direct byte access
 
     pub fn segment_detailed(&self, raw_text: &str) -> Result<Segmentation, SegmentationError> {
-        let text_owned = if self.config.enable_normalization {
-            khmer_normalize(raw_text)
+        let normalization = if self.config.enable_normalization {
+            khmer_normalize_mapped(raw_text)
         } else {
-            raw_text.to_string()
+            MappedNormalization {
+                text: raw_text.to_owned(),
+                units: raw_text
+                    .char_indices()
+                    .map(|(start, character)| NormalizedUnit {
+                        text: character.to_string(),
+                        source_range: start..start + character.len_utf8(),
+                    })
+                    .collect(),
+            }
         };
+        let text_owned = normalization.text.clone();
         let text = &text_owned;
         let n = text.len();
 
@@ -161,6 +182,7 @@ impl KhmerSegmenter {
             return Ok(Segmentation {
                 normalized: text_owned,
                 ranges: Vec::new(),
+                mapped_segments: Vec::new(),
             });
         }
 
@@ -453,12 +475,21 @@ impl KhmerSegmenter {
             segments = new_segments;
         }
 
+        let ranges: Vec<Range<usize>> = segments
+            .into_iter()
+            .map(|(start, end)| start..end)
+            .collect();
+        let mapped_segments = ranges
+            .iter()
+            .map(|range| MappedSegment {
+                normalized_range: range.clone(),
+                source_range: source_range_for(&normalization, range),
+            })
+            .collect();
         Ok(Segmentation {
             normalized: text_owned,
-            ranges: segments
-                .into_iter()
-                .map(|(start, end)| start..end)
-                .collect(),
+            ranges,
+            mapped_segments,
         })
     }
 
@@ -469,4 +500,22 @@ impl KhmerSegmenter {
             Err(_) => raw_text.to_owned(),
         }
     }
+}
+
+fn source_range_for(normalization: &MappedNormalization, range: &Range<usize>) -> Range<usize> {
+    let mut normalized_offset = 0;
+    let mut source_start = None;
+    let mut source_end = 0;
+    for unit in &normalization.units {
+        let unit_end = normalized_offset + unit.text.len();
+        if normalized_offset < range.end && unit_end > range.start {
+            source_start.get_or_insert(unit.source_range.start);
+            source_end = source_end.max(unit.source_range.end);
+        }
+        normalized_offset = unit_end;
+        if normalized_offset >= range.end {
+            break;
+        }
+    }
+    source_start.unwrap_or(0)..source_end
 }
