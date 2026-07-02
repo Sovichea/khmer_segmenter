@@ -127,6 +127,21 @@ impl KDict {
     pub fn get_pool_ptr(&self, offset: u32) -> *const u8 {
         unsafe { self.string_pool.add(offset as usize) }
     }
+
+    pub fn cost(&self, word: &str) -> Option<f32> {
+        let hash = crate::utils::djb2_hash(word.as_bytes());
+        let mut index = hash & self.table_mask;
+        loop {
+            let entry = unsafe { &*self.table.add(index as usize) };
+            if entry.name_offset == 0 {
+                return None;
+            }
+            if self.get_pool_bytes(entry.name_offset) == word.as_bytes() {
+                return Some(entry.cost);
+            }
+            index = (index + 1) & self.table_mask;
+        }
+    }
 }
 
 unsafe impl Send for KDict {}

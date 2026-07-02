@@ -44,7 +44,11 @@ fn get_prio(part: &ClsPart) -> i32 {
         if part.text.ends_with('\u{179A}') {
             return 20;
         }
-        return if part.text.chars().count() > 1 { 10 } else { 15 };
+        return if part.text.chars().count() > 1 {
+            10
+        } else {
+            15
+        };
     }
     match part.type_ {
         3 => 30,
@@ -89,9 +93,7 @@ pub fn khmer_normalize_mapped(text: &str) -> MappedNormalization {
     let mut index = 0;
     while index < source.len() {
         let (start, character) = source[index];
-        let end = source
-            .get(index + 1)
-            .map_or(text.len(), |(next, _)| *next);
+        let end = source.get(index + 1).map_or(text.len(), |(next, _)| *next);
         if matches!(character, '\u{200B}' | '\u{200C}' | '\u{200D}') {
             index += 1;
             continue;

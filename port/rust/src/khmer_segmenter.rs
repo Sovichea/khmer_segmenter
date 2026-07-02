@@ -1,5 +1,7 @@
 use crate::kdict::KDict;
-use crate::normalization::{khmer_normalize, khmer_normalize_mapped, MappedNormalization, NormalizedUnit};
+use crate::normalization::{
+    khmer_normalize, khmer_normalize_mapped, MappedNormalization, NormalizedUnit,
+};
 use crate::rule_engine::RuleEngine;
 use crate::utils;
 use std::fmt;
