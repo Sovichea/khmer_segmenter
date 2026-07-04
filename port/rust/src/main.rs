@@ -5,7 +5,7 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 use std::time::Instant;
 
-use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmenterConfig};
+use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmentationLength, SegmenterConfig};
 
 #[cfg(target_os = "linux")]
 fn get_memory_mb() -> f64 {
@@ -85,6 +85,40 @@ fn main() -> io::Result<()> {
             config.enable_unknown_merging = false;
         } else if arg == "--no-freq" {
             config.enable_frequency_costs = false; // Not used in binary dict but kept for compat
+        } else if arg == "--short" {
+            config.segmentation_length = SegmentationLength::Short;
+        } else if arg == "--long" {
+            config.segmentation_length = SegmentationLength::Long;
+        } else if arg == "--segmentation-length" || arg == "--length" {
+            if i + 1 < args.len() {
+                match args[i + 1].as_str() {
+                    "short" => config.segmentation_length = SegmentationLength::Short,
+                    "long" => config.segmentation_length = SegmentationLength::Long,
+                    value => eprintln!(
+                        "WARNING: Unknown segmentation length '{}'; expected 'long' or 'short'",
+                        value
+                    ),
+                }
+                i += 1;
+            }
+        } else if let Some(value) = arg.strip_prefix("--segmentation-length=") {
+            match value {
+                "short" => config.segmentation_length = SegmentationLength::Short,
+                "long" => config.segmentation_length = SegmentationLength::Long,
+                value => eprintln!(
+                    "WARNING: Unknown segmentation length '{}'; expected 'long' or 'short'",
+                    value
+                ),
+            }
+        } else if let Some(value) = arg.strip_prefix("--length=") {
+            match value {
+                "short" => config.segmentation_length = SegmentationLength::Short,
+                "long" => config.segmentation_length = SegmentationLength::Long,
+                value => eprintln!(
+                    "WARNING: Unknown segmentation length '{}'; expected 'long' or 'short'",
+                    value
+                ),
+            }
         } else if arg == "--test-hyphenation" {
             if i + 1 < args.len() {
                 test_hyphenation_word = Some(args[i + 1].clone());
@@ -118,7 +152,7 @@ fn main() -> io::Result<()> {
             "../common/khmer_hyphenation.kdict",
             "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_hyphenation.kdict",
         ];
-        
+
         let mut hyp_dict_opt = None;
         for p in &hyp_paths {
             if Path::new(p).exists() {
@@ -128,7 +162,7 @@ fn main() -> io::Result<()> {
                 }
             }
         }
-        
+
         if test_val == "SENTENCE_TEST" {
             if let Some(text) = input_text {
                 let dict_path = Some("../../port/common/khmer_dictionary.kdict");
@@ -136,7 +170,7 @@ fn main() -> io::Result<()> {
                 let segmented = seg.segment(&text, Some(" | "));
                 println!("1. Original:   {}", text);
                 println!("2. Segmented:  {}", segmented);
-                
+
                 if let Some(dict) = hyp_dict_opt {
                     let mut final_tokens = Vec::new();
                     for token in segmented.split(" | ") {
@@ -439,6 +473,12 @@ fn main() -> io::Result<()> {
         println!("  --limit <N>       Limit total lines processed");
         println!("  --threads <N>     Number of threads (default: 4)");
         println!("  --benchmark       Run benchmark (uses --input if provided)");
+        println!("  --segmentation-length <long|short>");
+        println!(
+            "                    Long is best for word suggestion; short is best for rendering"
+        );
+        println!("  --long            Alias for --segmentation-length long");
+        println!("  --short           Alias for --segmentation-length short");
         println!("  --test-hyphenation <word> Test lookup in khmer_hyphenation.kdict");
         println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
         println!("  <text>            Process raw text");

@@ -16,6 +16,13 @@ pub struct SegmenterConfig {
     pub enable_acronym_detection: bool,
     pub enable_unknown_merging: bool,
     pub enable_frequency_costs: bool,
+    pub segmentation_length: SegmentationLength,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SegmentationLength {
+    Long,
+    Short,
 }
 
 impl Default for SegmenterConfig {
@@ -26,6 +33,7 @@ impl Default for SegmenterConfig {
             enable_acronym_detection: true,
             enable_unknown_merging: true,
             enable_frequency_costs: true,
+            segmentation_length: SegmentationLength::Long,
         }
     }
 }
@@ -477,6 +485,10 @@ impl KhmerSegmenter {
             segments = new_segments;
         }
 
+        if self.config.segmentation_length == SegmentationLength::Short {
+            segments = self.refine_segments_for_short_length(text, &segments);
+        }
+
         let ranges: Vec<Range<usize>> = segments
             .into_iter()
             .map(|(start, end)| start..end)
@@ -502,6 +514,89 @@ impl KhmerSegmenter {
             Err(_) => raw_text.to_owned(),
         }
     }
+
+    fn refine_segments_for_short_length(
+        &self,
+        text: &str,
+        segments: &[(usize, usize)],
+    ) -> Vec<(usize, usize)> {
+        let mut refined = Vec::with_capacity(segments.len());
+
+        for &(start, end) in segments {
+            let segment_text = &text[start..end];
+            if let Some(parts) = self.short_dictionary_partition(segment_text) {
+                refined.extend(
+                    parts
+                        .into_iter()
+                        .map(|range| (start + range.start, start + range.end)),
+                );
+            } else {
+                refined.push((start, end));
+            }
+        }
+
+        refined
+    }
+
+    fn short_dictionary_partition(&self, text: &str) -> Option<Vec<Range<usize>>> {
+        if text.is_empty() || !text.is_char_boundary(0) {
+            return None;
+        }
+
+        let char_boundaries: Vec<usize> = text
+            .char_indices()
+            .map(|(index, _)| index)
+            .chain(std::iter::once(text.len()))
+            .collect();
+        if char_boundaries.len() <= 2 {
+            return None;
+        }
+
+        let mut best: Vec<Option<Vec<Range<usize>>>> = vec![None; text.len() + 1];
+        best[0] = Some(Vec::new());
+
+        for &start in &char_boundaries {
+            let Some(prefix) = best[start].clone() else {
+                continue;
+            };
+
+            for &end in char_boundaries.iter().filter(|&&end| end > start) {
+                let candidate = &text[start..end];
+                if !self.is_short_segmentation_part(candidate) {
+                    continue;
+                }
+
+                let mut candidate_parts = prefix.clone();
+                candidate_parts.push(start..end);
+
+                let should_replace = best[end]
+                    .as_ref()
+                    .map(|current| candidate_parts.len() > current.len())
+                    .unwrap_or(true);
+                if should_replace {
+                    best[end] = Some(candidate_parts);
+                }
+            }
+        }
+
+        let parts = best[text.len()].clone()?;
+        if parts.len() > 1 {
+            Some(parts)
+        } else {
+            None
+        }
+    }
+
+    fn is_dictionary_word(&self, word: &str) -> bool {
+        self.kdict
+            .as_ref()
+            .and_then(|dictionary| dictionary.cost(word))
+            .is_some()
+    }
+
+    fn is_short_segmentation_part(&self, word: &str) -> bool {
+        word.chars().count() >= 3 && self.is_dictionary_word(word)
+    }
 }
 
 fn source_range_for(normalization: &MappedNormalization, range: &Range<usize>) -> Range<usize> {
@@ -520,4 +615,57 @@ fn source_range_for(normalization: &MappedNormalization, range: &Range<usize>) -
         }
     }
     source_start.unwrap_or(0)..source_end
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TEST_DICTIONARY: &[u8] = include_bytes!("../../common/khmer_dictionary.kdict");
+
+    fn segmenter(length: SegmentationLength) -> KhmerSegmenter {
+        let mut config = SegmenterConfig::default();
+        config.segmentation_length = length;
+        KhmerSegmenter::from_bytes(TEST_DICTIONARY.to_vec(), config).unwrap()
+    }
+
+    fn tokens(segmenter: &KhmerSegmenter, text: &str) -> Vec<String> {
+        segmenter
+            .segment_detailed(text)
+            .unwrap()
+            .tokens()
+            .map(ToOwned::to_owned)
+            .collect()
+    }
+
+    #[test]
+    fn long_segmentation_preserves_current_long_dictionary_tokens() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        assert_eq!(tokens(&segmenter, "ភាសាខ្មែរ"), vec!["ភាសាខ្មែរ"]);
+        assert_eq!(tokens(&segmenter, "ភាសាផ្លូវការ"), vec!["ភាសាផ្លូវការ"]);
+        assert_eq!(tokens(&segmenter, "ប្រើប្រាស់"), vec!["ប្រើប្រាស់"]);
+        assert_eq!(tokens(&segmenter, "ប្រចាំថ្ងៃ"), vec!["ប្រចាំថ្ងៃ"]);
+    }
+
+    #[test]
+    fn short_segmentation_refines_long_dictionary_tokens_for_layout() {
+        let segmenter = segmenter(SegmentationLength::Short);
+
+        assert_eq!(tokens(&segmenter, "ភាសាខ្មែរ"), vec!["ភាសា", "ខ្មែរ"]);
+        assert_eq!(tokens(&segmenter, "ភាសាផ្លូវការ"), vec!["ភាសា", "ផ្លូវ", "ការ"]);
+        assert_eq!(tokens(&segmenter, "ប្រើប្រាស់"), vec!["ប្រើ", "ប្រាស់"]);
+        assert_eq!(tokens(&segmenter, "ប្រចាំថ្ងៃ"), vec!["ប្រចាំ", "ថ្ងៃ"]);
+    }
+
+    #[test]
+    fn short_segmentation_does_not_create_single_consonant_fragments() {
+        let segmenter = segmenter(SegmentationLength::Short);
+
+        assert_eq!(tokens(&segmenter, "ខ្មែរ"), vec!["ខ្មែរ"]);
+        assert_eq!(tokens(&segmenter, "ផ្លូវការ"), vec!["ផ្លូវ", "ការ"]);
+        assert!(!tokens(&segmenter, "ភាសាផ្លូវការ")
+            .iter()
+            .any(|token| token == "រ" || token == "វ"));
+    }
 }

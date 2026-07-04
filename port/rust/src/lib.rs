@@ -5,6 +5,7 @@ pub mod rule_engine;
 pub mod utils;
 
 pub use khmer_segmenter::{
-    KhmerSegmenter, MappedSegment, Segmentation, SegmentationError, SegmenterConfig,
+    KhmerSegmenter, MappedSegment, Segmentation, SegmentationError, SegmentationLength,
+    SegmenterConfig,
 };
 pub use normalization::{khmer_normalize_mapped, MappedNormalization, NormalizedUnit};
