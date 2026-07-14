@@ -67,16 +67,32 @@ Run a real segmentation command to confirm direct use after installation.
 
 ## 5. TestPyPI and PyPI
 
-Upload a release candidate to TestPyPI first:
+The repository uses GitHub OIDC Trusted Publishing and does not store PyPI API
+tokens. The trusted-publisher records must use:
 
-```bash
-python -m twine upload --repository testpypi dist/*
+```text
+Workflow: publish-to-pypi.yml
+TestPyPI environment: testpypi
+PyPI environment: pypi
 ```
 
-Test installation from TestPyPI, create a signed/versioned Git tag, and publish
-the exact already-tested artifacts. For the final repository workflow, prefer
-PyPI Trusted Publishing from a protected GitHub environment instead of storing
-long-lived API tokens.
+After committing and pushing the workflow, open **GitHub Actions → Publish
+Python package → Run workflow**. A manual run builds, validates, and publishes
+version `0.1.0` to TestPyPI.
+
+Test installation from TestPyPI before publishing a production release:
+
+```bash
+python -m pip install \
+  --index-url https://test.pypi.org/simple/ \
+  --no-deps \
+  khmer-viterbi-segmenter==0.1.0
+```
+
+Create and publish a GitHub Release for tag `v0.1.0` only after the TestPyPI
+check succeeds. The release event rebuilds from the tagged commit, reruns the
+metadata and data audits, and publishes to production PyPI. Configure required
+reviewers on the `pypi` GitHub environment for manual production approval.
 
 Before the first public release, review old Git history separately. Clean wheel
 contents do not remove restricted artifacts from historical commits.
