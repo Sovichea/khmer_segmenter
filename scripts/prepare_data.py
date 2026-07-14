@@ -446,7 +446,12 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
 
 def main():
     parser = argparse.ArgumentParser(description="Consolidated Data Pipeline for Khmer Segmenter")
-    parser.add_argument("--corpus", nargs="+", default=["dataset/khmer_wiki_corpus.txt", "dataset/khmer_folktales_extracted.txt"], help="Input corpus paths")
+    parser.add_argument(
+        "--corpus",
+        nargs="+",
+        required=True,
+        help="Paths to locally obtained corpora (source datasets are not bundled)",
+    )
     parser.add_argument("--dict", default="khmer_segmenter/dictionary_data/khmer_dictionary_words.txt", help="Input dictionary text file")
     parser.add_argument("--output-json", default="khmer_segmenter/dictionary_data/khmer_word_frequencies.json", help="Output frequency JSON path")
     parser.add_argument("--output-bin", default="port/common/khmer_frequencies.bin", help="Output frequency binary (KLIB) path")

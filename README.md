@@ -39,7 +39,7 @@ runtime machine-learning model is required.
 
 ### Data Sources and Credits
 
-| Project data | Source | Credit | Source terms |
+| Project data | Original source | Credit | Source terms |
 |:---|:---|:---|:---|
 | RAC/NCKL Khmer Dictionary 2022 headwords | [Seanghay Hay's `khmer-dictionary-44k` extraction](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k) | National Council of Khmer Language, Royal Academy of Cambodia (dictionary authority); Seanghay Hay / `seanghay` (extraction and publication) | Research only; not for commercial use, as stated by the dataset card |
 | khPOS training and evaluation tokens | [`ye-kyaw-thu/khPOS`](https://github.com/ye-kyaw-thu/khPOS) | Vichet Chea and Ye Kyaw Thu; manual POS annotation acknowledged to Sorn Kea and Leng Greyhuy | CC BY-NC-SA 4.0 |
@@ -48,6 +48,13 @@ runtime machine-learning model is required.
 Source metadata was checked on 2026-07-01. Derived data retains upstream
 usage and attribution requirements; the repository's MIT license applies only
 to project code and does not relicense those datasets.
+
+Source corpora are not redistributed in this repository. Download any corpus
+you need directly from its original source above and keep it in the ignored
+`dataset/` directory. The older local corpus inputs were credited to
+[sovichet](https://github.com/sovichet) (Khmer folktales and dictionary
+resources) and [phylypo](https://github.com/phylypo/segmentation-crf-khmer)
+(`kh_data_10000b`); obtain them from those authors rather than from this repo.
 
 
 > [!IMPORTANT]
@@ -172,16 +179,15 @@ I've built a consolidated data pipeline to normalize text, generate frequencies,
     *   `khmer_frequencies.bin`: Legacy binary format (Saved to `port/common/`).
 
 > [!NOTE]
-> **Compressed Dataset**: The extended frequency dataset is stored as `dataset/kh_data_10000b_200b.zip` to reduce repository size. If you wish to use this data for frequency generation, please **extract it manually** before running the scripts. The `prepare_data.py` script will automatically find the extracted `.txt` files if they are placed in the `experiments/` or `dataset/` folder.
+> Corpora are intentionally not included. Download data from the credited
+> original author, review its license, and place your local copy under the
+> ignored `dataset/` directory.
 
 ### Usage
 
 Run the pipeline to rebuild all data assets:
 ```bash
-# Run with default settings (uses internal segmenter)
-python scripts/prepare_data.py
-
-# Specify custom corpus or dictionary
+# Supply a locally downloaded corpus
 python scripts/prepare_data.py --corpus dataset/my_corpus.txt --dict khmer_segmenter/dictionary_data/my_dict.txt
 
 ```
@@ -379,7 +385,7 @@ python scripts/test_viterbi.py
 ### Batch Process a Corpus
 To test against a file and see the output:
 ```bash
-python scripts/test_viterbi.py --source dataset/khmer_folktales_extracted.txt --limit 500
+python scripts/test_viterbi.py --source path/to/your/local_corpus.txt --limit 500
 ```
 This will generate `output/segmentation_results.txt`.
 

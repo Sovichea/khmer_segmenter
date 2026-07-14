@@ -2,15 +2,15 @@
 __pycache__/
 *.pyc
 
-# Dataset
-dataset/kh_data_10000b/
+# Datasets are downloaded by each user from the credited upstream sources.
+# Do not commit source corpora or benchmark caches to this repository.
+dataset/
 
 # Outputs
 segmentation_results.txt
 benchmark_results.txt
 unknown_words_from_results.txt
 results/
-dataset/benchmarks/
 
 # IDE / System
 .vscode/
