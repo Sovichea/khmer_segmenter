@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when a Python distribution contains local linguistic data."""
+"""Allow approved runtime data and reject unapproved linguistic artifacts."""
 
 from __future__ import annotations
 
@@ -10,15 +10,18 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 
-PROHIBITED_NAMES = {
+APPROVED_RUNTIME_NAMES = {
     "khmer_dictionary_words.txt",
-    "khmer_dictionary_official_2022_words.txt",
-    "khmer_dictionary_supplemental_words.txt",
     "khmer_dictionary_hyphenation_pairs.txt",
     "khmer_word_frequencies.json",
+    "khmer_word_pos.json",
+}
+
+PROHIBITED_NAMES = {
+    "khmer_dictionary_official_2022_words.txt",
+    "khmer_dictionary_supplemental_words.txt",
     "khmer_word_frequencies.backup.json",
     "khmer_word_frequencies_corpus.json",
-    "khmer_word_pos.json",
     "unknown_word_frequencies.json",
     "khmer_frequencies.bin",
     "khmer_dictionary.kdict",
@@ -40,8 +43,23 @@ def prohibited_reason(member: str) -> str | None:
     normalized = member.replace("\\", "/")
     path = PurePosixPath(normalized)
     parts = set(path.parts)
-    if "dataset" in parts or "dictionary_data" in parts:
+    approved_runtime_path = (
+        len(path.parts) >= 3
+        and tuple(path.parts[-3:-1]) == ("khmer_segmenter", "dictionary_data")
+        and path.name in APPROVED_RUNTIME_NAMES
+    )
+    approved_runtime_directory = (
+        len(path.parts) >= 2
+        and tuple(path.parts[-2:]) == ("khmer_segmenter", "dictionary_data")
+    )
+    if "dataset" in parts:
         return "local data directory"
+    if (
+        "dictionary_data" in parts
+        and not approved_runtime_path
+        and not approved_runtime_directory
+    ):
+        return "unapproved dictionary data"
     if "port" in parts and "common" in parts:
         return "native data directory"
     if path.name in PROHIBITED_NAMES:
@@ -75,7 +93,7 @@ def main() -> int:
         for archive, member, reason in failures:
             print(f"ERROR {archive}: {member} ({reason})")
         return 1
-    print("distribution audit passed: no local linguistic data found")
+    print("distribution audit passed: only approved attributed runtime data found")
     return 0
 
 

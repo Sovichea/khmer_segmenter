@@ -8,7 +8,8 @@ latency decisions.
 
 The historical locally generated frequency model used only derived training
 partitions. Results use stable held-out test partitions and Unicode boundary
-scoring. The model artifact is not distributed with this repository.
+scoring. The approved runtime model is distributed under the separate data
+terms in [`DATA_LICENSE.md`](../DATA_LICENSE.md).
 
 | Dataset | Sentences | Boundary precision | Boundary recall | Boundary F1 | Exact sentence | Unknown tokens |
 |:---|---:|---:|---:|---:|---:|---:|
@@ -27,8 +28,8 @@ the corpora do not encode an identical segmentation standard.
 
 The recorded local artifacts combined 3,120,579 corpus tokens with 585,396
 validated tokens from derived gold training partitions. The generated runtime
-frequency table had 29,719 observed entries. Its detailed counts and provenance
-were local build outputs and are not part of the repository or distributions.
+frequency table had 29,719 observed entries. The runtime counts are bundled;
+detailed provenance and intermediate build outputs are not distributed.
 
 ## Runtime snapshot
 

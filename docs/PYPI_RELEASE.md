@@ -15,7 +15,7 @@ python -m pip install build twine
 ```
 
 Activate the environment using the command appropriate for the operating
-system. Confirm that generated data remains ignored:
+system. Confirm that unapproved generated data remains ignored:
 
 ```bash
 git status --short
@@ -32,8 +32,8 @@ khmer-segment --help
 khmer-segment data sources
 ```
 
-Tests use small, independently created temporary fixtures. They do not require
-or package the local production dictionary.
+Tests use both small independent fixtures and the approved bundled runtime
+data. No network download is required.
 
 ## 3. Build and inspect
 
@@ -45,8 +45,9 @@ python -m twine check dist/*
 python scripts/check_distribution.py dist/*
 ```
 
-The audit rejects dictionary directories, native data binaries, and known
-runtime data filenames. Do not publish if it reports a prohibited member.
+The audit permits exactly four attributed runtime files in the package data
+directory. It rejects corpora, native binaries, provenance, backups, and any
+other linguistic artifacts. Do not publish if it reports a prohibited member.
 
 ## 4. Test the wheel outside the repository
 
@@ -60,9 +61,9 @@ python -m venv /tmp/khmer-segmenter-wheel-test
 ```
 
 On Windows, use a normal directory such as
-`$env:TEMP\khmer-segmenter-wheel-test` and its `Scripts` folder. A missing
-dictionary status is expected in this clean environment; it proves the wheel
-did not silently bundle local data.
+`$env:TEMP\khmer-segmenter-wheel-test` and its `Scripts` folder. The dictionary,
+frequencies, lexical POS data, and hyphenation pairs must report as available.
+Run a real segmentation command to confirm direct use after installation.
 
 ## 5. TestPyPI and PyPI
 

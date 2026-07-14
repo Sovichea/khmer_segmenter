@@ -33,7 +33,7 @@ def _add_text_input(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="khmer-segment",
-        description="Segment and analyze Khmer text using separately installed local data.",
+        description="Segment and analyze Khmer text using bundled or user-supplied data.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument(
@@ -138,8 +138,10 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         if args.data_command == "sources":
             print(f"Dictionary: {DICTIONARY_SOURCE_URL}")
             print(f"Credit: {DICTIONARY_SOURCE_CREDIT}")
-            print("Terms: research purpose only; review the upstream dataset card")
-            print("Preparation: khmer-segment data prepare --rac-tsv PATH")
+            print("Authority: National Council of Khmer Language, Royal Academy of Cambodia")
+            print("Terms: noncommercial redistribution with attribution")
+            print("Notice: DATA_LICENSE.md in the source and installed distribution")
+            print("Optional rebuild: khmer-segment data prepare --rac-tsv PATH")
             return 0
         if args.data_command == "prepare":
             output_dir = args.output_dir or _data_files_for_status(args.data_dir).root

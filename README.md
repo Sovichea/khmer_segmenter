@@ -12,10 +12,14 @@ unknown-word recovery without a runtime machine-learning model.
 [Live demo](https://sovichea.github.io/khmer_segment_webui_demo/)
 
 > [!IMPORTANT]
-> Linguistic data is not included in this repository or in Python packages.
-> Each developer downloads the original source, reviews its terms, and builds
-> local runtime files. Project code is MIT licensed; external data keeps its
-> own upstream terms.
+> The package includes an attributed Khmer dictionary and derived runtime data
+> for noncommercial use. Project code is MIT licensed; the bundled linguistic
+> data has separate terms in [DATA_LICENSE.md](DATA_LICENSE.md).
+
+> [!WARNING]
+> **Hyphenation is experimental.** Its dictionary and rules are still being
+> refined, and many words do not yet receive correct internal break positions.
+> Do not rely on hyphenation output for production typography without review.
 
 ## Features
 
@@ -24,7 +28,7 @@ unknown-word recovery without a runtime machine-learning model.
 - Frequency-weighted dictionary decisions
 - Unknown-span preservation
 - Typed token metadata with offsets and lexical POS candidates
-- Optional locally generated hyphenation
+- Experimental Khmer hyphenation
 - Python API and `khmer-segment` CLI
 - Shared KDIC/KHYP formats for C and Rust applications
 
@@ -62,8 +66,9 @@ pip install khmer-viterbi-segmenter
 ```
 
 The import package remains `khmer_segmenter`.
+The bundled runtime data works immediately; no separate download is required.
 
-## Prepare the dictionary
+## Dictionary source and optional replacement
 
 The original dictionary is published by Seanghay Hay (`seanghay`) on Hugging
 Face and was extracted from the Khmer Dictionary 2022 of the National Council
@@ -71,11 +76,13 @@ of Khmer Language, Royal Academy of Cambodia:
 
 <https://huggingface.co/datasets/seanghay/khmer-dictionary-44k>
 
-The dataset card says it is for research purposes only. Review those terms
-before downloading or using it.
+Seanghay Hay confirmed that the dataset may be redistributed for noncommercial
+use with attribution. The bundled normalized dictionary, frequencies, lexical
+POS candidates, and hyphenation pairs retain that credit and restriction. See
+[the linguistic data notice](DATA_LICENSE.md).
 
-Create the ignored local dataset directory and download `pairs.tsv` directly
-from the original publisher:
+Developers who want to rebuild or replace the bundled data can download
+`pairs.tsv` directly from the original publisher:
 
 ```bash
 mkdir -p dataset
@@ -93,7 +100,7 @@ Invoke-WebRequest `
   -OutFile "dataset/rac_dictionary_2022_pairs.tsv"
 ```
 
-Generate the ignored local runtime dictionary:
+Generate an optional local runtime dictionary override:
 
 ```bash
 khmer-segment data prepare \
@@ -113,7 +120,8 @@ The Python resolver checks these locations in order:
 1. `data_dir=` or CLI `--data-dir`
 2. `KHMER_SEGMENTER_DATA_DIR`
 3. The user data directory for the operating system
-4. `khmer_segmenter/dictionary_data/` in a development checkout
+4. The data bundled with the installed package
+5. `khmer_segmenter/dictionary_data/` in a development checkout
 
 Check the resolved files:
 
@@ -129,25 +137,19 @@ for frequency generation and KDIC/KHYP compilation.
 ## Python API
 
 ```python
-from khmer_segmenter import KhmerSegmenter, prepare_dictionary
+from khmer_segmenter import KhmerSegmenter
 
-prepare_dictionary(
-    "dataset/rac_dictionary_2022_pairs.tsv",
-    "khmer_segmenter/dictionary_data",
-)
-
-segmenter = KhmerSegmenter.from_data_dir(
-    "khmer_segmenter/dictionary_data"
-)
+segmenter = KhmerSegmenter()
 
 tokens = segmenter.segment("ខ្ញុំស្រឡាញ់ប្រទេសកម្ពុជា")
 print(tokens)
 ```
 
-If `KHMER_SEGMENTER_DATA_DIR` is configured, the constructor needs no paths:
+To use a replacement dictionary, set `KHMER_SEGMENTER_DATA_DIR` or pass
+`data_dir=` explicitly:
 
 ```python
-segmenter = KhmerSegmenter()
+segmenter = KhmerSegmenter(data_dir="/path/to/replacement-data")
 ```
 
 Typed analysis results include normalized offsets and optional lexical data:
@@ -161,14 +163,14 @@ for token in segmenter.analyze("ខ្ញុំសរសេរឯកសារ"):
 The legacy dictionary result remains available as
 `segment_with_metadata(text)`.
 
-Optional hyphenation uses locally generated pairs:
+Experimental hyphenation uses the bundled pairs by default. Many words are not
+yet separated correctly, so applications should treat its output as a
+suggestion and review it before display or publication:
 
 ```python
 from khmer_segmenter import KhmerHyphenator
 
-hyphenator = KhmerHyphenator.from_data_dir(
-    "khmer_segmenter/dictionary_data"
-)
+hyphenator = KhmerHyphenator.from_data_dir()
 result = hyphenator.hyphenate(
     "សហប្រតិបត្តិការ",
     segmenter=segmenter,
@@ -195,12 +197,15 @@ khmer-segment analyze "ខ្ញុំសរសេរឯកសារ" --format j
 
 `analyze` reports lexical candidates; it does not claim contextual POS tagging.
 
-Hyphenation and benchmarking:
+Experimental hyphenation and benchmarking:
 
 ```bash
 khmer-segment hyphenate "សហប្រតិបត្តិការ" --visible-hyphen
 khmer-segment benchmark --input dataset/my_corpus.txt --limit 1000
 ```
+
+The `hyphenate` command is not production-ready: many words may contain
+incorrect or missing break positions.
 
 Use a non-default local data directory with the global option before the
 subcommand:
@@ -217,9 +222,9 @@ python -m build
 python -m twine check dist/*
 ```
 
-The wheel contains Python code and `rules.json` only. Tests should always
-inspect the archive before publishing to confirm that no local linguistic data
-was included.
+The wheel contains code plus the four approved runtime data files. Tests audit
+the archive to reject corpora, backups, provenance payloads, and unapproved
+linguistic artifacts.
 
 ## Documentation
 
@@ -233,10 +238,10 @@ was included.
 
 ## Data policy
 
-Downloaded corpora, dictionaries, frequency tables, POS tables, provenance
-payloads containing derived counts, and native dictionary binaries are ignored
-and must remain local. The repository provides source links, credit, schemas,
-and reproducible generation tools instead of redistributing those artifacts.
+The four runtime files listed in [DATA_LICENSE.md](DATA_LICENSE.md) are
+redistributed with attribution for noncommercial use. Source downloads,
+evaluation corpora, backups, provenance payloads, intermediate tables, and
+native build artifacts remain ignored and local.
 
 Removing files from the current Git tree does not remove copies from old Git
 history. See [the data policy](docs/DATA.md) before publishing or rewriting
@@ -244,8 +249,8 @@ repository history.
 
 ## License and acknowledgements
 
-Project code is licensed under the [MIT License](LICENSE). That license does not
-apply to third-party linguistic data.
+Project code is licensed under the [MIT License](LICENSE). Bundled linguistic
+data is subject to the separate [attribution and noncommercial notice](DATA_LICENSE.md).
 
 Original data authors, authorities, corpus creators, and annotators are listed
 in [Data Sources, Attribution, and Provenance](docs/DATA.md).

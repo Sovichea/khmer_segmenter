@@ -1,4 +1,4 @@
-"""Resolve separately installed linguistic data without bundling it."""
+"""Resolve bundled or user-supplied Khmer linguistic data."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ DICTIONARY_SOURCE_URL = (
     "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k"
 )
 DICTIONARY_SOURCE_CREDIT = "Seanghay Hay (Hugging Face user seanghay)"
+BUNDLED_DATA_DIR = Path(__file__).resolve().parent / "dictionary_data"
 
 
 class DataNotFoundError(FileNotFoundError):
@@ -53,8 +54,6 @@ class DataFiles:
             "dictionary": self.dictionary.is_file(),
             "frequencies": self.frequencies.is_file(),
             "lexical_pos": self.lexical_pos.is_file(),
-            "official_words": self.official_words.is_file(),
-            "supplemental_words": self.supplemental_words.is_file(),
             "hyphenation_pairs": self.hyphenation_pairs.is_file(),
         }
 
@@ -91,6 +90,7 @@ def candidate_data_dirs(explicit: str | os.PathLike[str] | None = None) -> list[
         candidates.extend(
             [
                 user_data_dir(),
+                BUNDLED_DATA_DIR,
                 Path.cwd() / "khmer_segmenter" / "dictionary_data",
                 Path.cwd() / "dictionary_data",
             ]
@@ -117,7 +117,7 @@ def resolve_data_files(
             return files
     searched = "\n  - ".join(str(path) for path in candidates)
     raise DataNotFoundError(
-        "Khmer dictionary data is not bundled with this package.\n"
+        "Khmer dictionary data could not be found.\n"
         f"Searched:\n  - {searched}\n"
         f"Set {DATA_DIR_ENV}, pass data_dir=..., or prepare the dictionary from:\n"
         f"  {DICTIONARY_SOURCE_URL}"

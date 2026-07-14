@@ -4,9 +4,24 @@ import unittest
 from pathlib import Path
 
 from khmer_segmenter import KhmerHyphenator, KhmerSegmenter, Token, prepare_dictionary
+from khmer_segmenter.data import resolve_data_files
 
 
 class PublicApiTests(unittest.TestCase):
+    def test_bundled_runtime_data_is_ready(self):
+        files = resolve_data_files()
+        self.assertTrue(files.dictionary.is_file())
+        self.assertTrue(files.frequencies.is_file())
+        self.assertTrue(files.lexical_pos.is_file())
+        self.assertTrue(files.hyphenation_pairs.is_file())
+
+        segmenter = KhmerSegmenter()
+        hyphenator = KhmerHyphenator.from_data_dir()
+        self.assertGreater(len(segmenter.words), 1_000)
+        self.assertGreater(len(segmenter.word_frequencies), 1_000)
+        self.assertGreater(len(segmenter.pos_tags), 100)
+        self.assertGreater(len(hyphenator._pairs), 1_000)
+
     def make_data(self, directory: str) -> Path:
         root = Path(directory)
         (root / "khmer_dictionary_words.txt").write_text(

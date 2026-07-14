@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "khmer-viterbi-segmenter"
 version = "0.1.0"
-description = "Deterministic dictionary-based Khmer word segmentation"
+description = "Deterministic Khmer word segmentation with experimental hyphenation"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
-license-files = ["LICENSE"]
+license = "MIT AND LicenseRef-Khmer-Dictionary-NC"
+license-files = ["LICENSE", "DATA_LICENSE.md"]
 authors = [{name = "Sovichea"}]
 keywords = ["Khmer", "segmentation", "tokenization", "NLP", "Cambodia"]
 classifiers = [
@@ -48,7 +48,11 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-khmer_segmenter = ["rules.json"]
+khmer_segmenter = [
+  "rules.json",
+  "dictionary_data/*.json",
+  "dictionary_data/*.txt",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

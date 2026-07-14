@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class KhmerSegmenter:
-    """Deterministic Khmer segmenter backed by separately installed local data."""
+    """Deterministic Khmer segmenter backed by bundled or user-supplied data."""
 
     def __init__(
         self,
