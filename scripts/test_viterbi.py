@@ -3,6 +3,10 @@ import os
 import argparse
 from typing import List
 
+# Khmer output must not depend on the Windows terminal's legacy code page.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 # Add parent directory to path to import khmer_segmenter package
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from khmer_segmenter import KhmerSegmenter

@@ -4,6 +4,10 @@ import os
 import time
 import concurrent.futures
 
+# Keep CLI output readable when Windows selects a legacy console encoding.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 # Try to import psutil for memory tracking
 try:
     import psutil

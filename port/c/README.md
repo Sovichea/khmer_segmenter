@@ -31,11 +31,15 @@ The codebase automatically adapts to the target platform, using platform-specifi
 
 The C port requires compiled dictionary and frequency files to function. These are generated from the Python project.
 
-If you are just building the C port, these files might already be in `port/common/`. If not, or if you modified the dictionary (`data/khmer_dictionary_words.txt`), run:
+If you are just building the C port, these files might already be in
+`port/common/`. If not, or if you modified the dictionary, supply a locally
+obtained corpus to the data pipeline:
 
 ```bash
 # From project root
-python scripts/prepare_data.py
+python scripts/prepare_data.py \
+  --corpus dataset/my_corpus.txt \
+  --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 ```
 
 This will generate:
