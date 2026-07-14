@@ -13,7 +13,7 @@ except ImportError:
     HAS_PSUTIL = False
 
 # Add parent dir to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from khmer_segmenter import KhmerSegmenter
 
 try:

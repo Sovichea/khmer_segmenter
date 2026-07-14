@@ -1,5 +1,4 @@
-
-import re
+"""Khmer Unicode normalization."""
 
 class KhmerNormalizer:
     def __init__(self):
@@ -123,7 +122,8 @@ class KhmerNormalizer:
         5. Dependent Vowels
         6. Signs
         """
-        if not parts: return ""
+        if not parts:
+            return ""
         
         base = parts[0]
         modifiers = parts[1:]

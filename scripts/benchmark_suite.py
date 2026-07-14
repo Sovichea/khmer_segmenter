@@ -7,8 +7,8 @@ import concurrent.futures
 # Force UTF-8 for output
 sys.stdout.reconfigure(encoding='utf-8')
 
-# Add parent directory to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add the src-layout package.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from khmer_segmenter import KhmerSegmenter
 
 try:

@@ -22,8 +22,9 @@ import shutil
 import subprocess
 from collections import Counter
 
-# Add project root to path
-sys.path.append(os.getcwd())
+# Add the src-layout package when running this repository tool directly.
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
 try:
     from khmer_segmenter.normalization import KhmerNormalizer
     from khmer_segmenter import KhmerSegmenter
@@ -363,7 +364,7 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
             if '\u17D7' in w: continue
 
             words.add(w)
-            for v in generate_variants(w):
+            for v in sorted(generate_variants(w)):
                 if v not in words:
                     words.add(v)
                     word_to_primary[v] = w
@@ -424,7 +425,10 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
         string_pool.extend(w.encode('utf-8') + b'\x00')
 
     table = [(0, 0.0)] * table_size
-    for w, cost in word_costs.items():
+    # Stable insertion order makes KDIC byte-for-byte reproducible for the
+    # same dictionary and frequency inputs, including collision placement.
+    for w in sorted(word_costs):
+        cost = word_costs[w]
         idx = djb2_hash(w) & (table_size - 1)
         while table[idx][0] != 0:
             idx = (idx + 1) & (table_size - 1)

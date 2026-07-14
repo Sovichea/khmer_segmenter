@@ -2,7 +2,7 @@ import sys
 import os
 import time
 
-sys.path.append('.')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from khmer_segmenter.viterbi import KhmerSegmenter
 
 def generate_hyphenation_pairs():

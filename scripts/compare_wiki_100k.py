@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor
 
 # Add project root to path
-sys.path.append(os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('src'))
 
 from khmer_segmenter import KhmerSegmenter
 

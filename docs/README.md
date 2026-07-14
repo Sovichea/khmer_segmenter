@@ -8,6 +8,7 @@ main README.
 - [Project overview and quick start](../README.md)
 - [Design philosophy](DESIGN_PHILOSOPHY.md)
 - [Data sources, attribution, and provenance](DATA.md)
+- [PyPI release guide](PYPI_RELEASE.md)
 
 ## Use and evaluate
 
@@ -15,6 +16,8 @@ main README.
 - [Benchmark results](BENCHMARKS.md): accuracy and runtime measurements
 - [Development workflows](DEVELOPMENT.md): tests, corpus preparation,
   frequencies, dictionaries, and unknown-word review
+- [Prepare dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md): local
+  source preparation, KDIC/KHYP conversion, testing, and deployment
 
 ## Implementations
 

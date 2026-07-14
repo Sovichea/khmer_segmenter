@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 import concurrent.futures
 
 # Add parent directory to path to import khmer_segmenter package
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from khmer_segmenter import KhmerSegmenter
 
 def is_unknown(word: str, segmenter: KhmerSegmenter, prev_token: str = None, next_token: str = None) -> bool:

@@ -6,6 +6,14 @@ This is an experimental port of the Khmer Segmenter to Rust. It aims to replicat
 
 Ensure you have Rust installed.
 
+The Rust port requires local dictionary artifacts that are not redistributed
+by this repository. Obtain the dictionary from
+[Seanghay Hay's original Hugging Face publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k),
+review its terms, and follow [the data guide](../../docs/DATA.md) to generate
+the ignored files under `port/common/`.
+The complete conversion and embedded-deployment workflow is in
+[Prepare Dictionaries for Python, C, and Rust](../../docs/EMBEDDED_DICTIONARY.md).
+
 ```bash
 cd port/rust
 ```

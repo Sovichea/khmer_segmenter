@@ -1,156 +1,251 @@
 # Khmer Segmenter
 
-A deterministic, dictionary-based Khmer word segmenter for formal text,
-technical documents, search indexing, and NLP preprocessing. It combines
-Unicode normalization, frequency-weighted Viterbi decoding, linguistic rules,
-and unknown-word recovery without a runtime machine-learning model.
+A deterministic, dictionary-based Khmer word segmenter for NLP preprocessing,
+search, formal documents, and embedded applications. It combines Khmer Unicode
+normalization, frequency-weighted Viterbi decoding, linguistic rules, and
+unknown-word recovery without a runtime machine-learning model.
 
-[Try the live demo](https://sovichea.github.io/khmer_segment_webui_demo/) ·
 [Documentation](docs/README.md) ·
+[Data preparation](docs/EMBEDDED_DICTIONARY.md) ·
 [C port](port/c/README.md) ·
-[Rust port](port/rust/README.md)
+[Rust port](port/rust/README.md) ·
+[Live demo](https://sovichea.github.io/khmer_segment_webui_demo/)
 
 > [!IMPORTANT]
-> This is a lexical segmenter, not a semantic parser. It is optimized for
-> formal Khmer. Names, slang, new terminology, and mixed-language text may be
-> returned as unknown spans for review.
+> Linguistic data is not included in this repository or in Python packages.
+> Each developer downloads the original source, reviews its terms, and builds
+> local runtime files. Project code is MIT licensed; external data keeps its
+> own upstream terms.
 
-## Highlights
+## Features
 
-- Deterministic output for the same text and data files
-- Khmer Unicode normalization before segmentation
-- Explainable dictionary and frequency-based decisions
-- Unknown clusters are preserved instead of semantically guessed
-- Python reference implementation plus high-performance C and Rust ports
-- Optional lexical POS candidates and provenance metadata
+- Deterministic segmentation for the same code and local data
+- Khmer Unicode normalization
+- Frequency-weighted dictionary decisions
+- Unknown-span preservation
+- Typed token metadata with offsets and lexical POS candidates
+- Optional locally generated hyphenation
+- Python API and `khmer-segment` CLI
+- Shared KDIC/KHYP formats for C and Rust applications
 
-## Quick start
+This is a lexical segmenter, not a semantic parser or contextual POS tagger.
+`pos_candidates` are possibilities found in optional local lexical data.
 
-Clone the repository and run Python from the project root:
+## Install for development
+
+Python 3.10 or newer is required.
 
 ```bash
 git clone https://github.com/Sovichea/khmer_segmenter.git
 cd khmer_segmenter
-python scripts/test_viterbi.py
+python -m venv .venv
 ```
 
-The core Python segmenter uses the standard library. Install the development
-requirements only when running comparison and performance tools:
+Activate the environment and install the src-layout package:
 
 ```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
+# Linux/macOS
+source .venv/bin/activate
+python -m pip install -e .
 ```
 
-## Python usage
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+python -m pip install -e .
+```
+
+After its first release, the distribution will install with:
+
+```bash
+pip install khmer-viterbi-segmenter
+```
+
+The import package remains `khmer_segmenter`.
+
+## Prepare the dictionary
+
+The original dictionary is published by Seanghay Hay (`seanghay`) on Hugging
+Face and was extracted from the Khmer Dictionary 2022 of the National Council
+of Khmer Language, Royal Academy of Cambodia:
+
+<https://huggingface.co/datasets/seanghay/khmer-dictionary-44k>
+
+The dataset card says it is for research purposes only. Review those terms
+before downloading or using it.
+
+Create the ignored local dataset directory and download `pairs.tsv` directly
+from the original publisher:
+
+```bash
+mkdir -p dataset
+curl -L \
+  "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" \
+  -o dataset/rac_dictionary_2022_pairs.tsv
+```
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force dataset | Out-Null
+Invoke-WebRequest `
+  -Uri "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" `
+  -OutFile "dataset/rac_dictionary_2022_pairs.tsv"
+```
+
+Generate the ignored local runtime dictionary:
+
+```bash
+khmer-segment data prepare \
+  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
+```
+
+When working from a repository clone, the wrapper below also copies the local
+text dictionary to `port/common/` for native development:
+
+```bash
+python scripts/sync_rac_dictionary.py \
+  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
+```
+
+The Python resolver checks these locations in order:
+
+1. `data_dir=` or CLI `--data-dir`
+2. `KHMER_SEGMENTER_DATA_DIR`
+3. The user data directory for the operating system
+4. `khmer_segmenter/dictionary_data/` in a development checkout
+
+Check the resolved files:
+
+```bash
+khmer-segment data status
+khmer-segment data sources
+khmer-segment data prepare --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
+```
+
+See [Prepare Dictionaries for Python, C, and Rust](docs/EMBEDDED_DICTIONARY.md)
+for frequency generation and KDIC/KHYP compilation.
+
+## Python API
 
 ```python
-from pathlib import Path
+from khmer_segmenter import KhmerSegmenter, prepare_dictionary
 
-from khmer_segmenter import KhmerSegmenter
-
-data_dir = Path("khmer_segmenter/dictionary_data")
-segmenter = KhmerSegmenter(
-    data_dir / "khmer_dictionary_words.txt",
-    data_dir / "khmer_word_frequencies.json",
+prepare_dictionary(
+    "dataset/rac_dictionary_2022_pairs.tsv",
+    "khmer_segmenter/dictionary_data",
 )
 
-tokens = segmenter.segment("ក្រុមហ៊ុនទទួលបានប្រាក់ចំណូល")
+segmenter = KhmerSegmenter.from_data_dir(
+    "khmer_segmenter/dictionary_data"
+)
+
+tokens = segmenter.segment("ខ្ញុំស្រឡាញ់ប្រទេសកម្ពុជា")
 print(tokens)
-# ['ក្រុមហ៊ុន', 'ទទួល', 'បាន', 'ប្រាក់ចំណូល']
 ```
 
-For offsets, dictionary source, frequency, and lexical POS candidates:
+If `KHMER_SEGMENTER_DATA_DIR` is configured, the constructor needs no paths:
 
 ```python
-items = segmenter.segment_with_metadata("ខ្ញុំសរសេរឯកសារ")
-
-for item in items:
-    print(item["text"], item["start"], item["end"], item["known"])
+segmenter = KhmerSegmenter()
 ```
 
-`pos_candidates` are lexical possibilities, not contextual POS predictions.
-Ambiguous and unknown tokens have `pos: None`.
+Typed analysis results include normalized offsets and optional lexical data:
 
-## Process a file
+```python
+for token in segmenter.analyze("ខ្ញុំសរសេរឯកសារ"):
+    print(token.text, token.start, token.end, token.known)
+    print(token.frequency, token.pos_candidates)
+```
+
+The legacy dictionary result remains available as
+`segment_with_metadata(text)`.
+
+Optional hyphenation uses locally generated pairs:
+
+```python
+from khmer_segmenter import KhmerHyphenator
+
+hyphenator = KhmerHyphenator.from_data_dir(
+    "khmer_segmenter/dictionary_data"
+)
+result = hyphenator.hyphenate(
+    "សហប្រតិបត្តិការ",
+    segmenter=segmenter,
+    separator="-",  # use "\u200b" for invisible break opportunities
+)
+```
+
+## CLI
+
+Segment positional text, a file, or standard input:
 
 ```bash
-python -m khmer_segmenter --input path/to/input.txt
+khmer-segment segment "ខ្ញុំស្រឡាញ់ប្រទេសកម្ពុជា"
+khmer-segment segment --input input.txt --output segmented.txt
+cat input.txt | khmer-segment segment
 ```
 
-Run the file benchmark with:
+Machine-readable output:
 
 ```bash
-python -m khmer_segmenter \
-  --benchmark \
-  --input path/to/input.txt \
-  --threads 4
+khmer-segment segment "ខ្ញុំសរសេរឯកសារ" --format json
+khmer-segment analyze "ខ្ញុំសរសេរឯកសារ" --format json
 ```
 
-## Choose an implementation
+`analyze` reports lexical candidates; it does not claim contextual POS tagging.
 
-| Implementation | Best for | Documentation |
-|:---|:---|:---|
-| Python | Research, scripting, debugging, and reference behavior | This README |
-| C | Embedding, low latency, cross-compilation, and constrained systems | [C guide](port/c/README.md) |
-| Rust | Native applications with Rust safety and concurrency | [Rust guide](port/rust/README.md) |
-| New language | Reproducing normalization, binary formats, and Viterbi behavior | [Porting guide](port/README.md) |
+Hyphenation and benchmarking:
 
-All implementations use synchronized linguistic resources from `port/common/`
-or `khmer_segmenter/dictionary_data/`.
+```bash
+khmer-segment hyphenate "សហប្រតិបត្តិការ" --visible-hyphen
+khmer-segment benchmark --input dataset/my_corpus.txt --limit 1000
+```
 
-## Data policy
+Use a non-default local data directory with the global option before the
+subcommand:
 
-Source corpora are not distributed by this repository. Download them from the
-credited original authors, review their terms, and store local copies under
-the ignored `dataset/` directory. Those files remain available for local
-testing without being added to Git.
+```bash
+khmer-segment --data-dir /path/to/local/data segment "អត្ថបទខ្មែរ"
+```
 
-The repository's MIT license covers project code; it does not relicense
-third-party datasets or derived linguistic resources. See
-[Data sources, attribution, and provenance](docs/DATA.md) before rebuilding or
-redistributing data artifacts.
+## Build the Python distribution
 
-## Accuracy snapshot
+```bash
+python -m pip install --upgrade build twine
+python -m build
+python -m twine check dist/*
+```
 
-The checked-in frequency model was evaluated on stable, held-out partitions:
-
-| Dataset | Sentences | Boundary precision | Boundary recall | Boundary F1 |
-|:---|---:|---:|---:|---:|
-| khPOS test | 1,179 | 89.96% | 93.31% | **91.61%** |
-| Khmer ALT POS test | 1,981 | 89.97% | 78.32% | **83.74%** |
-
-Segmentation conventions differ between the corpora, so compare boundary F1
-and inspect disagreements instead of treating every mismatch as a lexical
-error. See [Evaluation](docs/EVALUATION.md) and
-[Benchmarks](docs/BENCHMARKS.md) for methodology and commands.
+The wheel contains Python code and `rules.json` only. Tests should always
+inspect the archive before publishing to confirm that no local linguistic data
+was included.
 
 ## Documentation
 
 - [Documentation index](docs/README.md)
-- [Design philosophy](docs/DESIGN_PHILOSOPHY.md)
 - [Data sources, attribution, and provenance](docs/DATA.md)
-- [Evaluation guide](docs/EVALUATION.md)
-- [Benchmark results](docs/BENCHMARKS.md)
-- [Development and data-generation workflows](docs/DEVELOPMENT.md)
-- [Porting guide and algorithm reference](port/README.md)
-- [C port](port/c/README.md)
-- [Rust port](port/rust/README.md)
+- [Dictionary and embedded-data preparation](docs/EMBEDDED_DICTIONARY.md)
+- [Development workflows](docs/DEVELOPMENT.md)
+- [Evaluation](docs/EVALUATION.md)
+- [Benchmarks](docs/BENCHMARKS.md)
+- [Algorithm and porting reference](port/README.md)
 
-## Acknowledgements
+## Data policy
 
-- [khmernltk](https://github.com/VietHoang1512/khmer-nltk), used for comparison
-  benchmarks
-- [sovichet](https://github.com/sovichet), credited for Khmer folktale and
-  dictionary resources used in earlier local corpus work
-- [phylypo](https://github.com/phylypo/segmentation-crf-khmer), author of the
-  `kh_data_10000b` resource used in earlier frequency analysis
-- The RAC/NCKL dictionary authority, dataset publishers, corpus creators, and
-  annotators listed in [the data credits](docs/DATA.md)
+Downloaded corpora, dictionaries, frequency tables, POS tables, provenance
+payloads containing derived counts, and native dictionary binaries are ignored
+and must remain local. The repository provides source links, credit, schemas,
+and reproducible generation tools instead of redistributing those artifacts.
 
-## License
+Removing files from the current Git tree does not remove copies from old Git
+history. See [the data policy](docs/DATA.md) before publishing or rewriting
+repository history.
 
-Project code is licensed under the [MIT License](LICENSE). Retain the copyright
-and license notice in copies or substantial portions of the software.
+## License and acknowledgements
+
+Project code is licensed under the [MIT License](LICENSE). That license does not
+apply to third-party linguistic data.
+
+Original data authors, authorities, corpus creators, and annotators are listed
+in [Data Sources, Attribution, and Provenance](docs/DATA.md).

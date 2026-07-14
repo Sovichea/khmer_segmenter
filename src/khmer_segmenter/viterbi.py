@@ -1,16 +1,48 @@
+"""Frequency-weighted Viterbi Khmer segmentation engine."""
+
 import os
 import math
 import json
+import logging
 import unicodedata
+from pathlib import Path
 
+from .data import DataFiles, resolve_data_files
+from .models import Token
 from .normalization import KhmerNormalizer
 from .rule_engine import RuleBasedEngine
 
+logger = logging.getLogger(__name__)
+
+
 class KhmerSegmenter:
-    def __init__(self, dictionary_path, frequency_path="khmer_word_frequencies.json", pos_path=None):
+    """Deterministic Khmer segmenter backed by separately installed local data."""
+
+    def __init__(
+        self,
+        dictionary_path=None,
+        frequency_path=None,
+        pos_path=None,
+        *,
+        data_dir=None,
+    ):
         """
         Initialize the segmenter by loading the dictionary and word frequencies.
         """
+        if dictionary_path is not None and data_dir is not None:
+            raise ValueError("pass either dictionary_path or data_dir, not both")
+        if dictionary_path is None:
+            data_files = resolve_data_files(data_dir)
+            dictionary_path = data_files.dictionary
+        else:
+            dictionary_path = Path(dictionary_path)
+            data_files = DataFiles(dictionary_path.resolve().parent)
+        if frequency_path is None and data_files.frequencies.is_file():
+            frequency_path = data_files.frequencies
+        if pos_path is None and data_files.lexical_pos.is_file():
+            pos_path = data_files.lexical_pos
+
+        self.data_files = data_files
         self.words = set()
         self.normalizer = KhmerNormalizer()
         self.max_word_length = 0
@@ -32,18 +64,21 @@ class KhmerSegmenter:
         
         self._load_dictionary(dictionary_path)
         self._load_frequencies(frequency_path)
-        data_dir = os.path.dirname(os.path.abspath(dictionary_path))
         self._load_word_set(
-            os.path.join(data_dir, "khmer_dictionary_official_2022_words.txt"),
+            data_files.official_words,
             self.official_words,
         )
         self._load_word_set(
-            os.path.join(data_dir, "khmer_dictionary_supplemental_words.txt"),
+            data_files.supplemental_words,
             self.supplemental_words,
         )
-        if pos_path is None:
-            pos_path = os.path.join(data_dir, "khmer_word_pos.json")
         self._load_pos_tags(pos_path)
+
+    @classmethod
+    def from_data_dir(cls, data_dir=None):
+        """Create a segmenter from a local data directory or configured default."""
+
+        return cls(data_dir=data_dir)
 
     def _load_word_set(self, path, destination):
         if not os.path.exists(path):
@@ -123,7 +158,10 @@ class KhmerSegmenter:
         # words_to_remove.add('ត្តិ')
 
         if words_to_remove:
-            print(f"Removing {len(words_to_remove)} invalid words (compound ORs, start-with-Coeng) to enforce splitting.")
+            logger.info(
+                "Removing %d invalid dictionary entries to enforce splitting",
+                len(words_to_remove),
+            )
             self.words -= words_to_remove
 
         if "ៗ" in self.words:
@@ -135,7 +173,7 @@ class KhmerSegmenter:
              if len(word) > self.max_word_length:
                  self.max_word_length = len(word)
                  
-        print(f"Loaded {len(self.words)} words. Max length: {self.max_word_length}")
+        logger.info("Loaded %d words; maximum length is %d", len(self.words), self.max_word_length)
 
                      
     def _is_valid_single_base_char(self, char):
@@ -252,7 +290,7 @@ class KhmerSegmenter:
     def _load_frequencies(self, path):
         if not path or not os.path.exists(path):
             if path:
-                print(f"Frequency file not found at {path}. Using default costs.")
+                logger.warning("Frequency file not found at %s; using default costs", path)
             return
 
         with open(path, 'r', encoding='utf-8') as f:
@@ -308,8 +346,13 @@ class KhmerSegmenter:
                 if prob > 0:
                     self.word_costs[word] = -math.log10(prob)
         
-        print(f"Loaded frequencies for {len(self.word_costs)} words.")
-        print(f"Default cost: {self.default_cost:.2f} (freq floor={min_freq_floor}), Unknown cost: {self.unknown_cost:.2f}")
+        logger.info(
+            "Loaded costs for %d words; default=%.2f unknown=%.2f floor=%.1f",
+            len(self.word_costs),
+            self.default_cost,
+            self.unknown_cost,
+            min_freq_floor,
+        )
 
     def get_word_cost(self, word):
         if word in self.word_costs:
@@ -318,15 +361,21 @@ class KhmerSegmenter:
             return self.default_cost
         return self.unknown_cost
 
-    def segment_with_metadata(self, text, disable_post_processing=False):
+    def segment_with_metadata(
+        self, text, disable_post_processing=False, *, normalize=True
+    ):
         """Segment text and return lexical metadata for each token.
 
         ``pos`` is populated only when the lexical POS candidate is unambiguous.
         This method does not perform contextual POS disambiguation.
         Offsets refer to the normalized input returned by the segmentation path.
         """
-        normalized_text = self.normalizer.normalize(text)
-        tokens = self.segment(text, disable_post_processing=disable_post_processing)
+        normalized_text = self.normalizer.normalize(text) if normalize else text
+        tokens = self.segment(
+            text,
+            disable_post_processing=disable_post_processing,
+            normalize=normalize,
+        )
         result = []
         offset = 0
         for token in tokens:
@@ -368,6 +417,21 @@ class KhmerSegmenter:
         if offset != len(normalized_text):
             raise ValueError("Segment metadata offsets do not cover normalized input")
         return result
+
+    def analyze(self, text, *, normalize=True, disable_post_processing=False):
+        """Return typed tokens with offsets and lexical metadata.
+
+        POS values are dictionary candidates, not contextual predictions.
+        """
+
+        return [
+            Token.from_mapping(item)
+            for item in self.segment_with_metadata(
+                text,
+                disable_post_processing=disable_post_processing,
+                normalize=normalize,
+            )
+        ]
 
 
 
@@ -492,7 +556,7 @@ class KhmerSegmenter:
                 return True
                 
             return False
-        except:
+        except Exception:
             return False
 
     def _is_acronym_start(self, text, index):
@@ -552,12 +616,13 @@ class KhmerSegmenter:
 
 
 
-    def segment(self, text, disable_post_processing=False):
+    def segment(self, text, disable_post_processing=False, *, normalize=True):
         """
         Segment the text using Viterbi Algorithm (Minimize Cost / Maximize Probability).
         """
         # 0. Normalize Text
-        text = self.normalizer.normalize(text)
+        if normalize:
+            text = self.normalizer.normalize(text)
         
         n = len(text)
         if n == 0:
@@ -569,7 +634,8 @@ class KhmerSegmenter:
         dp[0] = (0.0, -1) 
 
         for i in range(n):
-            if dp[i][0] == float('inf'): continue
+            if dp[i][0] == float('inf'):
+                continue
             
             # Constraint Check & Fallback
             # If we violate Khmer constraints, we MUST NOT start a normal word/cluster segment.
@@ -754,32 +820,3 @@ class KhmerSegmenter:
             final_segments.append("".join(unknown_buffer))
             
         return final_segments
-
-if __name__ == "__main__":
-    import sys
-    dict_file = os.path.join(os.path.dirname(__file__), "dictionary_data", "khmer_dictionary_words.txt")
-    freq_file = os.path.join(os.path.dirname(__file__), "dictionary_data", "khmer_word_frequencies.json")
-    
-    if len(sys.argv) > 1:
-        dict_file = sys.argv[1]
-        
-    try:
-        seg = KhmerSegmenter(dict_file, freq_file)
-        # Test
-        text = "កងកម្លាំងរក្សាសន្តិសុខ"
-        result = seg.segment(text)
-        print(f"Input: {text}")
-        print(f"Output: {' | '.join(result)}")
-        
-        text2 = "ខ្ញុំទៅសាលារៀន"
-        result2 = seg.segment(text2) # Should segment
-        print(f"Input: {text2}")
-        print(f"Output: {' | '.join(result2)}")
-        
-        text3 = "ការអភិវឌ្ឍ"
-        result3 = seg.segment(text3)
-        print(f"Input: {text3}")
-        print(f"Output: {' | '.join(result3)}")
-
-    except FileNotFoundError as e:
-        print(e)

@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "khmer-viterbi-segmenter"
+version = "0.1.0"
+description = "Deterministic dictionary-based Khmer word segmentation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Sovichea"}]
+keywords = ["Khmer", "segmentation", "tokenization", "NLP", "Cambodia"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Natural Language :: Khmer",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Text Processing :: Linguistic",
+]
+dependencies = []
+
+[project.optional-dependencies]
+benchmark = ["psutil>=5"]
+comparison = ["khmernltk", "tqdm"]
+dev = ["build>=1", "twine>=6", "pytest>=8", "ruff>=0.9", "mypy>=1.14"]
+
+[project.scripts]
+khmer-segment = "khmer_segmenter.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Sovichea/khmer_segmenter"
+Documentation = "https://github.com/Sovichea/khmer_segmenter/tree/main/docs"
+Repository = "https://github.com/Sovichea/khmer_segmenter.git"
+Issues = "https://github.com/Sovichea/khmer_segmenter/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+khmer_segmenter = ["rules.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100

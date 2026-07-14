@@ -76,4 +76,4 @@ python scripts/find_unknown_words.py \
   --input output/segmentation_results.txt
 ```
 
-See [Benchmark Results](BENCHMARKS.md) for the current checked-in measurements.
+See [Benchmark Results](BENCHMARKS.md) for documented historical measurements.

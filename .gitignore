@@ -1,10 +1,23 @@
 # Python
 __pycache__/
 *.pyc
+.venv*/
+build/
+dist/
+*.egg-info/
 
 # Datasets are downloaded by each user from the credited upstream sources.
 # Do not commit source corpora or benchmark caches to this repository.
 dataset/
+
+# Linguistic resources are downloaded or generated locally from separately
+# licensed sources. Never include this directory in Git, wheels, or sdists.
+khmer_segmenter/dictionary_data/
+
+# Native dictionary/frequency artifacts contain the same local linguistic data.
+port/common/*.txt
+port/common/*.bin
+port/common/*.kdict
 
 # Outputs
 segmentation_results.txt

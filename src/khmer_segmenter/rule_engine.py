@@ -1,6 +1,11 @@
+"""Rule-based segmentation post-processing."""
+
 import json
+import logging
 import os
 import re
+
+logger = logging.getLogger(__name__)
 
 class RuleBasedEngine:
     def __init__(self, check_invalid_single_func, is_separator_func):
@@ -30,7 +35,11 @@ class RuleBasedEngine:
                     try:
                         trigger["regex_obj"] = re.compile(trigger["value"])
                     except re.error as e:
-                        print(f"Error compiling trigger regex for rule '{rule.get('name')}': {e}")
+                        logger.warning(
+                            "Could not compile trigger regex for rule %r: %s",
+                            rule.get("name"),
+                            e,
+                        )
                         continue
                 
                 # Check for "value" in trigger for exact match optimization
@@ -41,7 +50,7 @@ class RuleBasedEngine:
             return compiled_rules
             
         except Exception as e:
-            print(f"Error loading rules: {e}")
+            logger.error("Could not load segmentation rules: %s", e)
             return []
 
     def apply_rules(self, segments):
@@ -85,9 +94,11 @@ class RuleBasedEngine:
                         
                         # Resolve target
                         if target == "prev":
-                            if i > 0: target_seg = segments[i-1]
+                            if i > 0:
+                                target_seg = segments[i-1]
                         elif target == "next":
-                            if i + 1 < len(segments): target_seg = segments[i+1]
+                            if i + 1 < len(segments):
+                                target_seg = segments[i+1]
                         elif target == "context" or target == "current":
                             target_seg = segments[i]
                         
@@ -129,10 +140,12 @@ class RuleBasedEngine:
                                 break
                         elif c_type == "is_isolated":
                             prev_sep = True
-                            if i > 0: prev_sep = self.is_separator(segments[i-1])
+                            if i > 0:
+                                prev_sep = self.is_separator(segments[i-1])
                             
                             next_sep = True
-                            if i + 1 < len(segments): next_sep = self.is_separator(segments[i+1])
+                            if i + 1 < len(segments):
+                                next_sep = self.is_separator(segments[i+1])
                             
                             is_iso = prev_sep and next_sep
                             if is_iso != expected:

@@ -1,80 +1,134 @@
-# Data Sources, Attribution, and Provenance
+# Data Sources, Downloads, and Attribution
 
-This document separates project code from third-party corpora and linguistic
-resources. Always review the upstream terms before downloading, rebuilding, or
-redistributing an artifact.
+This repository distributes algorithms and generation tools, not third-party
+linguistic data. Downloaded sources and every generated dictionary, frequency,
+POS, provenance-count, and native binary artifact remain local and ignored.
 
-## Repository policy
-
-Source corpora are not tracked in Git. Keep local test and training files under
-`dataset/`, which is ignored by the repository. Removing a file from the
-current Git tree does not remove it from older Git history.
-
-The MIT license applies to project code only. It does not relicense upstream
-datasets or data derived from them.
+The project MIT license covers code only. It does not relicense upstream data
+or derived artifacts.
 
 ## Sources and credits
 
-| Resource | Original source | Credit | Upstream terms |
+| Resource | Original source | Credit | Terms to review |
 |:---|:---|:---|:---|
-| RAC/NCKL Khmer Dictionary 2022 | [Seanghay Hay's `khmer-dictionary-44k` extraction](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k) | National Council of Khmer Language, Royal Academy of Cambodia (dictionary authority); Seanghay Hay / `seanghay` (extraction and publication) | Dataset card states research only and not for commercial use |
-| khPOS | [`ye-kyaw-thu/khPOS`](https://github.com/ye-kyaw-thu/khPOS) | Vichet Chea and Ye Kyaw Thu; annotation assistance acknowledged to Sorn Kea and Leng Greyhuy | CC BY-NC-SA 4.0 |
-| Khmer ALT | [Zenodo record 3937914](https://doi.org/10.5281/zenodo.3937914) | Chenchen Ding, Masao Utiyama, and Eiichiro Sumita; developed by NICT and NIPTICT | Description states CC BY-NC-SA 4.0, while the Zenodo rights field displays CC BY 4.0; review the record |
-| Earlier folktale and dictionary inputs | [sovichet](https://github.com/sovichet) | Sovichet | Obtain from the original author and review its terms |
-| `kh_data_10000b` | [`phylypo/segmentation-crf-khmer`](https://github.com/phylypo/segmentation-crf-khmer) | Phylypo Tum | Obtain from the original repository and review its terms |
+| Khmer Dictionary 2022 extraction | [Seanghay Hay's `khmer-dictionary-44k`](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k) | National Council of Khmer Language, Royal Academy of Cambodia (authority); Seanghay Hay / `seanghay` (extraction and publication) | Dataset card says research purpose only |
+| khPOS | [`ye-kyaw-thu/khPOS`](https://github.com/ye-kyaw-thu/khPOS) | Vichet Chea and Ye Kyaw Thu; annotation assistance by Sorn Kea and Leng Greyhuy | CC BY-NC-SA 4.0 |
+| Khmer ALT | [Zenodo record 3937914](https://doi.org/10.5281/zenodo.3937914) | Chenchen Ding, Masao Utiyama, and Eiichiro Sumita; NICT and NIPTICT | Description and rights field differ; review the record |
+| Earlier folktale/dictionary inputs | [sovichet](https://github.com/sovichet) | Sovichet | Ask the original author and review the source terms |
+| `kh_data_10000b` | [`phylypo/segmentation-crf-khmer`](https://github.com/phylypo/segmentation-crf-khmer) | Phylypo Tum | Review the original repository |
 
-Source metadata was checked on 2026-07-01.
+Source metadata was last checked on 2026-07-14. Upstream publishers may update
+files or terms; their current pages are authoritative.
 
-## Local data layout
+## Download the dictionary
 
-Create local paths as needed; Git will ignore the entire directory:
+From the repository root on Linux or macOS:
 
-```text
-dataset/
-├── benchmarks/          # downloaded evaluation archives and extracted files
-├── my_corpus.txt        # a user-provided corpus
-└── other-local-data/    # any additional licensed local resources
+```bash
+mkdir -p dataset
+curl -L \
+  "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" \
+  -o dataset/rac_dictionary_2022_pairs.tsv
 ```
 
-The khPOS and Khmer ALT evaluation loaders download their official source files
-to `dataset/benchmarks/` when a local path is not supplied.
+Windows PowerShell:
 
-## Runtime artifacts
+```powershell
+New-Item -ItemType Directory -Force dataset | Out-Null
+Invoke-WebRequest `
+  -Uri "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" `
+  -OutFile "dataset/rac_dictionary_2022_pairs.tsv"
+```
 
-Files under `khmer_segmenter/dictionary_data/` serve different purposes:
+This downloads directly from the credited publisher; the project does not
+mirror the file. Then normalize and generate the local runtime dictionary:
 
-| File | Purpose |
-|:---|:---|
-| `khmer_dictionary_words.txt` | Runtime union of official and supplemental vocabulary |
-| `khmer_dictionary_official_2022_words.txt` | Normalized RAC/NCKL 2022 headwords |
-| `khmer_dictionary_supplemental_words.txt` | Community vocabulary outside the reference extraction |
-| `khmer_word_frequencies.json` | Combined runtime occurrence frequencies |
-| `khmer_word_frequencies_corpus.json` | Corpus-only frequency baseline |
-| `khmer_word_pos.json` | Deterministic lexical POS candidates |
-| `*_provenance.json` | Source, method, split, and count metadata |
+```bash
+khmer-segment data prepare \
+  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
+```
 
-## Rebuild the dictionary
-
-Download `pairs.tsv` from the credited extraction and run:
+From a source checkout, this wrapper additionally prepares the native text
+dictionary location:
 
 ```bash
 python scripts/sync_rac_dictionary.py \
-  --rac-tsv dataset/benchmarks/rac_dictionary_2022_pairs.tsv
+  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
 ```
 
-The synchronization process normalizes headwords, rejects entries containing
-whitespace, keeps supplemental vocabulary separate, and writes source counts to
-`khmer_dictionary_provenance.json`.
+See [Prepare Dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md) for
+all generated files and KDIC/KHYP conversion.
 
-## Rebuild derived gold artifacts
+## Optional evaluation corpora
 
-Only derived training partitions may contribute to runtime frequencies or POS
-candidates. Development and test partitions are reserved for evaluation.
+Evaluation helpers download official archives into the ignored
+`dataset/benchmarks/` cache when a local path is not provided. They never place
+the corpora inside the Python package.
+
+Run evaluation after reviewing each upstream license:
+
+```bash
+python scripts/evaluate_segmentation.py --dataset khpos
+python scripts/evaluate_segmentation.py --dataset khmer_alt_pos
+```
+
+Use `python scripts/evaluate_segmentation.py --help` for explicit local-source
+options and current dataset identifiers.
+
+## Local layout
+
+```text
+dataset/
+|-- rac_dictionary_2022_pairs.tsv
+|-- benchmarks/
+|-- my_corpus.txt
+`-- other-local-data/
+
+khmer_segmenter/dictionary_data/
+|-- khmer_dictionary_words.txt
+|-- khmer_dictionary_official_2022_words.txt
+|-- khmer_dictionary_supplemental_words.txt
+|-- khmer_word_frequencies.json
+|-- khmer_word_pos.json
+`-- khmer_dictionary_hyphenation_pairs.txt
+
+port/common/
+|-- khmer_dictionary.kdict
+|-- khmer_frequencies.bin
+`-- khmer_hyphenation.kdict
+```
+
+All paths above are ignored by Git. The old `khmer_segmenter/dictionary_data/`
+location remains a development data directory; importable package code now
+lives under `src/khmer_segmenter/` and cannot accidentally package that data.
+
+## Generate optional local frequencies and POS candidates
+
+Generate frequencies from a corpus you are authorized to use:
+
+```bash
+python scripts/prepare_data.py \
+  --corpus dataset/my_corpus.txt \
+  --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
+```
+
+The segmenter works without a frequency JSON by applying default dictionary
+costs, although segmentation quality may differ.
+
+The following research commands use training partitions from separately
+licensed corpora and produce local, ignored files:
 
 ```bash
 python scripts/augment_frequencies_from_gold.py
 python scripts/build_lexical_pos.py
 ```
 
-The corresponding provenance JSON files record dataset links, credits, split
-policy, and counts so regeneration does not remove attribution.
+They do not create a contextual POS model. Do not redistribute their outputs
+unless the upstream terms and intended use permit it.
+
+## History and release safety
+
+Removing a file from the current Git tree does not erase it from older commits.
+Before making a public release, decide whether repository history must be
+rewritten. Every wheel and source distribution must also be inspected to prove
+that local data is absent; see [PyPI Release Guide](PYPI_RELEASE.md).

@@ -6,9 +6,12 @@ be obtained separately and stored under the ignored `dataset/` directory.
 ## Run tests
 
 ```bash
+python -m pip install -e .
 python -m unittest discover -s tests -q
 python scripts/test_viterbi.py
 ```
+
+Install development and release tools with `python -m pip install -e .[dev]`.
 
 Batch-process a local corpus with:
 
@@ -29,7 +32,7 @@ python scripts/prepare_data.py \
   --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 ```
 
-Generated native files include:
+Generated native files include the following local, Git-ignored artifacts:
 
 - `port/common/khmer_dictionary.kdict`: baked lookup table
 - `port/common/khmer_frequencies.bin`: binary frequency data
@@ -75,11 +78,16 @@ contextual POS tagger.
 Follow [Data Sources, Attribution, and Provenance](DATA.md) to obtain the source
 TSV and synchronize the official and supplemental word lists.
 
+For the complete workflow from the upstream TSV through `KDIC`/`KHYP` files
+used by embedded C and Rust applications, see
+[Prepare Dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md).
+
 ## Hyphenation data
 
 Hyphenation pairs support word processors and rendering engines that need safe
-line-break opportunities in long compound words. The checked-in text pairs and
-compiled `port/common/khmer_hyphenation.kdict` are consumed by native ports.
+line-break opportunities in long compound words. The locally generated text
+pairs and compiled `port/common/khmer_hyphenation.kdict` are consumed by native
+ports; neither artifact is redistributed by this repository.
 
 When changing hyphenation generation, validate lookups in both the C and Rust
 implementations and keep their shared binary data synchronized.
@@ -89,3 +97,14 @@ implementations and keep their shared binary data synchronized.
 Changes to normalization, character clustering, Viterbi costs, post-processing,
 or binary formats can affect every port. Update and test the Python reference,
 the [porting guide](../port/README.md), and native implementations together.
+
+## Build the Python package
+
+```bash
+python -m build
+python -m twine check dist/*
+python scripts/check_distribution.py dist/*
+```
+
+Follow the [PyPI Release Guide](PYPI_RELEASE.md) for clean-environment and
+TestPyPI verification.

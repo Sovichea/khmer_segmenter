@@ -7,8 +7,8 @@ from typing import List
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-# Add parent directory to path to import khmer_segmenter package
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Add the src-layout package when running this repository tool directly.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from khmer_segmenter import KhmerSegmenter
 
 def create_segmenter():

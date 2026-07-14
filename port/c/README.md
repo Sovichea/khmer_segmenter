@@ -29,11 +29,16 @@ The codebase automatically adapts to the target platform, using platform-specifi
 
 ## Data Preparation
 
-The C port requires compiled dictionary and frequency files to function. These are generated from the Python project.
+The C port requires compiled dictionary and frequency files to function. They
+are generated locally and are not redistributed by this repository. Obtain the
+dictionary from
+[Seanghay Hay's original Hugging Face publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k),
+review its terms, and follow the repository's data guide before running the
+pipeline with a locally obtained corpus:
 
-If you are just building the C port, these files might already be in
-`port/common/`. If not, or if you modified the dictionary, supply a locally
-obtained corpus to the data pipeline:
+For dictionary-only conversion, full corpus rebuilding, hyphenation, and
+deployment instructions, see
+[Prepare Dictionaries for Python, C, and Rust](../../docs/EMBEDDED_DICTIONARY.md).
 
 ```bash
 # From project root

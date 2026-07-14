@@ -6,8 +6,9 @@ latency decisions.
 
 ## Gold-standard accuracy
 
-The current frequency model uses only derived training partitions. Results use
-stable held-out test partitions and Unicode boundary scoring.
+The historical locally generated frequency model used only derived training
+partitions. Results use stable held-out test partitions and Unicode boundary
+scoring. The model artifact is not distributed with this repository.
 
 | Dataset | Sentences | Boundary precision | Boundary recall | Boundary F1 | Exact sentence | Unknown tokens |
 |:---|---:|---:|---:|---:|---:|---:|
@@ -24,10 +25,10 @@ the corpora do not encode an identical segmentation standard.
 
 ## Frequency coverage
 
-The recorded artifacts combine 3,120,579 corpus tokens with 585,396 validated
-tokens from derived gold training partitions. The runtime frequency table has
-29,719 observed entries. Detailed counts and document frequencies are stored in
-`khmer_word_frequencies_provenance.json`.
+The recorded local artifacts combined 3,120,579 corpus tokens with 585,396
+validated tokens from derived gold training partitions. The generated runtime
+frequency table had 29,719 observed entries. Its detailed counts and provenance
+were local build outputs and are not part of the repository or distributions.
 
 ## Runtime snapshot
 
@@ -49,10 +50,7 @@ ports are intended for high-throughput or low-memory deployments.
 ```bash
 python scripts/benchmark_suite.py
 
-python -m khmer_segmenter \
-  --benchmark \
-  --input path/to/your/local_corpus.txt \
-  --threads 4
+khmer-segment benchmark --input path/to/your/local_corpus.txt
 ```
 
 See [Evaluation Guide](EVALUATION.md) for gold-corpus commands and metric

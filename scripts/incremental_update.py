@@ -5,7 +5,7 @@ import sys
 
 # Start of Imports
 # Add project root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 try:
     from khmer_segmenter import KhmerSegmenter
     from khmer_segmenter.normalization import KhmerNormalizer

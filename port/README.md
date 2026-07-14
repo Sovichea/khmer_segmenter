@@ -4,9 +4,15 @@ This guide provides a step-by-step manual for porting the `KhmerSegmenter` to ne
 
 ## 1. Shared Data Resources
 
-All ports must load data from the `port/common/` directory to ensure synchronization.
+All ports load locally generated data from the `port/common/` directory to
+ensure synchronization. Dictionary text and compiled dictionary artifacts are
+ignored by Git and are not redistributed. Obtain the source from
+[Seanghay Hay's Hugging Face publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k),
+review its terms, and follow [the data guide](../docs/DATA.md) to build them.
+The end-to-end conversion and deployment commands are documented in
+[Prepare Dictionaries for Python, C, and Rust](../docs/EMBEDDED_DICTIONARY.md).
 
-### 1.1 Dictionary (`khmer_segmenter/dictionary_data/khmer_dictionary_words.txt`)
+### 1.1 Local dictionary (`khmer_segmenter/dictionary_data/khmer_dictionary_words.txt`)
 - **Format**: Plain text, one word per line, UTF-8.
 - **Loading**:
     - Read line by line.
