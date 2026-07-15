@@ -76,7 +76,7 @@ of Khmer Language, Royal Academy of Cambodia:
 
 <https://huggingface.co/datasets/seanghay/khmer-dictionary-44k>
 
-Seanghay Hay confirmed that the dataset may be redistributed for noncommercial
+The dataset may be redistributed for noncommercial
 use with attribution. The bundled normalized dictionary, frequencies, lexical
 POS candidates, and hyphenation pairs retain that credit and restriction. See
 [the linguistic data notice](DATA_LICENSE.md).
