@@ -46,10 +46,47 @@ hardware with four worker threads where applicable.
 Python thread scaling is constrained by the GIL and scheduling overhead. Native
 ports are intended for high-throughput or low-memory deployments.
 
+## Experimental typo diagnostics
+
+The `feature/typo-diagnostics` branch evaluates a conservative editor-analysis
+layer. It does not add typo arcs to the segmentation lattice: `segment()` stays
+unchanged, while opt-in `analyze(..., typo_recovery=True)` searches bounded
+windows around baseline unknown Khmer tokens. The missing-mark index is lazy.
+
+Snapshot recorded on Windows with Python 3.10 on 2026-07-16:
+
+| Check | Result |
+|:---|---:|
+| Synthetic one-missing-mark cases | 5,000 |
+| Whole-span diagnostic recall | 3.06% |
+| Top-1 correction accuracy over all cases | 2.90% |
+| Unchanged segmentation | 100% |
+| Valid dictionary words tested | 10,000 |
+| Diagnostics on valid dictionary words | 0 |
+| khPOS test sentences with diagnostics | 0 / 1,179 |
+| Khmer ALT test sentences with diagnostics | 3 / 1,981 |
+| Median synthetic analysis latency after warm-up | 0.126 ms |
+| Lazy index build, without memory tracing | 0.47 s |
+
+Gold-corpus diagnostic incidence is a clean-text proxy, not a measured false-
+positive rate: neither corpus annotates real spelling mistakes. The deliberately
+low synthetic recall reflects the first branch goal—fix the reported
+`សម្បត្ត → សម្បត្តិ` editor case without changing segmentation or broadly
+flagging valid text. Later experiments can add known-fragment and low-confidence
+triggers and compare their recall against clean-text incidence.
+
+Memory tracing measured about 20 MB of live Python allocations before recovery
+and 58 MB after constructing the 206,501-key index. Normal segmentation users do
+not pay that optional index cost.
+
 ## Reproduce locally
 
 ```bash
 python scripts/benchmark_suite.py
+
+python scripts/benchmark_typo_diagnostics.py \
+  --khpos dataset/benchmarks/khpos_train.all2 \
+  --khmer-alt dataset/benchmarks/km-nova/km-nova/data_km.km-tok.nova
 
 khmer-segment benchmark --input path/to/your/local_corpus.txt
 ```

@@ -58,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
     _add_text_input(analyze)
     analyze.add_argument("--format", choices=("json", "jsonl"), default="json")
     analyze.add_argument("--no-normalize", action="store_true")
+    analyze.add_argument(
+        "--typo-recovery",
+        action="store_true",
+        help="include experimental missing-vowel/sign diagnostics",
+    )
 
     hyphenate = commands.add_parser(
         "hyphenate", help="apply locally generated safe break opportunities"
@@ -190,16 +195,23 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         return 0
 
     if args.command == "analyze":
-        records = [
-            {
+        records = []
+        for text in texts:
+            analysis = segmenter.analyze(
+                text,
+                normalize=not args.no_normalize,
+                typo_recovery=args.typo_recovery,
+            )
+            record = {
                 "text": text,
-                "tokens": [
-                    token.to_dict()
-                    for token in segmenter.analyze(text, normalize=not args.no_normalize)
-                ],
+                "tokens": [token.to_dict() for token in analysis],
             }
-            for text in texts
-        ]
+            if args.typo_recovery:
+                record["normalized_text"] = analysis.text
+                record["diagnostics"] = [
+                    diagnostic.to_dict() for diagnostic in analysis.diagnostics
+                ]
+            records.append(record)
         _write(_serialize_records(records, args.format), args.output)
         return 0
 

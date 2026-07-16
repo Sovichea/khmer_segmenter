@@ -163,6 +163,28 @@ for token in segmenter.analyze("ខ្ញុំសរសេរឯកសារ"):
 The legacy dictionary result remains available as
 `segment_with_metadata(text)`.
 
+Experimental typo diagnostics are opt-in and do not change segmentation. The
+first implementation detects a probable dictionary word with one missing Khmer
+dependent vowel or sign around an unknown token:
+
+```python
+analysis = segmenter.analyze("សម្បត្ត", typo_recovery=True)
+
+print([token.text for token in analysis])  # unchanged segmentation
+for diagnostic in analysis.diagnostics:
+    print(diagnostic.start, diagnostic.end)  # underline the complete span
+    print(diagnostic.surface, diagnostic.candidate)
+    print(diagnostic.edits)
+```
+
+Diagnostic offsets refer to `analysis.text`, which is the normalized input. The
+missing-mark lookup index is constructed lazily on the first typo-recovery
+request. Typo recovery is experimental and currently covers only one omitted
+dependent vowel or Khmer sign; applications should present its candidates as
+suggestions rather than automatic corrections. Diagnostics use a conservative
+heuristic confidence threshold of `0.75`; experiments can override it with
+`typo_min_confidence=`, but the score is not a calibrated probability.
+
 Experimental hyphenation uses the bundled pairs by default. Many words are not
 yet separated correctly, so applications should treat its output as a
 suggestion and review it before display or publication:
@@ -193,6 +215,7 @@ Machine-readable output:
 ```bash
 khmer-segment segment "ខ្ញុំសរសេរឯកសារ" --format json
 khmer-segment analyze "ខ្ញុំសរសេរឯកសារ" --format json
+khmer-segment analyze "សម្បត្ត" --typo-recovery --format json
 ```
 
 `analyze` reports lexical candidates; it does not claim contextual POS tagging.

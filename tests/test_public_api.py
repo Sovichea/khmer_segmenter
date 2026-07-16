@@ -3,7 +3,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from khmer_segmenter import KhmerHyphenator, KhmerSegmenter, Token, prepare_dictionary
+from khmer_segmenter import (
+    Analysis,
+    KhmerHyphenator,
+    KhmerSegmenter,
+    Token,
+    prepare_dictionary,
+)
 from khmer_segmenter.data import resolve_data_files
 
 
@@ -46,6 +52,7 @@ class PublicApiTests(unittest.TestCase):
             tokens = segmenter.segment("ស្រឡាញ់កម្ពុជា")
             analysis = segmenter.analyze("ស្រឡាញ់កម្ពុជា")
         self.assertEqual(tokens, ["ស្រឡាញ់", "កម្ពុជា"])
+        self.assertIsInstance(analysis, Analysis)
         self.assertTrue(all(isinstance(token, Token) for token in analysis))
         self.assertEqual(analysis[1].pos, "NNP")
 

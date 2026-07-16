@@ -4,13 +4,15 @@ import os
 import math
 import json
 import logging
+import threading
 import unicodedata
 from pathlib import Path
 
 from .data import DataFiles, resolve_data_files
-from .models import Token
+from .models import Analysis, Token
 from .normalization import KhmerNormalizer
 from .rule_engine import RuleBasedEngine
+from .typo_recovery import MissingMarkIndex, find_missing_mark_diagnostics
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,8 @@ class KhmerSegmenter:
         self.word_costs = {}
         self.word_frequencies = {}
         self.pos_tags = {}
+        self._missing_mark_index = None
+        self._missing_mark_index_lock = threading.Lock()
         self.official_words = set()
         self.supplemental_words = set()
         self.default_cost = 10.0 # High cost for dictionary words without frequency
@@ -418,20 +422,60 @@ class KhmerSegmenter:
             raise ValueError("Segment metadata offsets do not cover normalized input")
         return result
 
-    def analyze(self, text, *, normalize=True, disable_post_processing=False):
-        """Return typed tokens with offsets and lexical metadata.
+    def _get_missing_mark_index(self):
+        """Build the optional typo index only when diagnostics request it."""
+
+        if self._missing_mark_index is None:
+            with self._missing_mark_index_lock:
+                if self._missing_mark_index is None:
+                    self._missing_mark_index = MissingMarkIndex(
+                        self.words,
+                        self.get_word_cost,
+                    )
+        return self._missing_mark_index
+
+    def analyze(
+        self,
+        text,
+        *,
+        normalize=True,
+        disable_post_processing=False,
+        typo_recovery=False,
+        typo_min_confidence=0.75,
+    ):
+        """Return typed tokens and optional spelling diagnostics.
 
         POS values are dictionary candidates, not contextual predictions.
+        Typo recovery never changes the segmentation tokens or input text.
         """
 
-        return [
+        normalized_text = self.normalizer.normalize(text) if normalize else text
+        tokens = tuple(
             Token.from_mapping(item)
             for item in self.segment_with_metadata(
                 text,
                 disable_post_processing=disable_post_processing,
                 normalize=normalize,
             )
-        ]
+        )
+        diagnostics = ()
+        if typo_recovery and tokens:
+            if not 0.0 <= typo_min_confidence <= 1.0:
+                raise ValueError("typo_min_confidence must be between 0 and 1")
+            diagnostics = find_missing_mark_diagnostics(
+                tokens,
+                self._get_missing_mark_index(),
+                word_cost=self.get_word_cost,
+                unknown_cost=self.unknown_cost,
+                cluster_length=self._get_khmer_cluster_length,
+                is_khmer_char=self._is_khmer_char,
+                minimum_confidence=typo_min_confidence,
+            )
+        return Analysis(
+            text=normalized_text,
+            tokens=tokens,
+            diagnostics=diagnostics,
+        )
 
 
 
