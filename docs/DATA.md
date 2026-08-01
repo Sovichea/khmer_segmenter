@@ -150,6 +150,10 @@ python scripts/build_lexical_pos.py
 They do not create a contextual POS model. Do not redistribute their outputs
 unless the upstream terms and intended use permit it.
 
+For the provenance-aware Wikipedia and FineWeb2 pilot, see
+[Hugging Face Corpus Experiment](CORPUS_EXPERIMENT.md). Its raw samples and
+generated artifacts remain local under the ignored `experiments/` directory.
+
 ## History and release safety
 
 Removing a file from the current Git tree does not erase it from older commits.

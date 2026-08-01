@@ -29,6 +29,7 @@ dependencies = []
 [project.optional-dependencies]
 benchmark = ["psutil>=5"]
 comparison = ["khmernltk", "tqdm"]
+corpus = ["datasets>=3,<5"]
 dev = ["build>=1", "twine>=6", "pytest>=8", "ruff>=0.9", "mypy>=1.14"]
 
 [project.scripts]
