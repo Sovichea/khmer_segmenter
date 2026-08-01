@@ -46,33 +46,27 @@ class KhmerSegmenter:
         self.words = set()
         self.normalizer = KhmerNormalizer()
         self.max_word_length = 0
-        
+
         # Word Costs
         self.word_costs = {}
         self.word_frequencies = {}
-        self.pos_tags = {}
-        self.official_words = set()
-        self.supplemental_words = set()
-        self.default_cost = 10.0 # High cost for dictionary words without frequency
-        self.unknown_cost = 20.0 # Very high cost for unknown chunks
-        
+        self._pos_tags = None
+        self._official_words = None
+        self._supplemental_words = None
+        self._spellcheck_words = None
+        self._pos_path = pos_path
+        self.data_manifest = {}
+        self.default_cost = 10.0  # High cost for dictionary words without frequency
+        self.unknown_cost = 20.0  # Very high cost for unknown chunks
+
         # Initialize Rule Engine (before partial loads to avoid attribute errors if used)
         self.rule_engine = RuleBasedEngine(
-            check_invalid_single_func=self._is_invalid_single,
-            is_separator_func=self._is_separator
+            check_invalid_single_func=self._is_invalid_single, is_separator_func=self._is_separator
         )
-        
+
         self._load_dictionary(dictionary_path)
         self._load_frequencies(frequency_path)
-        self._load_word_set(
-            data_files.official_words,
-            self.official_words,
-        )
-        self._load_word_set(
-            data_files.supplemental_words,
-            self.supplemental_words,
-        )
-        self._load_pos_tags(pos_path)
+        self._load_data_manifest(data_files.model_manifest)
 
     @classmethod
     def from_data_dir(cls, data_dir=None):
@@ -89,33 +83,76 @@ class KhmerSegmenter:
                 if word:
                     destination.add(word)
 
+    @property
+    def pos_tags(self):
+        if self._pos_tags is None:
+            self._pos_tags = {}
+            if self._pos_path and os.path.exists(self._pos_path):
+                with open(self._pos_path, "r", encoding="utf-8") as handle:
+                    data = json.load(handle)
+                self._pos_tags = {
+                    self.normalizer.normalize(word): tuple(sorted(set(tags)))
+                    for word, tags in data.items()
+                    if word and tags
+                }
+        return self._pos_tags
+
+    @property
+    def official_words(self):
+        if self._official_words is None:
+            self._official_words = set()
+            self._load_word_set(self.data_files.official_words, self._official_words)
+        return self._official_words
+
+    @property
+    def supplemental_words(self):
+        if self._supplemental_words is None:
+            self._supplemental_words = set()
+            self._load_word_set(self.data_files.supplemental_words, self._supplemental_words)
+        return self._supplemental_words
+
+    @property
+    def spellcheck_words(self):
+        if self._spellcheck_words is None:
+            self._spellcheck_words = set()
+            self._load_word_set(self.data_files.spellcheck_words, self._spellcheck_words)
+            if not self._spellcheck_words:
+                # Custom 0.1.x data directories remain usable without the new file.
+                self._spellcheck_words = set(self.words)
+        return self._spellcheck_words
+
     def _load_pos_tags(self, path):
+        """Compatibility helper for callers that explicitly replace POS data."""
+
+        self._pos_path = path
+        self._pos_tags = None
+        return self.pos_tags
+
+    def _load_data_manifest(self, path):
         if not path or not os.path.exists(path):
             return
         with open(path, "r", encoding="utf-8") as handle:
             data = json.load(handle)
-        self.pos_tags = {
-            self.normalizer.normalize(word): tuple(sorted(set(tags)))
-            for word, tags in data.items()
-            if word and tags
-        }
+        self.data_manifest = data
 
     def _load_dictionary(self, path):
         if not os.path.exists(path):
             raise FileNotFoundError(f"Dictionary not found at {path}")
-            
-        with open(path, 'r', encoding='utf-8') as f:
+
+        with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                word = line.strip().replace('\u200b', '').replace('\u200c', '').replace('\u200d', '')
+                word = (
+                    line.strip().replace("\u200b", "").replace("\u200c", "").replace("\u200d", "")
+                )
                 if word:
                     # Filter out single-character words that are NOT valid base characters
                     if len(word) == 1 and not self._is_valid_single_base_char(word):
                         continue
-                        
+
                     self.words.add(word)
                     if len(word) > self.max_word_length:
                         self.max_word_length = len(word)
-                    
+
                     # Generate variants (Ta/Da, Ro Order)
                     variants = self._generate_variants(word)
                     for v in variants:
@@ -144,14 +181,10 @@ class KhmerSegmenter:
                     parts = word.split("ឬ")
                     # If all parts are valid words (or empty strings from consecutive ORs), remove it
                     if all((p in self.words or p == "") for p in parts):
-                         words_to_remove.add(word)
-            
-            # Filter out words containing ៗ (Repetition Mark) to enforce it as separate segment
-            if 'ៗ' in word:
-                words_to_remove.add(word)
-            
+                        words_to_remove.add(word)
+
             # Filter out words starting with Coeng (\u17D2) - these are invalid start of words
-            if word.startswith('\u17D2'):
+            if word.startswith("\u17d2"):
                 words_to_remove.add(word)
 
         # Manually exclude specific fragments that cause over-segmentation
@@ -170,12 +203,11 @@ class KhmerSegmenter:
         # Re-calculate max_word_length after removal
         self.max_word_length = 0
         for word in self.words:
-             if len(word) > self.max_word_length:
-                 self.max_word_length = len(word)
-                 
+            if len(word) > self.max_word_length:
+                self.max_word_length = len(word)
+
         logger.info("Loaded %d words; maximum length is %d", len(self.words), self.max_word_length)
 
-                     
     def _is_valid_single_base_char(self, char):
         """
         Check if a single character is a valid base character (Consonant or Independent Vowel).
@@ -198,93 +230,94 @@ class KhmerSegmenter:
         # 3. AND It is NOT a known dictionary word (some special single chars might be in dict? e.g. currency? but those are usually 'separators' or handled specially).
         # 4. AND It is NOT a digit.
         # 5. AND It is NOT a separator.
-        
+
         if len(seg) != 1:
             return False
-            
+
         # If it is NOT a Khmer character, it cannot be an "invalid SINGLE KHMER char".
         # Non-Khmer characters (Latin, etc.) are valid singles.
         if not self._is_khmer_char(seg):
             return False
-            
+
         if self._is_valid_single_base_char(seg):
-            return False # Valid base char
-            
+            return False  # Valid base char
+
         if self._is_digit(seg):
             return False
-            
+
         if self._is_separator(seg):
             return False
-            
+
         # If it's in dictionary, it SHOULD be valid, but we filter dictionary on load using same logic
         # so check dictionary just in case specialized single chars were added that bypass generic check.
         if seg in self.words:
             return False
-            
+
         return True
 
     def _generate_variants(self, word):
         """
         Generates interchangeable variants for a word.
-        1. Coeng Ta (\u17D2\u178F) <-> Coeng Da (\u17D2\u178D)
-        2. Coeng Ro (\u17D2\u179A) ordering with other Coengs
+        1. Coeng Ta (\u17d2\u178f) <-> Coeng Da (\u17d2\u178d)
+        2. Coeng Ro (\u17d2\u179a) ordering with other Coengs
         """
         variants = set()
-        
+
         # 1. Coeng Ta <-> Coeng Da
-        # We can simply replace all instances. 
+        # We can simply replace all instances.
         # Combinatorial: if a word has 2 instances, do we need all 4 permutations?
         # Usually mixed usage is rare. Swapping ALL is the most robust simple approach.
         # Or simply generate "All Ta" and "All Da" versions.
-        
-        coeng_ta = '\u17D2\u178F'
-        coeng_da = '\u17D2\u178A'
-        
+
+        coeng_ta = "\u17d2\u178f"
+        coeng_da = "\u17d2\u178a"
+
         if coeng_ta in word:
             variants.add(word.replace(coeng_ta, coeng_da))
         if coeng_da in word:
             variants.add(word.replace(coeng_da, coeng_ta))
-            
+
         # Add generated variants to set so we process THEM for Ro-swap too
         # But for simplicity, let's just add them to return set.
-        
+
         # 2. Coeng Ro Ordering
         # Pattern: (Coeng Ro)(Other Coeng) <-> (Other Coeng)(Coeng Ro)
         # Coeng Ro: \u17D2\u179A
         # Other Coeng: \u17D2 followed by NOT \u179A
-        
+
         # Simplest way: Check for specific substrings and swap
         # Regex approach is best, but Python 're' with overlapping replacement is tricky.
         # But we don't expect overlapping Coeng sequences often.
-        
+
         # Let's iterate over the word (and its Ta/Da variants also)
         base_set = {word} | variants
         final_variants = set(variants)
-        
+
         import re
+
         # Pattern 1: Coeng Ro followed by Other Coeng
         # \u17D2\u179A (\u17D2[^\u179A])
-        p1 = re.compile(r'(\u17D2\u179A)(\u17D2[^\u179A])')
-        
+        p1 = re.compile(r"(\u17D2\u179A)(\u17D2[^\u179A])")
+
         # Pattern 2: Other Coeng followed by Coeng Ro
         # (\u17D2[^\u179A]) \u17D2\u179A
-        p2 = re.compile(r'(\u17D2[^\u179A])(\u17D2\u179A)')
-        
+        p2 = re.compile(r"(\u17D2[^\u179A])(\u17D2\u179A)")
+
         for w in base_set:
             # Apply Swap 1: Ro -> Other ==> Other -> Ro
             # Use a loop to handle multiple occurrences
             w_new = w
             # Applying sub might replace all non-overlapping.
             if p1.search(w):
-                w_new = p1.sub(r'\2\1', w)
+                w_new = p1.sub(r"\2\1", w)
                 final_variants.add(w_new)
-            
+
             # Apply Swap 2: Other -> Ro ==> Ro -> Other
             w_new2 = w
             if p2.search(w):
-                w_new2 = p2.sub(r'\2\1', w)
+                w_new2 = p2.sub(r"\2\1", w)
                 final_variants.add(w_new2)
-                
+
         return final_variants
 
     def _load_frequencies(self, path):
@@ -293,59 +326,59 @@ class KhmerSegmenter:
                 logger.warning("Frequency file not found at %s; using default costs", path)
             return
 
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         # We will apply a minimum frequency floor to all words.
         # This treats "unseen dictionary words" and "rare corpus words" equally.
         min_freq_floor = 5.0
-        
-        # Calculate total tokens with the floor applied (approximation is fine, 
+
+        # Calculate total tokens with the floor applied (approximation is fine,
         # but to be strict we should sum the effective counts)
-        # Note: self.words might contain words not in data. The total token count 
-        # should conceptually include the "unseen but assumed 5" counts, but 
+        # Note: self.words might contain words not in data. The total token count
+        # should conceptually include the "unseen but assumed 5" counts, but
         # usually simpler smoothing just sums observed tokens + smoothing factor.
-        # Let's simple sum the observed counts for the denominator, 
+        # Let's simple sum the observed counts for the denominator,
         # or better: sum the *effective* counts.
-        
+
         effective_counts = {}
         total_tokens = 0
-        
+
         for word, count in data.items():
-            word = word.replace('\u200b', '').replace('\u200c', '').replace('\u200d', '')
+            word = word.replace("\u200b", "").replace("\u200c", "").replace("\u200d", "")
             self.word_frequencies[word] = int(count)
             eff = max(count, min_freq_floor)
             effective_counts[word] = eff
-            
+
             # Add variants with SAME frequency
             variants = self._generate_variants(word)
             for v in variants:
                 if v not in effective_counts:
                     effective_counts[v] = eff
-                # If variant already exists (e.g. explicitly in freq list), keep higher? 
+                # If variant already exists (e.g. explicitly in freq list), keep higher?
                 # Or just keep existing. Assuming source data is truth.
                 # Actually, if we generated it, let's treat it as alias.
-            
-            # Total tokens calculation is tricky with aliases. 
+
+            # Total tokens calculation is tricky with aliases.
             # We shouldn't inflate total tokens by duplication, as they are mutually exclusive alternatives.
             # But the math depends on prob = count / total.
-            # If we add entries, we should update total? 
-            # For segmentation cost, Cost = -log(P). 
+            # If we add entries, we should update total?
+            # For segmentation cost, Cost = -log(P).
             # If we have Word A (cost X) and Variant A' (cost X), algorithm picks match.
             # So inflating total tokens just shifts all costs. Not critical.
             # We will just sum `eff` for the *primary* words to keep denominator stable-ish.
             total_tokens += eff
-            
+
         if total_tokens > 0:
             min_prob = min_freq_floor / total_tokens
             self.default_cost = -math.log10(min_prob)
-            self.unknown_cost = self.default_cost + 5.0 
+            self.unknown_cost = self.default_cost + 5.0
 
             for word, count in effective_counts.items():
                 prob = count / total_tokens
                 if prob > 0:
                     self.word_costs[word] = -math.log10(prob)
-        
+
         logger.info(
             "Loaded costs for %d words; default=%.2f unknown=%.2f floor=%.1f",
             len(self.word_costs),
@@ -361,9 +394,24 @@ class KhmerSegmenter:
             return self.default_cost
         return self.unknown_cost
 
-    def segment_with_metadata(
-        self, text, disable_post_processing=False, *, normalize=True
-    ):
+    def is_spelling_valid(self, word, *, normalize=True):
+        """Return whether *word* is an accepted RAC spellcheck form."""
+
+        candidate = self.normalizer.normalize(word) if normalize else word
+        return candidate in self.spellcheck_words
+
+    def check_spelling(self, words, *, normalize=True):
+        """Return spelling validity for each word while preserving input order."""
+
+        return [
+            {
+                "word": word,
+                "valid": self.is_spelling_valid(word, normalize=normalize),
+            }
+            for word in words
+        ]
+
+    def segment_with_metadata(self, text, disable_post_processing=False, *, normalize=True):
         """Segment text and return lexical metadata for each token.
 
         ``pos`` is populated only when the lexical POS candidate is unambiguous.
@@ -403,17 +451,20 @@ class KhmerSegmenter:
             else:
                 source = "unknown"
 
-            result.append({
-                "text": token,
-                "start": start,
-                "end": offset,
-                "known": known,
-                "type": token_type,
-                "source": source,
-                "frequency": self.word_frequencies.get(token),
-                "pos": candidates[0] if len(candidates) == 1 else None,
-                "pos_candidates": candidates,
-            })
+            result.append(
+                {
+                    "text": token,
+                    "start": start,
+                    "end": offset,
+                    "known": known,
+                    "type": token_type,
+                    "source": source,
+                    "frequency": self.word_frequencies.get(token),
+                    "pos": candidates[0] if len(candidates) == 1 else None,
+                    "pos_candidates": candidates,
+                    "spelling_valid": self.is_spelling_valid(token, normalize=False),
+                }
+            )
         if offset != len(normalized_text):
             raise ValueError("Segment metadata offsets do not cover normalized input")
         return result
@@ -433,8 +484,6 @@ class KhmerSegmenter:
             )
         ]
 
-
-
     def _is_khmer_char(self, char):
         code = ord(char)
         return 0x1780 <= code <= 0x17FF or 0x19E0 <= code <= 0x19FF
@@ -447,11 +496,11 @@ class KhmerSegmenter:
         n = len(text)
         if start_index >= n:
             return 0
-            
+
         i = start_index
         char = text[i]
         code = ord(char)
-        
+
         # 1. Must start with Base Consonant or Independent Vowel
         # Consonants: 0x1780 - 0x17A2
         # Indep Vowels: 0x17A3 - 0x17B3
@@ -461,41 +510,41 @@ class KhmerSegmenter:
             return 1
 
         i += 1
-        
+
         while i < n:
             char = text[i]
             code = ord(char)
-            
+
             # Check for Coeng (Subscript)
-            if code == 0x17D2: 
+            if code == 0x17D2:
                 # Next char must be a consonant to form a valid subscript
-                if i + 1 < n and (0x1780 <= ord(text[i+1]) <= 0x17A2):
+                if i + 1 < n and (0x1780 <= ord(text[i + 1]) <= 0x17A2):
                     i += 2
                     continue
                 else:
                     # Trailing coeng or invalid
                     break
-            
+
             # Check for Vowels and Signs (Dependent Vowels, Diacritics)
             # Dependent Vowels: 0x17B6 - 0x17C5
             # Signs: 0x17C6 - 0x17D1, 0x17D3, 0x17DD
             if (0x17B6 <= code <= 0x17D1) or code == 0x17D3 or code == 0x17DD:
                 i += 1
                 continue
-                
+
             # End of cluster
             break
-            
+
         return i - start_index
-    
+
     def _is_digit(self, text):
         if len(text) != 1:
-             # If it's a long string, check if it's ALL digits?
-             # For segmentation logic, we usually check single chars or assume number detection handled elsewhere.
-             # But for post-processing check "not self._is_digit(s)", we want to know if the segment is a number.
-             # So we should return True only if ALL chars are digits.
-             return all(self._is_digit(c) for c in text)
-             
+            # If it's a long string, check if it's ALL digits?
+            # For segmentation logic, we usually check single chars or assume number detection handled elsewhere.
+            # But for post-processing check "not self._is_digit(s)", we want to know if the segment is a number.
+            # So we should return True only if ALL chars are digits.
+            return all(self._is_digit(c) for c in text)
+
         char = text[0]
         code = ord(char)
         # ASCII 0-9 (0x30-0x39) or Khmer 0-9 (0x17E0-0x17E9)
@@ -508,31 +557,29 @@ class KhmerSegmenter:
         """
         n = len(text)
         i = start_index
-        
+
         if not self._is_digit(text[i]):
             return 0
-            
+
         i += 1
         while i < n:
             char = text[i]
             if self._is_digit(char):
                 i += 1
                 continue
-            
+
             # Check for separators (comma, dot, OR SPACE)
             # SPACE is allowed if followed by a digit
-            if char in [',', '.']:
-                if i + 1 < n and self._is_digit(text[i+1]):
-                    i += 2 # Consume separator and next digit
+            if char in [",", "."]:
+                if i + 1 < n and self._is_digit(text[i + 1]):
+                    i += 2  # Consume separator and next digit
                     continue
                 else:
                     break
             else:
                 break
-                
-        return i - start_index
-    
 
+        return i - start_index
 
     def _is_separator(self, char, next_char=None):
         # Check for standard punctuation and Khmer punctuation
@@ -545,16 +592,16 @@ class KhmerSegmenter:
             # Check for Khmer Currency Symbol ៛ (U+17DB)
             if code == 0x17DB:
                 return True
-                
+
             # Check for generic Punctuation (P), Symbols (S), and Separators (Z)
             # This covers:
             # P: Pc (Connector), Pd (Dash), Ps (Open), Pe (Close), Pi (Initial), Pf (Final), Po (Other)
             # S: Sm (Math), Sc (Currency), Sk (Modifier), So (Other)
             # Z: Zs (Space), Zl (Line), Zp (Paragraph)
             cat = unicodedata.category(char)
-            if cat.startswith('P') or cat.startswith('S') or cat.startswith('Z'):
+            if cat.startswith("P") or cat.startswith("S") or cat.startswith("Z"):
                 return True
-                
+
             return False
         except Exception:
             return False
@@ -567,23 +614,23 @@ class KhmerSegmenter:
         # Need at least 2 chars: Cluster + .
         if index + 1 >= n:
             return False
-            
+
         # Refine Acronym: Must start with Khmer Consonant or Independent Vowel
         # Prevents ".." or ". " being detected as acronyms
         code = ord(text[index])
         if not (0x1780 <= code <= 0x17B3):
             return False
-            
+
         # Get cluster length
         cluster_len = self._get_khmer_cluster_length(text, index)
         if cluster_len == 0:
             return False
-            
+
         # Check if char AFTER cluster is dot
         dot_index = index + cluster_len
-        if dot_index < n and text[dot_index] == '.':
+        if dot_index < n and text[dot_index] == ".":
             return True
-            
+
         return False
 
     def _get_acronym_length(self, text, start_index):
@@ -593,28 +640,26 @@ class KhmerSegmenter:
         """
         n = len(text)
         i = start_index
-        
+
         while i < n:
             # Check for Cluster + Dot
-            
+
             # Strict Acronym: Must start with Khmer Consonant/Indep Vowel to continue chain
             if i < n and not (0x1780 <= ord(text[i]) <= 0x17B3):
                 break
-                
+
             cluster_len = self._get_khmer_cluster_length(text, i)
             if cluster_len > 0:
                 dot_index = i + cluster_len
-                if dot_index < n and text[dot_index] == '.':
-                    i = dot_index + 1 # Advance past cluster and dot
+                if dot_index < n and text[dot_index] == ".":
+                    i = dot_index + 1  # Advance past cluster and dot
                     continue
                 else:
                     break
             else:
-                 break
-        
+                break
+
         return i - start_index
-
-
 
     def segment(self, text, disable_post_processing=False, *, normalize=True):
         """
@@ -623,75 +668,76 @@ class KhmerSegmenter:
         # 0. Normalize Text
         if normalize:
             text = self.normalizer.normalize(text)
-        
+
         n = len(text)
         if n == 0:
             return []
 
         # dp[i] stores the best (cost, last_word_start_index) to reach index i
         # We initialize with infinity
-        dp = [(float('inf'), -1)] * (n + 1)
-        dp[0] = (0.0, -1) 
+        dp = [(float("inf"), -1)] * (n + 1)
+        dp[0] = (0.0, -1)
 
         for i in range(n):
-            if dp[i][0] == float('inf'):
+            if dp[i][0] == float("inf"):
                 continue
-            
+
             # Constraint Check & Fallback
             # If we violate Khmer constraints, we MUST NOT start a normal word/cluster segment.
             # However, to avoid crashing on dirty text (typos), we allow a single-char "repair" step.
-            
+
             force_repair = False
-            
+
             # 1. Previous char was Coeng (\u17D2).
             # This obligates attachment. If we are here, it means we didn't attach.
             # We strictly enforce attachment IF the current char is a valid subscript candidate (Consonant).
             # If current char is NOT a consonant (e.g. space, punctuation), the Coeng matches nothing.
-            if i > 0 and text[i-1] == '\u17D2':
+            if i > 0 and text[i - 1] == "\u17d2":
                 # Check if valid subscript (Consonant)
-                if '\u1780' <= text[i] <= '\u17A2':
+                if "\u1780" <= text[i] <= "\u17a2":
                     # continue # Valid consonant shoud have been attached. Block split.
                     # FIX: If we blocked here, and there is no other path (e.g. orphan Coeng), we crash.
                     # We must allow recovery.
-                    force_repair = True 
+                    force_repair = True
                 else:
-                    force_repair = True # Stray Coeng. Force single-char consumption of current char.
-            
+                    force_repair = (
+                        True  # Stray Coeng. Force single-char consumption of current char.
+                    )
+
             # 2. Current char is Dependent Vowel.
             # Must attach to previous. If we start here, it's isolated.
-            if '\u17B6' <= text[i] <= '\u17C5':
+            if "\u17b6" <= text[i] <= "\u17c5":
                 force_repair = True
 
             if force_repair:
                 # RECOVERY MODE: Consume 1 character as "Invalid/Unknown" with high penalty
                 # This ensures we don't crash on " ា" or "ក្ "
                 next_idx = i + 1
-                new_cost = dp[i][0] + self.unknown_cost + 50.0 # Huge penalty
+                new_cost = dp[i][0] + self.unknown_cost + 50.0  # Huge penalty
                 if next_idx <= n:
                     if new_cost < dp[next_idx][0]:
                         dp[next_idx] = (new_cost, i)
-                continue # Skip normal processing
-
+                continue  # Skip normal processing
 
             # 1. Number / Digit Grouping
             # Only digits are grouped. Currency symbols are treated as separators.
             is_digit = self._is_digit(text[i])
-            
+
             if is_digit:
                 num_len = self._get_number_length(text, i)
                 next_idx = i + num_len
-                step_cost = 1.0 
+                step_cost = 1.0
                 if dp[i][0] + step_cost < dp[next_idx][0]:
                     dp[next_idx] = (dp[i][0] + step_cost, i)
-            
+
             # 2. Separators (If not already handled as number start)
             # Only treat as separator if it wasn't a valid currency start
             elif self._is_separator(text[i]):
-                 next_idx = i + 1
-                 step_cost = 0.1 
-                 if dp[i][0] + step_cost < dp[next_idx][0]:
-                     dp[next_idx] = (dp[i][0] + step_cost, i)
-            
+                next_idx = i + 1
+                step_cost = 0.1
+                if dp[i][0] + step_cost < dp[next_idx][0]:
+                    dp[next_idx] = (dp[i][0] + step_cost, i)
+
             # 3. Acronym Grouping
             if self._is_acronym_start(text, i):
                 acr_len = self._get_acronym_length(text, i)
@@ -704,65 +750,68 @@ class KhmerSegmenter:
 
             # 3. Try to match words from the dictionary
             end_limit = min(n, i + self.max_word_length)
-            
+
             for j in range(i + 1, end_limit + 1):
                 word = text[i:j]
                 if word in self.words:
                     word_cost = self.get_word_cost(word)
+                    if word.endswith("ៗ"):
+                        # A curated lexical repetition form should beat base + separator.
+                        word_cost = min(word_cost, 0.05)
                     new_cost = dp[i][0] + word_cost
                     if new_cost < dp[j][0]:
                         dp[j] = (new_cost, i)
-            
+
             # 4. Unknown Cluster/Char Fallback
             if self._is_khmer_char(text[i]):
                 cluster_len = self._get_khmer_cluster_length(text, i)
-                
+
                 # Default Unknown Cost
                 step_cost = self.unknown_cost
-                
+
                 # Penalty for Invalid Single Consonants
                 if cluster_len == 1:
                     char = text[i]
                     if not self._is_valid_single_base_char(char):
-                         step_cost += 10.0 # Extra penalty for invalid single char
-                
+                        step_cost += 10.0  # Extra penalty for invalid single char
+
                 # NOTE: If the cluster itself forms a word, it is handled in loop #2.
                 # This block handles the case where it is NOT a known word (or we want to consider it as unknown)
                 # Typically, Loop #2 covers it if it matches. This is fallback.
                 # If "word" in loop #2 matches this specific cluster, costs are compared.
                 # Usually Dict Word Cost < Unknown Cluster Cost, so Dict wins.
-                
+
             else:
                 # Non-Khmer (Symbol, English, etc.)
                 cluster_len = 1
-                step_cost = self.unknown_cost # Treat as unknown
-            
+                step_cost = self.unknown_cost  # Treat as unknown
+
             next_idx = i + cluster_len
             if next_idx <= n:
-                 if dp[i][0] + step_cost < dp[next_idx][0]:
-                     dp[next_idx] = (dp[i][0] + step_cost, i)
+                if dp[i][0] + step_cost < dp[next_idx][0]:
+                    dp[next_idx] = (dp[i][0] + step_cost, i)
 
         # Backtrack
         segments = []
         curr = n
         while curr > 0:
             cost, prev = dp[curr]
-            if prev == -1: 
+            if prev == -1:
                 # Debugging info
-                reachable = [i for i, x in enumerate(dp) if x[1] != -1 or i==0]
+                reachable = [i for i, x in enumerate(dp) if x[1] != -1 or i == 0]
                 max_reachable = max(reachable) if reachable else 0
-                snippet = text[max_reachable:min(n, max_reachable+20)]
-                raise ValueError(f"Could not segment text. Stuck at index {max_reachable} (total {n}). Next chars: {repr(snippet)}. Full text length: {len(text)}")
+                snippet = text[max_reachable : min(n, max_reachable + 20)]
+                raise ValueError(
+                    f"Could not segment text. Stuck at index {max_reachable} (total {n}). Next chars: {repr(snippet)}. Full text length: {len(text)}"
+                )
             segments.append(text[prev:curr])
             curr = prev
-            
-        raw_segments = segments[::-1]
-        
 
-        
+        raw_segments = segments[::-1]
+
         if disable_post_processing:
             return raw_segments
-            
+
         # 4. Apply Rule-Based Post-Processing
         # This replaces the hardcoded "Pass 1" (Invalid Singles) and "Pass 2" (Heuristics)
         pass2_segments = self.rule_engine.apply_rules(raw_segments)
@@ -774,7 +823,7 @@ class KhmerSegmenter:
         # Separators break the merge chain
         final_segments = []
         unknown_buffer = []
-        
+
         for seg in pass2_segments:
             # Determine if current segment is KNOWN
             is_known = False
@@ -786,16 +835,16 @@ class KhmerSegmenter:
                 is_known = True
             elif self._is_separator(seg):
                 is_known = True
-            
+
             # Known if Acronym (Check for dot in it?)
             # Or assume if it was generated by acronym matching logic it's known.
             # Since we can't tag it here easily, we rely on properties.
             # Acronyms have dots.
-            if '.' in seg and len(seg) >= 2:
-                 # Rudimentary check, but if it has dot and >=2 chars, it is valid token (or at least we want to keep it).
-                 # Wait, URL or File path also matches this?
-                 # But Viterbi logic would have preferred dictionary words or split punctuation if not acronym.
-                 is_known = True
+            if "." in seg and len(seg) >= 2:
+                # Rudimentary check, but if it has dot and >=2 chars, it is valid token (or at least we want to keep it).
+                # Wait, URL or File path also matches this?
+                # But Viterbi logic would have preferred dictionary words or split punctuation if not acronym.
+                is_known = True
 
             if is_known:
                 if unknown_buffer:
@@ -809,14 +858,14 @@ class KhmerSegmenter:
                     curr_char = seg[0]
                     is_last_khmer = self._is_khmer_char(last_char)
                     is_curr_khmer = self._is_khmer_char(curr_char)
-                    
+
                     if is_last_khmer != is_curr_khmer:
-                         final_segments.append("".join(unknown_buffer))
-                         unknown_buffer = []
-                         
+                        final_segments.append("".join(unknown_buffer))
+                        unknown_buffer = []
+
                 unknown_buffer.append(seg)
-                
+
         if unknown_buffer:
             final_segments.append("".join(unknown_buffer))
-            
+
         return final_segments

@@ -26,6 +26,8 @@ unknown-word recovery without a runtime machine-learning model.
 - Deterministic segmentation for the same code and local data
 - Khmer Unicode normalization
 - Frequency-weighted dictionary decisions
+- Separate RAC-curated segmentation and spelling lexicons
+- Word spelling checks through Python and the CLI
 - Unknown-span preservation
 - Typed token metadata with offsets and lexical POS candidates
 - Experimental Khmer hyphenation
@@ -76,19 +78,20 @@ of Khmer Language, Royal Academy of Cambodia:
 
 <https://huggingface.co/datasets/seanghay/khmer-dictionary-44k>
 
-The dataset may be redistributed for noncommercial
-use with attribution. The bundled normalized dictionary, frequencies, lexical
-POS candidates, and hyphenation pairs retain that credit and restriction. See
+The dataset may be redistributed for noncommercial use with attribution. The
+bundled normalized segmentation/spellcheck lexicons, RAC-only frequencies,
+lexical POS candidates, and experimental hyphenation pairs retain that credit
+and restriction. See
 [the linguistic data notice](DATA_LICENSE.md).
 
-Developers who want to rebuild or replace the bundled data can download
-`pairs.tsv` directly from the original publisher:
+For an exact model rebuild, download the structured RAC CSV directly from the
+original publisher:
 
 ```bash
 mkdir -p dataset
 curl -L \
-  "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" \
-  -o dataset/rac_dictionary_2022_pairs.tsv
+  "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/525c0171894465cba920a9181387a032c11610d3/RAC-Khmer-Dict-2022.csv?download=true" \
+  -o dataset/RAC-Khmer-Dict-2022.csv
 ```
 
 Windows PowerShell:
@@ -96,23 +99,24 @@ Windows PowerShell:
 ```powershell
 New-Item -ItemType Directory -Force dataset | Out-Null
 Invoke-WebRequest `
-  -Uri "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" `
-  -OutFile "dataset/rac_dictionary_2022_pairs.tsv"
+  -Uri "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/525c0171894465cba920a9181387a032c11610d3/RAC-Khmer-Dict-2022.csv?download=true" `
+  -OutFile "dataset/RAC-Khmer-Dict-2022.csv"
 ```
 
-Generate an optional local runtime dictionary override:
+Rebuild all RAC runtime artifacts deterministically:
 
 ```bash
-khmer-segment data prepare \
-  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
+python scripts/rebuild_rac_model.py \
+  --rac-csv dataset/RAC-Khmer-Dict-2022.csv \
+  --output-dir build/rac
 ```
 
-When working from a repository clone, the wrapper below also copies the local
-text dictionary to `port/common/` for native development:
+`khmer-segment data prepare --rac-tsv PATH` remains available for simple custom
+0.1-style dictionary overrides; it does not reproduce the strict RAC model.
 
 ```bash
-python scripts/sync_rac_dictionary.py \
-  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
+python scripts/validate_findings.py \
+  --rac-csv dataset/RAC-Khmer-Dict-2022.csv
 ```
 
 The Python resolver checks these locations in order:
@@ -158,6 +162,14 @@ Typed analysis results include normalized offsets and optional lexical data:
 for token in segmenter.analyze("ខ្ញុំសរសេរឯកសារ"):
     print(token.text, token.start, token.end, token.known)
     print(token.frequency, token.pos_candidates)
+    print(token.spelling_valid)
+```
+
+Check whole words independently of segmentation:
+
+```python
+segmenter.is_spelling_valid("នីមួយៗ")
+segmenter.check_spelling(["នីមួយៗ", "ពាក្យមិនស្គាល់"])
 ```
 
 The legacy dictionary result remains available as
@@ -193,6 +205,7 @@ Machine-readable output:
 ```bash
 khmer-segment segment "ខ្ញុំសរសេរឯកសារ" --format json
 khmer-segment analyze "ខ្ញុំសរសេរឯកសារ" --format json
+khmer-segment spellcheck "នីមួយៗ ពាក្យមិនស្គាល់"
 ```
 
 `analyze` reports lexical candidates; it does not claim contextual POS tagging.
@@ -222,7 +235,8 @@ python -m build
 python -m twine check dist/*
 ```
 
-The wheel contains code plus the four approved runtime data files. Tests audit
+The wheel contains code plus the attributed runtime data and its reproducibility
+manifest. Tests audit
 the archive to reject corpora, backups, provenance payloads, and unapproved
 linguistic artifacts.
 
@@ -233,6 +247,7 @@ linguistic artifacts.
 - [Dictionary and embedded-data preparation](docs/EMBEDDED_DICTIONARY.md)
 - [Development workflows](docs/DEVELOPMENT.md)
 - [Evaluation](docs/EVALUATION.md)
+- [Migration from 0.1.1](docs/MIGRATION_0_2.md)
 - [Benchmarks](docs/BENCHMARKS.md)
 - [Algorithm and porting reference](port/README.md)
 

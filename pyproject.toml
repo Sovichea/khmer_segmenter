@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "khmer-viterbi-segmenter"
-version = "0.1.1"
-description = "Deterministic Khmer word segmentation with experimental hyphenation"
+version = "0.2.0rc1"
+description = "Deterministic RAC-curated Khmer segmentation and spellcheck"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT AND LicenseRef-Khmer-Dictionary-NC"
 license-files = ["LICENSE", "DATA_LICENSE.md"]
 authors = [{name = "Sovichea"}]
-keywords = ["Khmer", "segmentation", "tokenization", "NLP", "Cambodia"]
+keywords = ["Khmer", "segmentation", "tokenization", "spellcheck", "NLP", "Cambodia"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",

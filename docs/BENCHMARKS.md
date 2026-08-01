@@ -4,10 +4,12 @@ These measurements document a specific code, data, and hardware snapshot. Run
 the supplied scripts on your deployment hardware before making capacity or
 latency decisions.
 
-## Gold-standard accuracy
+## Legacy compatibility accuracy
 
-The historical locally generated frequency model used only derived training
-partitions. Results use stable held-out test partitions and Unicode boundary
+These corpora are outdated or insufficiently curated for the project's current
+segmentation convention. The numbers below are historical diagnostics, not a
+release gate. The historical locally generated frequency model used only
+derived training partitions. Results use stable held-out test partitions and Unicode boundary
 scoring. The approved runtime model is distributed under the separate data
 terms in [`DATA_LICENSE.md`](../DATA_LICENSE.md).
 
@@ -24,12 +26,37 @@ Training-only gold augmentation changed khPOS test F1 from 91.46% to 91.61%
 and Khmer ALT test F1 from 83.78% to 83.74%. This difference reinforces that
 the corpora do not encode an identical segmentation standard.
 
+The strict RAC candidate showed the expected convention tradeoff in local
+diagnostics: khPOS boundary F1 changed from 92.14% to 89.00%, while Khmer ALT
+changed from 84.63% to 89.29%. That disagreement is why neither legacy corpus
+is authoritative. The 300-sentence curated benchmark must be completed before
+the 0.2 stable-release decision.
+
+## RAC 0.2 release-candidate performance
+
+A local Windows/Python 3.10 comparison used six representative sentences in a
+12,000-call loop. It measures the common segmentation-only path; POS/source and
+spellcheck resources in 0.2 load lazily when those APIs are first used.
+
+| Version | Initialization | Incremental RSS | Sentences/second |
+|:---|---:|---:|---:|
+| 0.1.1 | 0.684 s | 23.5 MB | 2,500 |
+| 0.2.0rc1 | 0.358 s | 12.5 MB | 2,529 |
+
+The candidate stayed within the 15% release threshold: startup and incremental
+memory improved substantially, while steady-state throughput was approximately
+unchanged (+1%). Repeat this measurement on deployment hardware before making
+capacity decisions.
+
 ## Frequency coverage
 
-The recorded local artifacts combined 3,120,579 corpus tokens with 585,396
-validated tokens from derived gold training partitions. The generated runtime
-frequency table had 29,719 observed entries. The runtime counts are bundled;
-detailed provenance and intermediate build outputs are not distributed.
+The historical 0.1 artifacts combined 3,120,579 corpus tokens with 585,396
+tokens from derived legacy training partitions and produced 29,719 frequency
+entries. The strict RAC 0.2 model instead has 25,401 entries derived only from
+RAC definitions, examples, and discounted self-headword evidence. Its final raw
+weighted total is 838,723.25; integer serialization yields 840,592. The bundled
+manifest records these parameters and file hashes, while source and
+intermediate audit data remain local.
 
 ## Runtime snapshot
 

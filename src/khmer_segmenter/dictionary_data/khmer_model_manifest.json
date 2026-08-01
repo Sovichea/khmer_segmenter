@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "model_id": "rac-2022-strict-v1",
+  "release": "0.2.0rc1",
+  "source": {
+    "name": "Khmer Dictionary 2022",
+    "authority": "National Council of Khmer Language, Royal Academy of Cambodia",
+    "publisher": "Seanghay Hay (Hugging Face user seanghay)",
+    "url": "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/525c0171894465cba920a9181387a032c11610d3/RAC-Khmer-Dict-2022.csv",
+    "revision": "525c0171894465cba920a9181387a032c11610d3",
+    "sha256": "3c6e9908b7881d36c1e43ae66258554d5c1dc07cc75bc9ea660c985cd413ee76",
+    "license_notice": "Noncommercial redistribution with attribution; see DATA_LICENSE.md"
+  },
+  "generation": {
+    "iterations": 3,
+    "segmentation_forms": "clean t_main plus clean POS-supported t_subword",
+    "spellcheck_forms": "all clean t_main and t_subword forms",
+    "derived_repetition": "RAC-context forms accepted by the conservative repetition rule",
+    "definition_weight": 1.0,
+    "example_weight": 3.0,
+    "self_headword_weight": 0.25,
+    "final_raw_weighted_total": 838723.25,
+    "serialization": "round to nearest integer with minimum 1"
+  },
+  "counts": {
+    "rac_rows": 44752,
+    "explicit_main_words": 24422,
+    "explicit_subwords_all": 13332,
+    "explicit_subwords_with_pos": 12606,
+    "explicit_spellcheck_words": 37727,
+    "explicit_segmentation_words": 37002,
+    "explicit_repetition_forms": 383,
+    "derived_repetition_candidates": 1023,
+    "derived_repetition_promoted": 339,
+    "spellcheck_words": 38066,
+    "segmentation_words": 37341,
+    "spellcheck_only_subword_forms": 725,
+    "excluded_records": 961,
+    "serialized_frequency_entries": 25401,
+    "serialized_frequency_total": 840592
+  },
+  "files": {
+    "khmer_dictionary_words.txt": {
+      "sha256": "2d8c4bad210976e551c465085dc38eccafbe81808c8d10c18504bd884c9be9aa",
+      "bytes": 904773,
+      "records": 37341
+    },
+    "khmer_dictionary_official_2022_words.txt": {
+      "sha256": "2d8c4bad210976e551c465085dc38eccafbe81808c8d10c18504bd884c9be9aa",
+      "bytes": 904773,
+      "records": 37341
+    },
+    "khmer_dictionary_supplemental_words.txt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "records": 0
+    },
+    "khmer_spellcheck_words.txt": {
+      "sha256": "c97d667b67094186332ad948c11946b1732be8ad16d58a3927b938f7aceb9b15",
+      "bytes": 931541,
+      "records": 38066
+    },
+    "khmer_word_frequencies.json": {
+      "sha256": "2b4f7877ece0ca31a73ace717ef52ee6ecd92050430f883c57b5d62d81c323da",
+      "bytes": 781504,
+      "records": 25401
+    },
+    "khmer_word_pos.json": {
+      "sha256": "f9ef09feb39e50bdcebd7f59afd9eebe8d6f2c3bea6e22037d489f9b27649822",
+      "bytes": 1872833,
+      "records": 37314
+    }
+  },
+  "excluded_assets": {
+    "khmer_dictionary_hyphenation_pairs.txt": "Preserved experimental runtime asset; not generated from the RAC segmentation model"
+  }
+}

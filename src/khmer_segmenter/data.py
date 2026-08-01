@@ -8,9 +8,7 @@ from pathlib import Path
 
 
 DATA_DIR_ENV = "KHMER_SEGMENTER_DATA_DIR"
-DICTIONARY_SOURCE_URL = (
-    "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k"
-)
+DICTIONARY_SOURCE_URL = "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k"
 DICTIONARY_SOURCE_CREDIT = "Seanghay Hay (Hugging Face user seanghay)"
 BUNDLED_DATA_DIR = Path(__file__).resolve().parent / "dictionary_data"
 
@@ -46,6 +44,14 @@ class DataFiles:
         return self.root / "khmer_dictionary_supplemental_words.txt"
 
     @property
+    def spellcheck_words(self) -> Path:
+        return self.root / "khmer_spellcheck_words.txt"
+
+    @property
+    def model_manifest(self) -> Path:
+        return self.root / "khmer_model_manifest.json"
+
+    @property
     def hyphenation_pairs(self) -> Path:
         return self.root / "khmer_dictionary_hyphenation_pairs.txt"
 
@@ -54,6 +60,10 @@ class DataFiles:
             "dictionary": self.dictionary.is_file(),
             "frequencies": self.frequencies.is_file(),
             "lexical_pos": self.lexical_pos.is_file(),
+            "official_words": self.official_words.is_file(),
+            "supplemental_words": self.supplemental_words.is_file(),
+            "spellcheck_words": self.spellcheck_words.is_file(),
+            "model_manifest": self.model_manifest.is_file(),
             "hyphenation_pairs": self.hyphenation_pairs.is_file(),
         }
 

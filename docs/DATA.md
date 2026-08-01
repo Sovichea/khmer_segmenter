@@ -1,6 +1,6 @@
 # Data Sources, Downloads, and Attribution
 
-This repository distributes four approved runtime linguistic files so the
+This repository distributes attributed runtime linguistic files so the
 segmenter works immediately after installation. Their noncommercial and
 attribution terms are recorded in [`DATA_LICENSE.md`](../DATA_LICENSE.md).
 Source downloads, evaluation corpora, backups, provenance payloads,
@@ -19,19 +19,24 @@ dictionary or its runtime adaptations.
 | Earlier folktale/dictionary inputs | [sovichet](https://github.com/sovichet) | Sovichet | Ask the original author and review the source terms |
 | `kh_data_10000b` | [`phylypo/segmentation-crf-khmer`](https://github.com/phylypo/segmentation-crf-khmer) | Phylypo Tum | Review the original repository |
 
-Source metadata was last checked on 2026-07-14. Upstream publishers may update
+Source metadata was last checked on 2026-08-01. Upstream publishers may update
 files or terms; their current pages are authoritative.
 
 ## Bundled runtime data
 
-The installed package includes:
+The installed package includes the strict RAC model plus the preserved
+experimental hyphenation asset:
 
 ```text
 src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
+|-- khmer_dictionary_official_2022_words.txt
+|-- khmer_dictionary_supplemental_words.txt
+|-- khmer_spellcheck_words.txt
 |-- khmer_word_frequencies.json
 |-- khmer_word_pos.json
-`-- khmer_dictionary_hyphenation_pairs.txt
+|-- khmer_dictionary_hyphenation_pairs.txt
+`-- khmer_model_manifest.json
 ```
 
 These are the only linguistic assets approved for inclusion in Python release
@@ -45,8 +50,8 @@ From the repository root on Linux or macOS:
 ```bash
 mkdir -p dataset
 curl -L \
-  "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" \
-  -o dataset/rac_dictionary_2022_pairs.tsv
+  "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/525c0171894465cba920a9181387a032c11610d3/RAC-Khmer-Dict-2022.csv?download=true" \
+  -o dataset/RAC-Khmer-Dict-2022.csv
 ```
 
 Windows PowerShell:
@@ -54,25 +59,23 @@ Windows PowerShell:
 ```powershell
 New-Item -ItemType Directory -Force dataset | Out-Null
 Invoke-WebRequest `
-  -Uri "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/main/pairs.tsv?download=true" `
-  -OutFile "dataset/rac_dictionary_2022_pairs.tsv"
+  -Uri "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/525c0171894465cba920a9181387a032c11610d3/RAC-Khmer-Dict-2022.csv?download=true" `
+  -OutFile "dataset/RAC-Khmer-Dict-2022.csv"
 ```
 
-This downloads directly from the credited publisher. Then normalize and
-generate an optional local runtime override:
+This downloads directly from the credited publisher. Rebuild and validate the
+strict runtime model with:
 
 ```bash
-khmer-segment data prepare \
-  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
+python scripts/rebuild_rac_model.py \
+  --rac-csv dataset/RAC-Khmer-Dict-2022.csv \
+  --output-dir build/rac
+python scripts/validate_findings.py \
+  --rac-csv dataset/RAC-Khmer-Dict-2022.csv
 ```
 
-From a source checkout, this wrapper additionally prepares the native text
-dictionary location:
-
-```bash
-python scripts/sync_rac_dictionary.py \
-  --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
-```
+The simpler `khmer-segment data prepare --rac-tsv PATH` command is retained for
+custom dictionary overrides, not for reproducing the bundled strict model.
 
 See [Prepare Dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md) for
 all generated files and KDIC/KHYP conversion.
@@ -86,8 +89,8 @@ the corpora inside the Python package.
 Run evaluation after reviewing each upstream license:
 
 ```bash
-python scripts/evaluate_segmentation.py --dataset khpos
-python scripts/evaluate_segmentation.py --dataset khmer_alt_pos
+python scripts/evaluate_segmentation.py --dataset khpos --split test
+python scripts/evaluate_segmentation.py --dataset khmer_alt_pos --split test
 ```
 
 Use `python scripts/evaluate_segmentation.py --help` for explicit local-source
@@ -97,16 +100,20 @@ options and current dataset identifiers.
 
 ```text
 dataset/
-|-- rac_dictionary_2022_pairs.tsv
+|-- RAC-Khmer-Dict-2022.csv
 |-- benchmarks/
 |-- my_corpus.txt
 `-- other-local-data/
 
 src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
+|-- khmer_dictionary_official_2022_words.txt
+|-- khmer_dictionary_supplemental_words.txt
+|-- khmer_spellcheck_words.txt
 |-- khmer_word_frequencies.json
 |-- khmer_word_pos.json
-`-- khmer_dictionary_hyphenation_pairs.txt
+|-- khmer_dictionary_hyphenation_pairs.txt
+`-- khmer_model_manifest.json
 
 khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
@@ -122,13 +129,15 @@ port/common/
 `-- khmer_hyphenation.kdict
 ```
 
-Only the four files under `src/khmer_segmenter/dictionary_data/` are tracked
+Only approved files under `src/khmer_segmenter/dictionary_data/` are tracked
 and packaged. The old `khmer_segmenter/dictionary_data/` location remains an
 ignored development directory for rebuilding and comparing local artifacts.
 
-## Generate optional local frequencies and POS candidates
+## Optional research frequencies and POS candidates
 
-Generate frequencies from a corpus you are authorized to use:
+The bundled 0.2 model does not use external corpora for lexical validity or
+frequency evidence. Researchers may still generate local experimental
+frequencies from a corpus they are authorized to use:
 
 ```bash
 python scripts/prepare_data.py \

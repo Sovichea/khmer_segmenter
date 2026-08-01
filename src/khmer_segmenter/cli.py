@@ -46,9 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     segment = commands.add_parser("segment", help="segment text into tokens")
     _add_text_input(segment)
-    segment.add_argument(
-        "--format", choices=("plain", "json", "jsonl"), default="plain"
-    )
+    segment.add_argument("--format", choices=("plain", "json", "jsonl"), default="plain")
     segment.add_argument("--delimiter", default=" | ", help="plain-output delimiter")
     segment.add_argument("--no-normalize", action="store_true")
 
@@ -58,6 +56,13 @@ def build_parser() -> argparse.ArgumentParser:
     _add_text_input(analyze)
     analyze.add_argument("--format", choices=("json", "jsonl"), default="json")
     analyze.add_argument("--no-normalize", action="store_true")
+
+    spellcheck = commands.add_parser(
+        "spellcheck", help="check words against the curated RAC spelling lexicon"
+    )
+    _add_text_input(spellcheck)
+    spellcheck.add_argument("--format", choices=("plain", "json", "jsonl"), default="plain")
+    spellcheck.add_argument("--no-normalize", action="store_true")
 
     hyphenate = commands.add_parser(
         "hyphenate", help="apply locally generated safe break opportunities"
@@ -157,9 +162,7 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
 
     if args.command == "benchmark":
         lines = [
-            line
-            for line in args.input.read_text(encoding="utf-8-sig").splitlines()
-            if line.strip()
+            line for line in args.input.read_text(encoding="utf-8-sig").splitlines() if line.strip()
         ]
         if args.limit >= 0:
             lines = lines[: args.limit]
@@ -203,12 +206,24 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         _write(_serialize_records(records, args.format), args.output)
         return 0
 
+    if args.command == "spellcheck":
+        words = [word for text in texts for word in text.split()]
+        records = segmenter.check_spelling(words, normalize=not args.no_normalize)
+        if args.format == "plain":
+            rendered = "\n".join(
+                f"{'valid' if record['valid'] else 'invalid'}\t{record['word']}"
+                for record in records
+            )
+        else:
+            rendered = _serialize_records(records, args.format)
+        _write(rendered, args.output)
+        return 0
+
     if args.command == "hyphenate":
         hyphenator = KhmerHyphenator.from_data_dir(args.data_dir)
         separator = "-" if args.visible_hyphen else args.separator
         rendered = "\n".join(
-            hyphenator.hyphenate(text, segmenter=segmenter, separator=separator)
-            for text in texts
+            hyphenator.hyphenate(text, segmenter=segmenter, separator=separator) for text in texts
         )
         _write(rendered, args.output)
         return 0

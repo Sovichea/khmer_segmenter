@@ -12,20 +12,23 @@ from pathlib import Path, PurePosixPath
 
 APPROVED_RUNTIME_NAMES = {
     "khmer_dictionary_words.txt",
+    "khmer_dictionary_official_2022_words.txt",
+    "khmer_dictionary_supplemental_words.txt",
+    "khmer_spellcheck_words.txt",
     "khmer_dictionary_hyphenation_pairs.txt",
+    "khmer_model_manifest.json",
     "khmer_word_frequencies.json",
     "khmer_word_pos.json",
 }
 
 PROHIBITED_NAMES = {
-    "khmer_dictionary_official_2022_words.txt",
-    "khmer_dictionary_supplemental_words.txt",
     "khmer_word_frequencies.backup.json",
     "khmer_word_frequencies_corpus.json",
     "unknown_word_frequencies.json",
     "khmer_frequencies.bin",
     "khmer_dictionary.kdict",
     "khmer_hyphenation.kdict",
+    "RAC-Khmer-Dict-2022.csv",
 }
 
 
@@ -48,17 +51,13 @@ def prohibited_reason(member: str) -> str | None:
         and tuple(path.parts[-3:-1]) == ("khmer_segmenter", "dictionary_data")
         and path.name in APPROVED_RUNTIME_NAMES
     )
-    approved_runtime_directory = (
-        len(path.parts) >= 2
-        and tuple(path.parts[-2:]) == ("khmer_segmenter", "dictionary_data")
+    approved_runtime_directory = len(path.parts) >= 2 and tuple(path.parts[-2:]) == (
+        "khmer_segmenter",
+        "dictionary_data",
     )
     if "dataset" in parts:
         return "local data directory"
-    if (
-        "dictionary_data" in parts
-        and not approved_runtime_path
-        and not approved_runtime_directory
-    ):
+    if "dictionary_data" in parts and not approved_runtime_path and not approved_runtime_directory:
         return "unapproved dictionary data"
     if "port" in parts and "common" in parts:
         return "native data directory"
