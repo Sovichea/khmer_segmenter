@@ -24,6 +24,7 @@ def main() -> None:
         type=Path,
         default=(
             PROJECT_ROOT
+            / "src"
             / "khmer_segmenter"
             / "dictionary_data"
             / "khmer_dictionary_words.txt"
@@ -35,6 +36,7 @@ def main() -> None:
         type=Path,
         default=(
             PROJECT_ROOT
+            / "src"
             / "khmer_segmenter"
             / "dictionary_data"
             / "khmer_word_frequencies.json"

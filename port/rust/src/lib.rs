@@ -2,6 +2,7 @@ pub mod kdict;
 pub mod khmer_segmenter;
 pub mod normalization;
 pub mod rule_engine;
+pub mod spelling;
 pub mod utils;
 
 pub use khmer_segmenter::{
@@ -9,3 +10,7 @@ pub use khmer_segmenter::{
     SegmenterConfig,
 };
 pub use normalization::{khmer_normalize_mapped, MappedNormalization, NormalizedUnit};
+pub use spelling::{SpellingDiagnostic, SpellingSuggestion, TypoDetector};
+
+#[cfg(feature = "wasm")]
+mod wasm;

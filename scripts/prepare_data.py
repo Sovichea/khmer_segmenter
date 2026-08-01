@@ -405,12 +405,17 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
 
     word_costs = {}
     max_bytes = 0
+    variant_penalty = 0.001
     for w in words:
         c = counts.get(w, 0)
         if c == 0 and w in word_to_primary:
             c = counts.get(word_to_primary[w], 0)
         
         cost = -math.log10(c/total_tokens) if c > 0 else default_cost
+        # Preserve generated encoding aliases for lookup while allowing
+        # spellcheck ranking to prefer the source RAC dictionary spelling.
+        if w in word_to_primary:
+            cost += variant_penalty
         word_costs[w] = cost
         max_bytes = max(max_bytes, len(w.encode('utf-8')))
 

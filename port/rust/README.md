@@ -24,6 +24,37 @@ cd port/rust
 cargo build --release
 ```
 
+## WebAssembly
+
+The Rust library can load KDIC bytes directly and exports a browser wrapper for
+segmentation, unknown-word status, typo diagnostics, and ranked correction
+suggestions. File-system loading and the Rayon CLI are disabled in WASM builds.
+
+```bash
+cargo check --target wasm32-unknown-unknown \
+  --no-default-features --features wasm
+
+wasm-pack build --target web --out-dir pkg \
+  . --no-default-features --features wasm
+```
+
+In JavaScript, fetch the compiled KDIC and initialize the wrapper once inside a
+Web Worker:
+
+```javascript
+import init, { WasmKhmerSegmenter } from './pkg/khmer_segmenter.js';
+
+await init();
+const bytes = new Uint8Array(await fetch('./khmer_dictionary.kdict').then(r => r.arrayBuffer()));
+const segmenter = new WasmKhmerSegmenter(bytes);
+const analysis = segmenter.analyze('សម្បត្ត', true);
+const completions = segmenter.complete('សម្', 8);
+```
+
+Offsets returned to JavaScript use UTF-16 code units and can therefore be used
+with `String.slice()` and browser editor ranges. The native Rust diagnostics
+retain UTF-8 byte ranges.
+
 ## Usage
 
 Run the binary directly or via `cargo run`.

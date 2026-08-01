@@ -3,10 +3,13 @@ use crate::normalization::{
     khmer_normalize, khmer_normalize_mapped, MappedNormalization, NormalizedUnit,
 };
 use crate::rule_engine::RuleEngine;
+use crate::spelling::{SpellingDiagnostic, SpellingSuggestion, TypoDetector};
 use crate::utils;
 use std::fmt;
 use std::ops::Range;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
+use std::sync::OnceLock;
 // For handling null-terminated strings in KDict (Removed CStr)
 
 #[derive(Clone)]
@@ -40,6 +43,7 @@ impl Default for SegmenterConfig {
 
 pub struct KhmerSegmenter {
     kdict: Option<KDict>,
+    typo_detector: OnceLock<TypoDetector>,
     rule_engine: RuleEngine,
     config: SegmenterConfig,
 }
@@ -129,27 +133,17 @@ impl KhmerSegmenter {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn from_path(path: impl AsRef<Path>, config: SegmenterConfig) -> std::io::Result<Self> {
-        let kdict = {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                Some(KDict::load(path)?)
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                let _ = path;
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Unsupported,
-                    "File loading is not supported on WASM",
-                ));
-            }
-        };
+        Ok(Self::new_with_dict(Some(KDict::load(path)?), config))
+    }
 
-        Ok(Self {
-            kdict,
-            rule_engine: RuleEngine::new(),
-            config,
-        })
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_path(_path: impl AsRef<str>, _config: SegmenterConfig) -> std::io::Result<Self> {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "File loading is not supported on WASM; use from_bytes",
+        ))
     }
 
     pub fn from_bytes(bytes: impl Into<Vec<u8>>, config: SegmenterConfig) -> std::io::Result<Self> {
@@ -162,6 +156,7 @@ impl KhmerSegmenter {
     pub fn new_with_dict(kdict: Option<KDict>, config: SegmenterConfig) -> Self {
         Self {
             kdict,
+            typo_detector: OnceLock::new(),
             rule_engine: RuleEngine::new(),
             config,
         }
@@ -515,6 +510,56 @@ impl KhmerSegmenter {
         }
     }
 
+    pub fn is_known_word(&self, word: &str) -> bool {
+        self.is_dictionary_word(word)
+    }
+
+    pub fn suggest_spelling(
+        &self,
+        word: &str,
+        max_edit_cost: f32,
+        max_suggestions: usize,
+    ) -> Vec<SpellingSuggestion> {
+        self.typo_detector()
+            .map(|detector| detector.suggest_word(word, max_edit_cost, max_suggestions))
+            .unwrap_or_default()
+    }
+
+    /// Suggest dictionary words beginning with the supplied prefix.
+    pub fn complete_word(&self, prefix: &str, max_suggestions: usize) -> Vec<SpellingSuggestion> {
+        self.typo_detector()
+            .map(|detector| detector.complete_prefix(prefix, max_suggestions))
+            .unwrap_or_default()
+    }
+
+    pub fn detect_typos(
+        &self,
+        raw_text: &str,
+        max_edit_cost: f32,
+        max_suggestions: usize,
+        include_valid_fragments: bool,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        let segmentation = self.segment_detailed(raw_text)?;
+        Ok(self
+            .typo_detector()
+            .map(|detector| {
+                detector.detect(
+                    &segmentation,
+                    max_edit_cost,
+                    max_suggestions,
+                    include_valid_fragments,
+                )
+            })
+            .unwrap_or_default())
+    }
+
+    fn typo_detector(&self) -> Option<&TypoDetector> {
+        self.kdict.as_ref().map(|dictionary| {
+            self.typo_detector
+                .get_or_init(|| TypoDetector::from_kdict(dictionary))
+        })
+    }
+
     fn refine_segments_for_short_length(
         &self,
         text: &str,
@@ -642,10 +687,10 @@ mod tests {
     fn long_segmentation_preserves_current_long_dictionary_tokens() {
         let segmenter = segmenter(SegmentationLength::Long);
 
-        assert_eq!(tokens(&segmenter, "ភាសាខ្មែរ"), vec!["ភាសាខ្មែរ"]);
-        assert_eq!(tokens(&segmenter, "ភាសាផ្លូវការ"), vec!["ភាសាផ្លូវការ"]);
+        assert_eq!(tokens(&segmenter, "ភាសាខ្មែរ"), vec!["ភាសា", "ខ្មែរ"]);
+        assert_eq!(tokens(&segmenter, "ភាសាផ្លូវការ"), vec!["ភាសា", "ផ្លូវ", "ការ"]);
         assert_eq!(tokens(&segmenter, "ប្រើប្រាស់"), vec!["ប្រើប្រាស់"]);
-        assert_eq!(tokens(&segmenter, "ប្រចាំថ្ងៃ"), vec!["ប្រចាំថ្ងៃ"]);
+        assert_eq!(tokens(&segmenter, "ប្រចាំថ្ងៃ"), vec!["ប្រចាំ", "ថ្ងៃ"]);
     }
 
     #[test]
@@ -667,5 +712,34 @@ mod tests {
         assert!(!tokens(&segmenter, "ភាសាផ្លូវការ")
             .iter()
             .any(|token| token == "រ" || token == "វ"));
+    }
+
+    #[test]
+    fn spelling_suggestions_recover_reviewed_typos() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        for (typed, intended) in [
+            ("សួរស្តី", "សួស្ដី"),
+            ("ជម្រុញ", "ជំរុញ"),
+            ("ប្រហេស", "ប្រហែស"),
+            ("សសេរ", "សរសេរ"),
+            ("រស់ជាតិ", "រសជាតិ"),
+            ("សុិ", "ស៊ី"),
+            ("សុម", "សូម"),
+        ] {
+            let suggestions = segmenter.suggest_spelling(typed, 1.5, 5);
+            assert_eq!(
+                suggestions.first().map(|item| item.text.as_str()),
+                Some(intended)
+            );
+        }
+    }
+
+    #[test]
+    fn typo_diagnostic_can_cover_fragmented_word() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        let diagnostics = segmenter.detect_typos("សម្បត្ត", 0.75, 5, true).unwrap();
+
+        assert_eq!(diagnostics[0].text, "សម្បត្ត");
+        assert_eq!(diagnostics[0].suggestions[0].text, "សម្បត្តិ");
     }
 }

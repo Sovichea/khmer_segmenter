@@ -39,3 +39,20 @@ jobs:
       - run: python -m twine check dist/*
       - run: python scripts/check_distribution.py dist/*
       - run: python scripts/validate_findings.py --bundled-only
+
+  rust-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - run: python scripts/build_dictionary_kdict.py
+      - run: cargo test --manifest-path port/rust/Cargo.toml --lib
+      - run: >-
+          cargo check --manifest-path port/rust/Cargo.toml
+          --target wasm32-unknown-unknown
+          --no-default-features --features wasm

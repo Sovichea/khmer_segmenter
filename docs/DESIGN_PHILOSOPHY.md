@@ -236,21 +236,21 @@ Developers can use `KhmerSegmenter` as a **core dependency** to build:
 ### Example Integration: Browser Spellcheck Extension
 
 ```javascript
-// Using the WASM port for in-browser spellcheck
-import { KhmerSegmenter } from 'khmer-segmenter-wasm';
+import init, { WasmKhmerSegmenter } from "./wasm/khmer_segmenter.js";
 
-const segmenter = new KhmerSegmenter();
-const dictionary = loadDictionary(); // Your approved word list
+await init();
+const dictionaryBytes = new Uint8Array(
+  await (await fetch("./data/khmer_dictionary.kdict")).arrayBuffer(),
+);
+const segmenter = new WasmKhmerSegmenter(dictionaryBytes);
 
-function checkSpelling(text) {
-  const words = segmenter.segment(text);
-  const errors = words
-    .filter(word => !dictionary.has(word))
-    .map(word => ({ word, suggestion: findClosestMatch(word) }));
-  
-  return errors; // Highlight unknown words as potential typos
-}
+const result = segmenter.analyze("សម្បត្ត", true);
+console.log(result.segments);
+console.log(result.diagnostics);
 ```
+
+The browser build accepts compiled KDIC bytes directly. Pass `true` as the
+second argument to enable the higher-recall experimental typo-span analysis.
 
 By providing **reliable word segmentation** as a solved problem, I allow developers to focus on the unique challenges of their specific applications (UI/UX, context-aware suggestions, language-specific grammar rules) rather than re-implementing basic tokenization.
 

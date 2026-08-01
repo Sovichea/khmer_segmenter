@@ -34,6 +34,7 @@ unknown-word recovery without a runtime machine-learning model.
 - Experimental Khmer hyphenation
 - Python API and `khmer-segment` CLI
 - Shared KDIC/KHYP formats for C and Rust applications
+- Rust/WASM segmentation and experimental spelling APIs for browser applications
 
 This is a lexical segmenter, not a semantic parser or contextual POS tagger.
 `pos_candidates` are possibilities found in optional local lexical data.

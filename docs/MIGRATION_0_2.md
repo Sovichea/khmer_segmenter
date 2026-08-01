@@ -28,5 +28,7 @@ Alternatively, pass an existing 0.1 data directory through `data_dir=` or
 checks use its segmentation dictionary for backward compatibility.
 
 Hyphenation is unchanged, remains experimental, and is not part of the RAC
-segmentation model claim. The C and Rust ports remain on their current model
-until the Python release candidate is accepted.
+segmentation model claim. The Rust port can now consume the rebuilt KDIC in
+native and WebAssembly applications and includes experimental typo suggestions.
+The C port remains on its current release-validation path until the Python
+release candidate is accepted.
