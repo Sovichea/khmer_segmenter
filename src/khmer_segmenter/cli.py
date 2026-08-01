@@ -20,6 +20,7 @@ from .data import (
     candidate_data_dirs,
 )
 from .hyphenation import KhmerHyphenator
+from .models import SpellcheckProfile
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
 
@@ -70,12 +71,20 @@ def build_parser() -> argparse.ArgumentParser:
     _add_text_input(diagnose)
     diagnose.add_argument("--format", choices=("json", "jsonl"), default="json")
     diagnose.add_argument("--no-normalize", action="store_true")
-    diagnose.add_argument("--max-edit-cost", type=float, default=0.75)
-    diagnose.add_argument("--max-suggestions", type=int, default=3)
+    diagnose.add_argument(
+        "--profile",
+        choices=tuple(profile.value for profile in SpellcheckProfile),
+        default=SpellcheckProfile.TYPING.value,
+        help="typing (default), document, or experimental high-recall checking",
+    )
+    diagnose.add_argument("--max-edit-cost", type=float)
+    diagnose.add_argument("--max-suggestions", type=int)
+    diagnose.add_argument("--min-confidence", type=float)
     diagnose.add_argument(
         "--include-valid-fragments",
         action="store_true",
-        help="also inspect adjacent valid tokens (higher recall, more false positives)",
+        default=None,
+        help="legacy alias for high-recall fragment inspection",
     )
 
     hyphenate = commands.add_parser(
@@ -237,14 +246,17 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         records = [
             {
                 "text": text,
+                "profile": args.profile,
                 "diagnostics": [
                     diagnostic.to_dict()
                     for diagnostic in segmenter.detect_typos(
                         text,
+                        profile=args.profile,
                         normalize=not args.no_normalize,
                         max_edit_cost=args.max_edit_cost,
                         max_suggestions=args.max_suggestions,
                         include_valid_fragments=args.include_valid_fragments,
+                        min_confidence=args.min_confidence,
                     )
                 ],
             }

@@ -3,7 +3,46 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from enum import Enum
 from typing import Any, Mapping
+
+
+class SpellcheckProfile(str, Enum):
+    """Preset tuned for a spellcheck integration context."""
+
+    TYPING = "typing"
+    DOCUMENT = "document"
+    HIGH_RECALL = "high-recall"
+
+    @classmethod
+    def coerce(cls, value: "SpellcheckProfile | str") -> "SpellcheckProfile":
+        if isinstance(value, cls):
+            return value
+        try:
+            return cls(value)
+        except ValueError as error:
+            choices = ", ".join(profile.value for profile in cls)
+            raise ValueError(f"unknown spellcheck profile {value!r}; expected {choices}") from error
+
+
+@dataclass(frozen=True, slots=True)
+class SpellcheckConfig:
+    """Resolved typo-detection settings shared by APIs and CLIs."""
+
+    max_edit_cost: float
+    max_suggestions: int
+    context_tokens: int
+    include_valid_fragments: bool
+    min_confidence: float
+
+    @classmethod
+    def for_profile(cls, profile: SpellcheckProfile | str) -> "SpellcheckConfig":
+        profile = SpellcheckProfile.coerce(profile)
+        if profile is SpellcheckProfile.TYPING:
+            return cls(0.75, 3, 1, False, 0.80)
+        if profile is SpellcheckProfile.DOCUMENT:
+            return cls(1.00, 5, 1, False, 0.75)
+        return cls(1.50, 5, 1, True, 0.0)
 
 
 @dataclass(frozen=True, slots=True)

@@ -8,7 +8,13 @@ import unicodedata
 from pathlib import Path
 
 from .data import DataFiles, resolve_data_files
-from .models import SpellingDiagnostic, SpellingSuggestion, Token
+from .models import (
+    SpellcheckConfig,
+    SpellcheckProfile,
+    SpellingDiagnostic,
+    SpellingSuggestion,
+    Token,
+)
 from .normalization import KhmerNormalizer
 from .rule_engine import RuleBasedEngine
 from .spelling import TypoDetector
@@ -447,19 +453,52 @@ class KhmerSegmenter:
         self,
         text,
         *,
+        profile=SpellcheckProfile.TYPING,
         normalize=True,
-        max_edit_cost=0.75,
-        max_suggestions=3,
-        context_tokens=1,
-        include_valid_fragments=False,
+        max_edit_cost=None,
+        max_suggestions=None,
+        context_tokens=None,
+        include_valid_fragments=None,
+        min_confidence=None,
         disable_post_processing=False,
     ) -> list[SpellingDiagnostic]:
         """Return whole-span probable-typo diagnostics for Khmer text.
 
+        ``profile`` selects stable defaults for live typing, full-document
+        checking, or explicitly experimental high-recall corpus review. The
+        individual numeric options remain available as advanced overrides.
         The operation is additive: it does not change the segmentation path.
         Offsets and edit operations refer to normalized text when ``normalize``
         is true, matching :meth:`analyze`.
         """
+
+        config = SpellcheckConfig.for_profile(profile)
+        advanced_override = any(
+            value is not None
+            for value in (
+                max_edit_cost,
+                max_suggestions,
+                context_tokens,
+                include_valid_fragments,
+            )
+        )
+        if advanced_override and min_confidence is None:
+            # Preserve the old explicit high-recall switch for callers that
+            # have not migrated to named profiles yet.
+            min_confidence = 0.0
+        max_edit_cost = config.max_edit_cost if max_edit_cost is None else max_edit_cost
+        max_suggestions = (
+            config.max_suggestions if max_suggestions is None else max_suggestions
+        )
+        context_tokens = config.context_tokens if context_tokens is None else context_tokens
+        include_valid_fragments = (
+            config.include_valid_fragments
+            if include_valid_fragments is None
+            else include_valid_fragments
+        )
+        min_confidence = config.min_confidence if min_confidence is None else min_confidence
+        if not 0.0 <= min_confidence <= 1.0:
+            raise ValueError("min_confidence must be between zero and one")
 
         normalized_text = self.normalizer.normalize(text) if normalize else text
         tokens = self.analyze(
@@ -467,13 +506,35 @@ class KhmerSegmenter:
             normalize=False,
             disable_post_processing=disable_post_processing,
         )
-        return self.typo_detector.detect(
+        diagnostics = self.typo_detector.detect(
             normalized_text,
             tokens,
             max_edit_cost=max_edit_cost,
             max_suggestions=max_suggestions,
             context_tokens=context_tokens,
             include_valid_fragments=include_valid_fragments,
+        )
+        return [
+            diagnostic
+            for diagnostic in diagnostics
+            if diagnostic.confidence >= min_confidence
+        ]
+
+    def check_text(
+        self,
+        text,
+        *,
+        profile=SpellcheckProfile.TYPING,
+        normalize=True,
+        disable_post_processing=False,
+    ) -> list[SpellingDiagnostic]:
+        """Check continuous Khmer text using a named integration profile."""
+
+        return self.detect_typos(
+            text,
+            profile=profile,
+            normalize=normalize,
+            disable_post_processing=disable_post_processing,
         )
 
     def segment_with_metadata(self, text, disable_post_processing=False, *, normalize=True):

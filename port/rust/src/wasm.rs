@@ -1,7 +1,9 @@
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
-use crate::{KhmerSegmenter, SegmenterConfig, SpellingDiagnostic, SpellingSuggestion};
+use crate::{
+    KhmerSegmenter, SegmenterConfig, SpellcheckProfile, SpellingDiagnostic, SpellingSuggestion,
+};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -54,6 +56,24 @@ impl WasmKhmerSegmenter {
     }
 
     pub fn analyze(&self, text: &str, include_valid_fragments: bool) -> Result<JsValue, JsValue> {
+        let profile = if include_valid_fragments {
+            SpellcheckProfile::HighRecall
+        } else {
+            SpellcheckProfile::Typing
+        };
+        self.analysis(text, profile)
+    }
+
+    /// Analyze text with the same named profile exposed by Python and Rust.
+    #[wasm_bindgen(js_name = analyzeWithProfile)]
+    pub fn analyze_with_profile(&self, text: &str, profile: &str) -> Result<JsValue, JsValue> {
+        let profile = profile
+            .parse::<SpellcheckProfile>()
+            .map_err(|error| JsValue::from_str(&error))?;
+        self.analysis(text, profile)
+    }
+
+    fn analysis(&self, text: &str, profile: SpellcheckProfile) -> Result<JsValue, JsValue> {
         let segmentation = self
             .inner
             .segment_detailed(text)
@@ -74,7 +94,7 @@ impl WasmKhmerSegmenter {
             .collect();
         let diagnostics = self
             .inner
-            .detect_typos(text, 1.5, 5, include_valid_fragments)
+            .check_text(text, profile)
             .map_err(|error| JsValue::from_str(&error.to_string()))?
             .into_iter()
             .map(|diagnostic| browser_diagnostic(normalized, diagnostic))

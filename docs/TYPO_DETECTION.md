@@ -16,7 +16,7 @@ diagnostic covers `[0, 7)` and suggests `សម្បត្តិ`.
 ## Python API
 
 ```python
-from khmer_segmenter import KhmerSegmenter
+from khmer_segmenter import KhmerSegmenter, SpellcheckProfile
 
 segmenter = KhmerSegmenter()
 diagnostics = segmenter.detect_typos(
@@ -25,6 +25,9 @@ diagnostics = segmenter.detect_typos(
     max_suggestions=3,
     context_tokens=1,
 )
+
+# Preferred integration API for a live editor or word processor.
+diagnostics = segmenter.check_text(text, profile=SpellcheckProfile.TYPING)
 
 # Explicit lookup: do not segment the input word first.
 suggestions = segmenter.suggest_spelling("សសេរ")
@@ -48,17 +51,25 @@ When normalization is enabled, offsets refer to the normalized text, matching
 should normalize before calling and retain its own source mapping, or call with
 `normalize=False` after normalization.
 
-## Conservative and high-recall modes
+## Integration profiles
 
-`detect_typos()` normally searches around invalid tokens and a small set of
-suspicious short-fragment boundaries. This keeps false positives and runtime
-low. Some typos, however, split entirely into valid words. Use the optional
-high-recall mode when an editor should inspect those boundaries too:
+Python, native Rust, Rust/WASM, and both CLIs use the same profile names and
+defaults:
+
+| Profile | Edit cost | Suggestions | Valid fragments | Confidence | Intended use |
+| --- | ---: | ---: | --- | ---: | --- |
+| `typing` | 0.75 | 3 | no | 0.80 | live editor diagnostics |
+| `document` | 1.00 | 5 | no | 0.75 | explicit full-document review |
+| `high-recall` | 1.50 | 5 | yes | 0.00 | corpus research and dictionary curation |
+
+Use `typing` by default in Typsastra and word processors. Run `document` only
+when the user requests a full check. `high-recall` can recover errors that split
+entirely into valid words, but it can also flag legitimate adjacent words:
 
 ```python
 diagnostics = segmenter.detect_typos(
     "រស់ជាតិ",
-    include_valid_fragments=True,
+    profile="high-recall",
 )
 ```
 
@@ -98,8 +109,8 @@ general accuracy benchmark.
 
 ```bash
 khmer-segment diagnose "សម្បត្ត" --format json
-khmer-segment diagnose --input input.txt --output diagnostics.json
-khmer-segment diagnose "រស់ជាតិ" --include-valid-fragments --format json
+khmer-segment diagnose --profile document --input input.txt --output diagnostics.json
+khmer-segment diagnose "រស់ជាតិ" --profile high-recall --format json
 ```
 
 Use `--max-edit-cost` to change the accepted weighted distance and

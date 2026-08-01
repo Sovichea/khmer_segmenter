@@ -5,6 +5,8 @@ import pytest
 from khmer_segmenter import (
     EditOperation,
     KhmerSegmenter,
+    SpellcheckConfig,
+    SpellcheckProfile,
     SpellingDiagnostic,
     SpellingSuggestion,
 )
@@ -77,9 +79,36 @@ def test_base_substitution_requires_expanded_threshold(segmenter):
 
 def test_detects_missing_vowel_when_all_fragments_are_known(segmenter):
     assert all(token.spelling_valid for token in segmenter.analyze(MISSPELLED_WHICH))
-    diagnostic = segmenter.detect_typos(MISSPELLED_WHICH)[0]
+    assert segmenter.check_text(MISSPELLED_WHICH, profile="typing") == []
+    diagnostic = segmenter.check_text(MISSPELLED_WHICH, profile="high-recall")[0]
     assert (diagnostic.start, diagnostic.end) == (0, len(MISSPELLED_WHICH))
     assert diagnostic.suggestions[0].text == CORRECT_WHICH
+
+
+def test_spellcheck_profiles_have_stable_cross_port_settings(segmenter):
+    assert SpellcheckConfig.for_profile(SpellcheckProfile.TYPING) == SpellcheckConfig(
+        0.75, 3, 1, False, 0.80
+    )
+    assert SpellcheckConfig.for_profile("document") == SpellcheckConfig(
+        1.00, 5, 1, False, 0.75
+    )
+    assert SpellcheckConfig.for_profile("high-recall") == SpellcheckConfig(
+        1.50, 5, 1, True, 0.0
+    )
+
+
+def test_unknown_spellcheck_profile_is_rejected(segmenter):
+    with pytest.raises(ValueError, match="unknown spellcheck profile"):
+        segmenter.check_text(MISSPELLED, profile="aggressive")
+
+
+def test_diagnose_cli_reports_selected_profile(capsys):
+    from khmer_segmenter.cli import main
+
+    assert main(["diagnose", MISSPELLED, "--profile", "typing"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload[0]["profile"] == "typing"
+    assert payload[0]["diagnostics"][0]["suggestions"][0]["text"] == CORRECT
 
 
 def test_diagnostic_serializes_to_json(segmenter):

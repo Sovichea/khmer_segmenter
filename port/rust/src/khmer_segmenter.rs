@@ -3,7 +3,9 @@ use crate::normalization::{
     khmer_normalize, khmer_normalize_mapped, MappedNormalization, NormalizedUnit,
 };
 use crate::rule_engine::RuleEngine;
-use crate::spelling::{SpellingDiagnostic, SpellingSuggestion, TypoDetector};
+use crate::spelling::{
+    SpellcheckConfig, SpellcheckProfile, SpellingDiagnostic, SpellingSuggestion, TypoDetector,
+};
 use crate::utils;
 use std::fmt;
 use std::ops::Range;
@@ -512,6 +514,9 @@ impl KhmerSegmenter {
 
     pub fn is_known_word(&self, word: &str) -> bool {
         self.is_dictionary_word(word)
+            || self
+                .typo_detector()
+                .is_some_and(|detector| detector.is_word(word))
     }
 
     pub fn suggest_spelling(
@@ -539,18 +544,49 @@ impl KhmerSegmenter {
         max_suggestions: usize,
         include_valid_fragments: bool,
     ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        self.check_text_with_config(
+            raw_text,
+            SpellcheckConfig::new(
+                max_edit_cost,
+                max_suggestions,
+                1,
+                include_valid_fragments,
+                0.0,
+            ),
+        )
+    }
+
+    /// Check continuous Khmer text with stable integration-oriented defaults.
+    pub fn check_text(
+        &self,
+        raw_text: &str,
+        profile: SpellcheckProfile,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        self.check_text_with_config(raw_text, profile.config())
+    }
+
+    /// Advanced spellcheck entry point for applications that need custom tuning.
+    pub fn check_text_with_config(
+        &self,
+        raw_text: &str,
+        config: SpellcheckConfig,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
         let segmentation = self.segment_detailed(raw_text)?;
         Ok(self
             .typo_detector()
             .map(|detector| {
                 detector.detect(
                     &segmentation,
-                    max_edit_cost,
-                    max_suggestions,
-                    include_valid_fragments,
+                    config.max_edit_cost,
+                    config.max_suggestions,
+                    config.context_tokens,
+                    config.include_valid_fragments,
                 )
             })
-            .unwrap_or_default())
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|diagnostic| diagnostic.confidence >= config.min_confidence)
+            .collect())
     }
 
     fn typo_detector(&self) -> Option<&TypoDetector> {

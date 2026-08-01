@@ -244,7 +244,7 @@ const dictionaryBytes = new Uint8Array(
 );
 const segmenter = new WasmKhmerSegmenter(dictionaryBytes);
 
-const result = segmenter.analyze("សម្បត្ត", true);
+const result = segmenter.analyzeWithProfile("សម្បត្ត", "typing");
 console.log(result.segments);
 console.log(result.diagnostics);
 ```

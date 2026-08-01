@@ -47,7 +47,7 @@ import init, { WasmKhmerSegmenter } from './pkg/khmer_segmenter.js';
 await init();
 const bytes = new Uint8Array(await fetch('./khmer_dictionary.kdict').then(r => r.arrayBuffer()));
 const segmenter = new WasmKhmerSegmenter(bytes);
-const analysis = segmenter.analyze('សម្បត្ត', true);
+const analysis = segmenter.analyzeWithProfile('សម្បត្ត', 'typing');
 const completions = segmenter.complete('សម្', 8);
 ```
 
@@ -55,9 +55,26 @@ Offsets returned to JavaScript use UTF-16 code units and can therefore be used
 with `String.slice()` and browser editor ranges. The native Rust diagnostics
 retain UTF-8 byte ranges.
 
+The profile names and thresholds match Python: use `typing` for live editor
+feedback, `document` for an explicit full-document check, and reserve
+`high-recall` for experimental corpus review. Native Rust exposes the same API:
+
+```rust
+use khmer_segmenter::{KhmerSegmenter, SpellcheckProfile};
+
+let diagnostics = segmenter.check_text(text, SpellcheckProfile::Typing)?;
+```
+
 ## Usage
 
 Run the binary directly or via `cargo run`.
+
+### Spellcheck diagnostics
+
+```bash
+cargo run --release -- diagnose --profile typing "សម្បត្ត"
+cargo run --release -- diagnose --profile document --input manuscript.txt
+```
 
 ### Segment Raw Text
 ```bash

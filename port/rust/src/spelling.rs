@@ -3,6 +3,7 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
+use std::str::FromStr;
 
 use crate::kdict::KDict;
 use crate::khmer_segmenter::Segmentation;
@@ -10,6 +11,98 @@ use crate::khmer_segmenter::Segmentation;
 const COENG: char = '\u{17d2}';
 const NIKAHIT: char = '\u{17c6}';
 const RO: char = '\u{179a}';
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpellcheckProfile {
+    Typing,
+    Document,
+    HighRecall,
+}
+
+impl SpellcheckProfile {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Typing => "typing",
+            Self::Document => "document",
+            Self::HighRecall => "high-recall",
+        }
+    }
+
+    pub const fn config(self) -> SpellcheckConfig {
+        match self {
+            Self::Typing => SpellcheckConfig::new(0.75, 3, 1, false, 0.80),
+            Self::Document => SpellcheckConfig::new(1.00, 5, 1, false, 0.75),
+            Self::HighRecall => SpellcheckConfig::new(1.50, 5, 1, true, 0.0),
+        }
+    }
+}
+
+impl FromStr for SpellcheckProfile {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "typing" => Ok(Self::Typing),
+            "document" => Ok(Self::Document),
+            "high-recall" | "high_recall" => Ok(Self::HighRecall),
+            _ => Err(format!(
+                "unknown spellcheck profile {value:?}; expected typing, document, or high-recall"
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SpellcheckConfig {
+    pub max_edit_cost: f32,
+    pub max_suggestions: usize,
+    pub context_tokens: usize,
+    pub include_valid_fragments: bool,
+    pub min_confidence: f32,
+}
+
+impl SpellcheckConfig {
+    pub const fn new(
+        max_edit_cost: f32,
+        max_suggestions: usize,
+        context_tokens: usize,
+        include_valid_fragments: bool,
+        min_confidence: f32,
+    ) -> Self {
+        Self {
+            max_edit_cost,
+            max_suggestions,
+            context_tokens,
+            include_valid_fragments,
+            min_confidence,
+        }
+    }
+}
+
+#[cfg(test)]
+mod profile_tests {
+    use super::*;
+
+    #[test]
+    fn named_profiles_match_python_defaults() {
+        assert_eq!(
+            SpellcheckProfile::Typing.config(),
+            SpellcheckConfig::new(0.75, 3, 1, false, 0.80)
+        );
+        assert_eq!(
+            SpellcheckProfile::Document.config(),
+            SpellcheckConfig::new(1.00, 5, 1, false, 0.75)
+        );
+        assert_eq!(
+            SpellcheckProfile::HighRecall.config(),
+            SpellcheckConfig::new(1.50, 5, 1, true, 0.0)
+        );
+        assert_eq!(
+            "high-recall".parse::<SpellcheckProfile>(),
+            Ok(SpellcheckProfile::HighRecall)
+        );
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SpellingSuggestion {
@@ -50,11 +143,16 @@ pub struct TypoDetector {
 
 impl TypoDetector {
     pub fn from_kdict(dictionary: &KDict) -> Self {
-        let entries: Vec<_> = dictionary
+        let mut entries: Vec<_> = dictionary
             .words_with_costs()
             .into_iter()
             .filter(|(word, _)| is_lexical_khmer(word))
             .collect();
+        if !entries.iter().any(|(word, _)| word == "ឲ្យ") {
+            if let Some((_, cost)) = entries.iter().find(|(word, _)| word == "ឱ្យ") {
+                entries.push(("ឲ្យ".to_owned(), *cost + 0.001));
+            }
+        }
         let words = entries.iter().map(|(word, _)| word.clone()).collect();
         let mut exact_skeleton: HashMap<String, Vec<usize>> = HashMap::new();
         let mut deletion_skeleton: HashMap<String, Vec<usize>> = HashMap::new();
@@ -131,6 +229,9 @@ impl TypoDetector {
             if word == text || word.chars().count().abs_diff(text.chars().count()) > 2 {
                 continue;
             }
+            if word.chars().count() == 1 && text.chars().count() > 1 {
+                continue;
+            }
             let edit_cost = weighted_edit_cost(text, word);
             if edit_cost <= max_edit_cost {
                 ranked.push(SpellingSuggestion {
@@ -155,6 +256,7 @@ impl TypoDetector {
         segmentation: &Segmentation,
         max_edit_cost: f32,
         max_suggestions: usize,
+        context_tokens: usize,
         include_valid_fragments: bool,
     ) -> Vec<SpellingDiagnostic> {
         let ranges = segmentation.ranges();
@@ -172,11 +274,13 @@ impl TypoDetector {
         let mut proposals = Vec::new();
         let mut seen = HashSet::new();
         for center in suspicious {
-            let first = center.saturating_sub(1);
-            let last = (center + 1).min(tokens.len().saturating_sub(1));
+            let first = center.saturating_sub(context_tokens);
+            let last = center
+                .saturating_add(context_tokens)
+                .min(tokens.len().saturating_sub(1));
             for start_token in first..=center {
                 for end_token in center..=last {
-                    if end_token - start_token + 1 > 3 {
+                    if end_token - start_token + 1 > context_tokens.saturating_mul(2) + 1 {
                         continue;
                     }
                     if !(start_token..=end_token).all(|index| is_lexical_khmer(tokens[index])) {

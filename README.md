@@ -204,10 +204,23 @@ dependent vowels and signs cost less than consonant substitutions. Results are
 probable corrections, not automatic replacements. Proper names, dialectal
 forms, and historical spellings still require application-level review.
 
-The default scan is conservative. Applications that prioritize recall can set
-`include_valid_fragments=True`; this also examines adjacent tokens that are
-individually valid, which can recover errors such as `រស់ជាតិ` → `រសជាតិ` but
-may report more false positives.
+Use a named spellcheck profile for application integration:
+
+```python
+from khmer_segmenter import SpellcheckProfile
+
+# Live editor underlines: strict confidence filtering and low latency.
+diagnostics = segmenter.check_text(text, profile=SpellcheckProfile.TYPING)
+
+# Explicit "Check document": broader OOV correction search.
+diagnostics = segmenter.check_text(text, profile="document")
+```
+
+`typing` is the production default. `document` allows a wider edit distance
+but still avoids scanning every valid dictionary fragment. `high-recall`
+examines valid fragments and is intentionally experimental because it can
+produce many false positives. The old `include_valid_fragments` option remains
+as a low-level compatibility override.
 
 The legacy dictionary result remains available as
 `segment_with_metadata(text)`.
@@ -244,7 +257,8 @@ khmer-segment segment "ខ្ញុំសរសេរឯកសារ" --format j
 khmer-segment analyze "ខ្ញុំសរសេរឯកសារ" --format json
 khmer-segment spellcheck "នីមួយៗ ពាក្យមិនស្គាល់"
 khmer-segment diagnose "សម្បត្ត" --format json
-khmer-segment diagnose "រស់ជាតិ" --include-valid-fragments --format json
+khmer-segment diagnose --profile document --input manuscript.txt --format json
+khmer-segment diagnose "រស់ជាតិ" --profile high-recall --format json
 ```
 
 `analyze` reports lexical candidates; it does not claim contextual POS tagging.

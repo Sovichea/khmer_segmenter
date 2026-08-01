@@ -10,7 +10,9 @@ pub use khmer_segmenter::{
     SegmenterConfig,
 };
 pub use normalization::{khmer_normalize_mapped, MappedNormalization, NormalizedUnit};
-pub use spelling::{SpellingDiagnostic, SpellingSuggestion, TypoDetector};
+pub use spelling::{
+    SpellcheckConfig, SpellcheckProfile, SpellingDiagnostic, SpellingSuggestion, TypoDetector,
+};
 
 #[cfg(feature = "wasm")]
 mod wasm;
