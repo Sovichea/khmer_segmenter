@@ -33,6 +33,7 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_official_2022_words.txt
 |-- khmer_dictionary_supplemental_words.txt
 |-- khmer_spellcheck_words.txt
+|-- khmer_typo_corrections.tsv
 |-- khmer_word_frequencies.json
 |-- khmer_word_pos.json
 |-- khmer_dictionary_hyphenation_pairs.txt
@@ -110,6 +111,7 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_official_2022_words.txt
 |-- khmer_dictionary_supplemental_words.txt
 |-- khmer_spellcheck_words.txt
+|-- khmer_typo_corrections.tsv
 |-- khmer_word_frequencies.json
 |-- khmer_word_pos.json
 |-- khmer_dictionary_hyphenation_pairs.txt

@@ -761,12 +761,48 @@ mod tests {
             ("រស់ជាតិ", "រសជាតិ"),
             ("សុិ", "ស៊ី"),
             ("សុម", "សូម"),
+            ("រយះពេល", "រយៈពេល"),
         ] {
             let suggestions = segmenter.suggest_spelling(typed, 1.5, 5);
             assert_eq!(
                 suggestions.first().map(|item| item.text.as_str()),
                 Some(intended)
             );
+        }
+    }
+
+    #[test]
+    fn typing_profile_recovers_reviewed_valid_fragment_typos() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        for (typed, intended) in [
+            (
+                "\u{179f}\u{17bd}\u{179a}\u{179f}\u{17d2}\u{178f}\u{17b8}",
+                "\u{179f}\u{17bd}\u{179f}\u{17d2}\u{178a}\u{17b8}",
+            ),
+            (
+                "\u{1787}\u{1798}\u{17d2}\u{179a}\u{17bb}\u{1789}",
+                "\u{1787}\u{17c6}\u{179a}\u{17bb}\u{1789}",
+            ),
+            (
+                "\u{1794}\u{17d2}\u{179a}\u{17a0}\u{17c1}\u{179f}",
+                "\u{1794}\u{17d2}\u{179a}\u{17a0}\u{17c2}\u{179f}",
+            ),
+            (
+                "\u{179f}\u{179f}\u{17c1}\u{179a}",
+                "\u{179f}\u{179a}\u{179f}\u{17c1}\u{179a}",
+            ),
+            (
+                "\u{179a}\u{179f}\u{17cb}\u{1787}\u{17b6}\u{178f}\u{17b7}",
+                "\u{179a}\u{179f}\u{1787}\u{17b6}\u{178f}\u{17b7}",
+            ),
+            ("រយះពេល", "រយៈពេល"),
+        ] {
+            let diagnostics = segmenter
+                .check_text(typed, SpellcheckProfile::Typing)
+                .unwrap();
+            assert_eq!(diagnostics.len(), 1, "{typed}");
+            assert_eq!(diagnostics[0].text, typed);
+            assert_eq!(diagnostics[0].suggestions[0].text, intended);
         }
     }
 

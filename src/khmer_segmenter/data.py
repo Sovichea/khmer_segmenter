@@ -48,6 +48,10 @@ class DataFiles:
         return self.root / "khmer_spellcheck_words.txt"
 
     @property
+    def typo_corrections(self) -> Path:
+        return self.root / "khmer_typo_corrections.tsv"
+
+    @property
     def model_manifest(self) -> Path:
         return self.root / "khmer_model_manifest.json"
 
@@ -63,6 +67,7 @@ class DataFiles:
             "official_words": self.official_words.is_file(),
             "supplemental_words": self.supplemental_words.is_file(),
             "spellcheck_words": self.spellcheck_words.is_file(),
+            "typo_corrections": self.typo_corrections.is_file(),
             "model_manifest": self.model_manifest.is_file(),
             "hyphenation_pairs": self.hyphenation_pairs.is_file(),
         }

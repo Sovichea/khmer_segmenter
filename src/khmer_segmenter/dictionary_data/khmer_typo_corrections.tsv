@@ -1,0 +1,195 @@
+id	status	typed	correction	expectation	source_id	note
+common-001	approved	សួរស្តី	សួស្ដី	exact	community-review	Reviewed common greeting typo
+common-002	approved	ជម្រុញ	ជំរុញ	exact	community-review	Reviewed common spelling typo
+common-003	approved	ប្រហេស	ប្រហែស	exact	community-review	Reviewed common spelling typo
+common-004	approved	សសេរ	សរសេរ	exact	community-review	Reviewed omitted medial consonant
+common-005	approved	រស់ជាតិ	រសជាតិ	exact	community-review	Reviewed extra sign
+raca-001	approved	គម្រូ	គំរូ	top1	royal-army-2025-02-19	Candidate from reviewed real-world observation
+raca-002	approved	ក៍	ក៏	top1	royal-army-2025-02-19	Candidate from reviewed real-world observation
+raca-003	approved	ស្មើរ	ស្មើ	top_k	royal-army-2025-02-19	Candidate requires maintainer approval
+raca-005	approved	ថវិការ	ថវិកា	top1	royal-army-2025-02-19	Candidate from reviewed real-world observation
+raca-006	approved	បម្រើរការ	បម្រើការ	top1	royal-army-2025-02-19	Candidate from reviewed real-world observation
+raca-007	approved	ការពា	ការពារ	top_k	royal-army-2025-02-19	Candidate requires maintainer approval
+raca-009	approved	កាងារ	ការងារ	top1	royal-army-2025-04-02	Candidate from reviewed real-world observation
+social-003	approved	ជិញ្ជក់	ជញ្ជក់	top1	sophai-comment-2025	Candidate from reviewed real-world observation
+social-004	approved	សំរាប់	សម្រាប់	top1	sophai-comment-2025	Review whether legacy spelling should be accepted
+social-006	approved	ជិវិត	ជីវិត	top1	sophai-comment-2025	Candidate from reviewed real-world observation
+social-007	approved	ខែ្នរ	ខ្មែរ	top_k	sophai-comment-2025	Candidate requires maintainer approval
+social-008	approved	កំរិត	កម្រិត	top1	sophai-comment-2025	Review whether legacy spelling should be accepted
+exam-002	approved	ថ្នាល់	ថ្នាក់	top_k	exam-page-2025	Candidate requires maintainer approval
+hf-003	approved	សុម	សូម	top1	pisethan-spelling	CC BY 4.0 source candidate
+hf-004	approved	គ្រសួង	ក្រសួង	top1	pisethan-spelling	CC BY 4.0 source candidate
+hf-005	approved	ផេនការ	ផែនការ	top1	pisethan-spelling	CC BY 4.0 source candidate
+dataset-001	pending	អោយ	ឱ្យ	context_required	local-corpus-review	Common legacy form; 3210 occurrences after U+200B removal; decide whether to flag or accept
+dataset-002	approved	កំពស់	កម្ពស់	top1	local-corpus-review	297 exact diagnostic spans after U+200B removal
+dataset-003	approved	កំលាំង	កម្លាំង	top1	local-corpus-review	179 exact diagnostic spans after U+200B removal
+dataset-004	approved	កំនត់	កំណត់	top1	local-corpus-review	170 exact diagnostic spans after U+200B removal
+dataset-005	approved	ចំនុច	ចំណុច	top1	local-corpus-review	303 exact diagnostic spans after U+200B removal
+dataset-006	approved	ចំងាយ	ចម្ងាយ	top1	local-corpus-review	268 exact diagnostic spans after U+200B removal
+dataset-007	approved	ចំរើន	ចម្រើន	top1	local-corpus-review	179 exact diagnostic spans after U+200B removal
+dataset-008	approved	តំលៃ	តម្លៃ	top1	local-corpus-review	158 exact diagnostic spans after U+200B removal
+dataset-009	approved	ត្រលប់	ត្រឡប់	context_required	local-corpus-review	Common variant; 216 corpus occurrences; decide whether to flag or accept
+dataset-010	pending	រឺ	ឬ	context_required	local-corpus-review	Common informal or legacy form; 1131 corpus occurrences; decide whether to flag or accept
+dataset-011	pending	លឺ	ឮ	context_required	local-corpus-review	Common informal form; substring count is noisy; decide whether to flag or accept
+dataset-012	approved	សំលេង	សំឡេង	context_required	local-corpus-review	Legacy spelling candidate with 145 corpus occurrences
+dataset-013	approved	សម្លេង	សំឡេង	context_required	local-corpus-review	Legacy spelling candidate with 595 corpus occurrences
+dataset-014	approved	សំរេច	សម្រេច	top1	local-corpus-review	290 exact diagnostic spans after U+200B removal
+dataset-015	approved	សំរួល	សម្រួល	top1	local-corpus-review	61 exact diagnostic spans after U+200B removal
+dataset-016	approved	ពត៌មាន	ព័ត៌មាន	top1	local-corpus-review	76 exact diagnostic spans after U+200B removal
+dataset-017	approved	ជម្ងឺ	ជំងឺ	top1	local-corpus-review	78 exact diagnostic spans after U+200B removal
+dataset-018	approved	អីចឹង	អ៊ីចឹង	context_required	local-corpus-review	Colloquial variant with 31 corpus occurrences; decide whether to flag or accept
+dataset-019	approved	កំសាន្ត	កម្សាន្ត	top1	local-corpus-review	160 exact diagnostic spans after U+200B removal
+dataset-020	approved	សំអាត	សម្អាត	top1	local-corpus-review	109 corpus occurrences; manually mapped systematic medial-consonant omission
+dataset-021	approved	បញ្ជូល	បញ្ចូល	top1	local-corpus-review	29 corpus occurrences; manually reviewed vowel error
+dataset-022	approved	ប្រសិទ្ធិភាព	ប្រសិទ្ធភាព	top1	local-corpus-review	76 exact diagnostic spans after U+200B removal
+dataset-023	approved	អភិវឌ្ឍន៏	អភិវឌ្ឍន៍	top1	local-corpus-review	38 corpus occurrences; wrong final sign
+dataset-024	approved	របាយការណ៏	របាយការណ៍	top1	local-corpus-review	5 exact diagnostic spans after U+200B removal
+dataset-025	approved	ព្រឹត្តិការណ៏	ព្រឹត្តិការណ៍	top1	local-corpus-review	5 exact diagnostic spans after U+200B removal
+dataset-026	approved	សហគមន៏	សហគមន៍	top1	local-corpus-review	9 exact diagnostic spans after U+200B removal
+dataset-027	approved	លក្ខណះ	លក្ខណៈ	top1	local-corpus-review	108 corpus occurrences; wrong final sign
+dataset-028	approved	អនុញ្ញាតិ	អនុញ្ញាត	top1	local-corpus-review	16 exact diagnostic spans after U+200B removal
+dataset-029	approved	វិញ្ញាសារ	វិញ្ញាសា	top1	local-corpus-review	3 corpus occurrences; reviewed extra final consonant
+dataset-030	approved	បរិញ្ញាប័ត្រ	បរិញ្ញាបត្រ	top1	local-corpus-review	14 exact diagnostic spans after U+200B removal
+dataset-031	approved	សំគាល់	សម្គាល់	top1	local-corpus-review	519 corpus occurrences; systematic medial-consonant error
+dataset-032	approved	ចំណាប់អារម្មណ៏	ចំណាប់អារម្មណ៍	top1	local-corpus-review	6 exact diagnostic spans after U+200B removal
+dataset-033	approved	អារម្មណ៏	អារម្មណ៍	top1	local-corpus-review	17 exact diagnostic spans after U+200B removal
+dataset-034	approved	គោលការណ៏	គោលការណ៍	top1	local-corpus-review	6 exact diagnostic spans after U+200B removal
+dataset-035	approved	សិក្សារ	សិក្សា	top1	local-corpus-review	167 corpus occurrences; reviewed extra final consonant
+dataset-036	approved	កីឡារ	កីឡា	top1	local-corpus-review	16 corpus occurrences; reviewed extra final consonant
+dataset-037	approved	អញ្ចើញ	អញ្ជើញ	top1	local-corpus-review	4 corpus occurrences; reviewed consonant substitution
+dataset-038	approved	កំព្យូទ័រ	កុំព្យូទ័រ	top1	local-corpus-review	3 exact diagnostic spans after U+200B removal
+dataset-039	pending	អ៊ីនធើណេត	អ៊ីនធឺណិត	top1	local-corpus-review	2 exact diagnostic spans after U+200B removal
+dataset-040	pending	អ៊ីនធឺណេត	អ៊ីនធឺណិត	top_k	local-corpus-review	10 corpus occurrences; transliteration spelling candidate
+dataset-041	pending	អាមេរិច	អាមេរិក	context_required	local-corpus-review	240 corpus occurrences; correction is currently segmented rather than one spellcheck entry
+dataset-042	approved	កុម្ភះ	កុម្ភៈ	top1	local-corpus-review	16 exact diagnostic spans after U+200B removal
+dataset-043	approved	កំចាត់	កម្ចាត់	top1	local-corpus-review	271 exact diagnostic spans after U+200B removal
+dataset-044	approved	ចំការ	ចម្ការ	top1	local-corpus-review	290 exact diagnostic spans after U+200B removal
+dataset-045	approved	បំរើ	បម្រើ	top1	local-corpus-review	238 exact diagnostic spans after U+200B removal
+dataset-046	approved	សំលាប់	សម្លាប់	top1	local-corpus-review	230 exact diagnostic spans after U+200B removal
+dataset-047	approved	ចំបាំង	ចម្បាំង	top1	local-corpus-review	218 exact diagnostic spans after U+200B removal
+dataset-048	pending	ជាមួយនិង	ជាមួយនឹង	context_required	local-corpus-review	217 exact diagnostic spans; semantic context must be checked
+dataset-049	approved	ទំរង់	ទម្រង់	top1	local-corpus-review	152 exact diagnostic spans after U+200B removal
+dataset-050	approved	អគ្គីសនី	អគ្គិសនី	top1	local-corpus-review	144 exact diagnostic spans after U+200B removal
+dataset-051	approved	ទំលាប់	ទម្លាប់	top1	local-corpus-review	124 exact diagnostic spans after U+200B removal
+dataset-052	approved	តំកល់	តម្កល់	top1	local-corpus-review	120 exact diagnostic spans after U+200B removal
+dataset-053	approved	ចំលង	ចម្លង	top1	local-corpus-review	107 exact diagnostic spans after U+200B removal
+dataset-054	approved	កំរើក	កម្រើក	top1	local-corpus-review	95 exact diagnostic spans after U+200B removal
+dataset-055	approved	បំរុង	បម្រុង	top1	local-corpus-review	91 exact diagnostic spans after U+200B removal
+dataset-056	approved	ទំងន់	ទម្ងន់	top1	local-corpus-review	89 exact diagnostic spans after U+200B removal
+dataset-057	approved	ទំលាយ	ទម្លាយ	top1	local-corpus-review	83 exact diagnostic spans after U+200B removal
+dataset-058	approved	ទំលាក់	ទម្លាក់	top1	local-corpus-review	82 exact diagnostic spans after U+200B removal
+dataset-059	approved	កំដៅ	កម្ដៅ	top1	local-corpus-review	81 exact diagnostic spans after U+200B removal
+dataset-060	approved	តំរូវ	តម្រូវ	top1	local-corpus-review	75 exact diagnostic spans after U+200B removal
+dataset-061	approved	អំនាច	អំណាច	top1	local-corpus-review	75 exact diagnostic spans after U+200B removal
+dataset-062	approved	តំរង់	តម្រង់	top1	local-corpus-review	73 exact diagnostic spans after U+200B removal
+dataset-063	approved	សំរាក	សម្រាក	top1	local-corpus-review	73 exact diagnostic spans after U+200B removal
+dataset-064	approved	ចំរុះ	ចម្រុះ	top1	local-corpus-review	68 exact diagnostic spans after U+200B removal
+dataset-065	approved	ទេសចរណ៏	ទេសចរណ៍	top1	local-corpus-review	88 exact diagnostic spans after U+200B removal
+dataset-066	approved	សាធារណះ	សាធារណៈ	top1	local-corpus-review	22 exact diagnostic spans after U+200B removal
+dataset-067	approved	អ៊ឺរ៉ុប	អឺរ៉ុប	top1	local-corpus-review	83 exact diagnostic spans after U+200B removal
+dataset-068	approved	អុឺរ៉ុប	អឺរ៉ុប	normalization	local-corpus-review	21 exact diagnostic spans; malformed sign ordering should normalize
+dataset-069	approved	ដំនើរ	ដំណើរ	top_k	local-corpus-review	109 corpus occurrences; manual mapping because the high-recall top candidate was wrong
+dataset-070	approved	កំសាន្ដ	កម្សាន្ត	top1	local-corpus-review	23 exact diagnostic spans after U+200B removal
+dataset-071	approved	ចំអិន	ចម្អិន	top1	local-corpus-review	23 exact diagnostic spans after U+200B removal
+dataset-072	approved	បំនង	បំណង	top1	local-corpus-review	23 exact diagnostic spans after U+200B removal
+dataset-073	approved	រដ្ធ	រដ្ឋ	top1	local-corpus-review	23 exact diagnostic spans after U+200B removal
+dataset-074	approved	ផ្លួវ	ផ្លូវ	top1	local-corpus-review	20 exact diagnostic spans after U+200B removal
+dataset-075	approved	គ្រូសារ	គ្រួសារ	top1	local-corpus-review	20 exact diagnostic spans after U+200B removal
+dataset-076	approved	សង្គ្រោម	សង្គ្រាម	top1	local-corpus-review	22 exact diagnostic spans after U+200B removal
+dataset-077	approved	សំលឹង	សម្លឹង	top1	local-corpus-review	25 exact diagnostic spans after U+200B removal
+dataset-078	approved	ភ្នុំ	ភ្នំ	top1	local-corpus-review	22 exact diagnostic spans after U+200B removal
+dataset-079	approved	ដ៏ទៃ	ដទៃ	top1	local-corpus-review	75 exact diagnostic spans after U+200B removal
+dataset-080	pending	ស្មើនិង	ស្មើនឹង	context_required	local-corpus-review	24 exact diagnostic spans; semantic context must be checked
+dataset-081	approved	ត្រាស	ត្រាស់	top1	local-corpus-review	24 exact diagnostic spans; raw substring count was intentionally ignored
+dataset-082	approved	ពិរោះ	ពីរោះ	top1	local-corpus-review	24 exact diagnostic spans after U+200B removal
+dataset-083	approved	សំបូរ	សម្បូរ	top1	local-corpus-review	269 exact diagnostic spans after U+200B removal
+dataset-084	approved	ជ័យជំនះ	ជ័យជម្នះ	top1	local-corpus-review	182 exact diagnostic spans after U+200B removal
+dataset-085	approved	សំលៀក	សម្លៀក	top1	local-corpus-review	133 exact diagnostic spans after U+200B removal
+dataset-086	approved	គំរោង	គម្រោង	context_required	local-corpus-review	109 exact diagnostic spans; review legacy spelling policy
+dataset-087	approved	ចំរុង	ចម្រុង	top1	local-corpus-review	102 exact diagnostic spans after U+200B removal
+dataset-088	approved	ចំលើយ	ចម្លើយ	top1	local-corpus-review	80 exact diagnostic spans after U+200B removal
+dataset-089	approved	កំទេច	កម្ទេច	top1	local-corpus-review	74 exact diagnostic spans after U+200B removal
+dataset-090	approved	គំរប់	គម្រប់	top1	local-corpus-review	74 exact diagnostic spans after U+200B removal
+dataset-091	approved	ចំរៀង	ចម្រៀង	top1	local-corpus-review	62 exact diagnostic spans after U+200B removal
+dataset-092	approved	តំរិះ	តម្រិះ	top1	local-corpus-review	57 exact diagnostic spans after U+200B removal
+dataset-093	approved	ជំរាប	ជម្រាប	top1	local-corpus-review	56 exact diagnostic spans after U+200B removal
+dataset-094	approved	ចំលាក់	ចម្លាក់	top1	local-corpus-review	39 exact diagnostic spans after U+200B removal
+dataset-095	approved	ជំរៅ	ជម្រៅ	top1	local-corpus-review	37 exact diagnostic spans after U+200B removal
+dataset-096	approved	សំភារៈ	សម្ភារៈ	top1	local-corpus-review	37 exact diagnostic spans after U+200B removal
+dataset-097	approved	ជំរះ	ជម្រះ	top1	local-corpus-review	36 exact diagnostic spans after U+200B removal
+dataset-098	approved	បំលែង	បម្លែង	top1	local-corpus-review	29 exact diagnostic spans after U+200B removal
+dataset-099	approved	សំបុរ	សម្បុរ	top1	local-corpus-review	28 exact diagnostic spans after U+200B removal
+dataset-100	approved	បំរែបំរួល	បម្រែបម្រួល	top1	local-corpus-review	27 exact diagnostic spans after U+200B removal
+dataset-101	approved	សំរាល	សម្រាល	top1	local-corpus-review	25 exact diagnostic spans after U+200B removal
+dataset-102	approved	តំរៀប	តម្រៀប	top1	local-corpus-review	24 exact diagnostic spans after U+200B removal
+dataset-103	approved	សំរុក	សម្រុក	top1	local-corpus-review	23 exact diagnostic spans after U+200B removal
+dataset-104	approved	បំរាម	បម្រាម	top1	local-corpus-review	22 exact diagnostic spans after U+200B removal
+dataset-105	approved	សំភាស	សម្ភាស	top1	local-corpus-review	22 exact diagnostic spans after U+200B removal
+dataset-106	approved	សំរាយ	សម្រាយ	top1	local-corpus-review	21 exact diagnostic spans after U+200B removal
+dataset-107	approved	ចំលែក	ចម្លែក	top1	local-corpus-review	17 exact diagnostic spans after U+200B removal
+dataset-108	approved	តំរា	តម្រា	top1	local-corpus-review	17 exact diagnostic spans after U+200B removal
+dataset-109	approved	សំលាញ់	សម្លាញ់	top1	local-corpus-review	17 exact diagnostic spans after U+200B removal
+dataset-110	approved	កំរាល	កម្រាល	top1	local-corpus-review	15 exact diagnostic spans after U+200B removal
+dataset-111	approved	ជំរាល	ជម្រាល	top1	local-corpus-review	15 exact diagnostic spans after U+200B removal
+dataset-112	approved	បំលាស់	បម្លាស់	top1	local-corpus-review	15 exact diagnostic spans after U+200B removal
+dataset-113	approved	សំបើម	សម្បើម	top1	local-corpus-review	15 exact diagnostic spans after U+200B removal
+dataset-114	approved	ជំលោះ	ជម្លោះ	top1	local-corpus-review	13 exact diagnostic spans after U+200B removal
+dataset-115	approved	កំរាស់	កម្រាស់	top1	local-corpus-review	12 exact diagnostic spans after U+200B removal
+dataset-116	approved	ជំរក	ជម្រក	top1	local-corpus-review	12 exact diagnostic spans after U+200B removal
+dataset-117	approved	គំលង់	គម្លង់	top1	local-corpus-review	10 exact diagnostic spans after U+200B removal
+dataset-118	approved	ជំរើស	ជម្រើស	top1	local-corpus-review	10 exact diagnostic spans after U+200B removal
+dataset-119	approved	សំពាធ	សម្ពាធ	top1	local-corpus-review	10 exact diagnostic spans after U+200B removal
+dataset-120	approved	ចំអាប	ចម្អាប	top1	local-corpus-review	9 exact diagnostic spans after U+200B removal
+dataset-121	approved	ចំអែត	ចម្អែត	top1	local-corpus-review	8 exact diagnostic spans after U+200B removal
+dataset-122	approved	ទំរាំ	ទម្រាំ	top1	local-corpus-review	8 exact diagnostic spans after U+200B removal
+dataset-123	approved	ទំលុះ	ទម្លុះ	top1	local-corpus-review	8 exact diagnostic spans after U+200B removal
+dataset-124	approved	គំរប	គម្រប	top1	local-corpus-review	6 exact diagnostic spans after U+200B removal
+dataset-125	approved	តំកើង	តម្កើង	top1	local-corpus-review	6 exact diagnostic spans after U+200B removal
+dataset-126	approved	សំរិត	សម្រិត	top1	local-corpus-review	6 exact diagnostic spans after U+200B removal
+dataset-127	approved	សំរស់	សម្រស់	top1	local-corpus-review	5 exact diagnostic spans after U+200B removal
+dataset-128	approved	សំរាំង	សម្រាំង	top1	local-corpus-review	5 exact diagnostic spans after U+200B removal
+dataset-129	approved	អំរែក	អម្រែក	top1	local-corpus-review	5 exact diagnostic spans after U+200B removal
+dataset-130	approved	កំរាប	កម្រាប	top1	local-corpus-review	4 exact diagnostic spans after U+200B removal
+dataset-131	approved	គំលាត	គម្លាត	top1	local-corpus-review	4 exact diagnostic spans after U+200B removal
+dataset-132	approved	ចំងល់	ចម្ងល់	top1	local-corpus-review	4 exact diagnostic spans after U+200B removal
+dataset-133	approved	ចំរាញ់	ចម្រាញ់	top1	local-corpus-review	4 exact diagnostic spans after U+200B removal
+dataset-134	approved	ចំរៀក	ចម្រៀក	top1	local-corpus-review	4 exact diagnostic spans after U+200B removal
+dataset-135	approved	តំរួត	តម្រួត	top1	local-corpus-review	4 exact diagnostic spans after U+200B removal
+dataset-136	approved	ទំរឹង	ទម្រឹង	top1	local-corpus-review	4 exact diagnostic spans after U+200B removal
+dataset-137	approved	ចំរូង	ចម្រូង	top1	local-corpus-review	3 exact diagnostic spans after U+200B removal
+dataset-138	approved	ជំលៀស	ជម្លៀស	top1	local-corpus-review	3 exact diagnostic spans after U+200B removal
+dataset-139	approved	សំរុះ	សម្រុះ	top1	local-corpus-review	3 exact diagnostic spans after U+200B removal
+dataset-140	approved	សំរួច	សម្រួច	top1	local-corpus-review	3 exact diagnostic spans after U+200B removal
+dataset-141	approved	សំរែក	សម្រែក	top1	local-corpus-review	3 exact diagnostic spans after U+200B removal
+dataset-142	approved	សំភារះ	សម្ភារៈ	top_k	local-corpus-review	3 exact spans had an incomplete automatic target; corrected manually to RAC form
+dataset-143	approved	កំនែ	កំណែ	top1	local-corpus-review	Observed in the cleaned corpus as part of កំនែទម្រង់
+dataset-144	approved	សំភាសន៏	សម្ភាសន៍	top1	local-corpus-review	9 corpus occurrences; medial-consonant and final-sign errors
+dataset-145	approved	កំរៃ	កម្រៃ	top1	local-corpus-review	7 corpus occurrences; systematic medial-consonant error
+dataset-146	approved	សំរុង	សម្រុង	top1	local-corpus-review	10 corpus occurrences; systematic medial-consonant error
+dataset-147	approved	សំដែង	សម្ដែង	context_required	local-corpus-review	Common legacy variant with 1004 corpus occurrences; decide whether to flag or accept
+dataset-148	approved	កំរង	កម្រង	top1	local-corpus-review	21 corpus occurrences; systematic medial-consonant error
+dataset-149	approved	សំអាង	សម្អាង	context_required	local-corpus-review	Common variant with 89 corpus occurrences; decide whether to flag or accept
+dataset-150	approved	សំនាក់	សំណាក់	top1	local-corpus-review	8 corpus occurrences; wrong consonant before vowel sign
+dataset-151	approved	សំនួរ	សំណួរ	top1	local-corpus-review	41 corpus occurrences; wrong consonant before vowel sign
+dataset-152	approved	សំនើ	សំណើ	top1	local-corpus-review	13 corpus occurrences; wrong consonant before vowel sign
+dataset-153	approved	សំនុំ	សំណុំ	top1	local-corpus-review	23 corpus occurrences; wrong consonant before vowel sign
+dataset-154	approved	សំនង់	សំណង់	top1	local-corpus-review	28 corpus occurrences; wrong consonant before vowel sign
+dataset-155	approved	សំនាង	សំណាង	top1	local-corpus-review	4 corpus occurrences; wrong consonant before vowel sign
+dataset-156	approved	សំនូមពរ	សំណូមពរ	top1	local-corpus-review	3 corpus occurrences; wrong consonant before vowel sign
+dataset-157	approved	សំនូម	សំណូម	top1	local-corpus-review	3 corpus occurrences; wrong consonant before vowel sign
+dataset-158	approved	សំនេរ	សំណេរ	top1	local-corpus-review	5 corpus occurrences; wrong consonant before vowel sign
+dataset-159	approved	សំនល់	សំណល់	top1	local-corpus-review	1 corpus occurrence; systematic consonant substitution
+dataset-160	approved	សំនង	សំណង	top1	local-corpus-review	30 corpus occurrences; wrong consonant before vowel sign
+dataset-161	approved	សំនាញ់	សំណាញ់	top1	local-corpus-review	2 corpus occurrences; wrong consonant before vowel sign
+dataset-162	approved	បំនែក	បំណែក	top1	local-corpus-review	3 corpus occurrences; wrong consonant before vowel sign
+dataset-163	approved	ចំនង	ចំណង	top1	local-corpus-review	20 corpus occurrences; wrong consonant before vowel sign
+dataset-164	approved	ចំនី	ចំណី	top1	local-corpus-review	7 corpus occurrences; wrong consonant before vowel sign
+dataset-165	approved	ចំនេញ	ចំណេញ	top1	local-corpus-review	19 corpus occurrences; wrong consonant before vowel sign
+dataset-166	approved	ចំនេះ	ចំណេះ	top1	local-corpus-review	44 corpus occurrences; wrong consonant before vowel sign
+dataset-167	approved	កំនើត	កំណើត	top1	local-corpus-review	53 corpus occurrences; wrong consonant before vowel sign
+dataset-168	approved	កំនាព្យ	កំណាព្យ	top1	local-corpus-review	2 corpus occurrences; wrong consonant before vowel sign
+dataset-169	approved	កំនើន	កំណើន	top1	local-corpus-review	18 corpus occurrences; wrong consonant before vowel sign
+dataset-170	approved	ដំនោះស្រាយ	ដំណោះស្រាយ	top1	local-corpus-review	4 corpus occurrences; wrong consonant before vowel sign
+dataset-171	approved	ដំនាក់កាល	ដំណាក់កាល	top1	local-corpus-review	4 corpus occurrences; wrong consonant before vowel sign
+dataset-172	approved	ដំនាំ	ដំណាំ	top1	local-corpus-review	23 corpus occurrences; wrong consonant before vowel sign
+dataset-173	approved	រយះពេល	រយៈពេល	exact	community-review	User-reviewed complete expression; correction intentionally segments as រយៈ + ពេល

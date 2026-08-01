@@ -7,7 +7,7 @@ import logging
 import unicodedata
 from pathlib import Path
 
-from .data import DataFiles, resolve_data_files
+from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
 from .models import (
     SpellcheckConfig,
     SpellcheckProfile,
@@ -17,7 +17,7 @@ from .models import (
 )
 from .normalization import KhmerNormalizer
 from .rule_engine import RuleBasedEngine
-from .spelling import TypoDetector
+from .spelling import TypoDetector, load_approved_typo_corrections
 
 logger = logging.getLogger(__name__)
 
@@ -446,7 +446,14 @@ class KhmerSegmenter:
         """Lazily build the fuzzy index so normal segmentation startup stays fast."""
 
         if self._typo_detector is None:
-            self._typo_detector = TypoDetector(self.spellcheck_words, self.word_frequencies)
+            correction_path = self.data_files.typo_corrections
+            if not correction_path.is_file():
+                correction_path = DataFiles(BUNDLED_DATA_DIR).typo_corrections
+            self._typo_detector = TypoDetector(
+                self.spellcheck_words,
+                self.word_frequencies,
+                load_approved_typo_corrections(correction_path),
+            )
         return self._typo_detector
 
     def detect_typos(

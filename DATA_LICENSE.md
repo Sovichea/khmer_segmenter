@@ -22,6 +22,7 @@ use:
 - `khmer_dictionary_official_2022_words.txt`
 - `khmer_dictionary_supplemental_words.txt` (intentionally empty in the strict model)
 - `khmer_spellcheck_words.txt`
+- `khmer_typo_corrections.tsv` (review workflow and approved exact pairs)
 - `khmer_word_frequencies.json`
 - `khmer_word_pos.json`
 - `khmer_dictionary_hyphenation_pairs.txt`
@@ -32,6 +33,13 @@ examples: definition occurrences have weight 1, examples weight 3, and a
 headword's occurrence in its own record has weight 0.25. No uncurated corpus is
 used to accept spellings. The model manifest records the source SHA-256,
 parameters, record counts, and generated-file hashes.
+
+The typo-correction table is separate from dictionary and frequency data.
+Its pending observations retain source identifiers documented in
+`benchmarks/typos/README.md`; entries derived from Pisethan's Khmer spelling
+dataset are credited to that CC BY 4.0 source. Pending rows do not affect
+runtime behavior. Maintainer-approved exact pairs are project curation and
+must retain their per-row provenance when redistributed.
 
 The experimental hyphenation pairs predate the strict RAC segmentation rebuild
 and are preserved as a separate runtime asset; they are not presented as output

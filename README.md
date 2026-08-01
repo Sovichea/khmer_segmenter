@@ -222,6 +222,12 @@ examines valid fragments and is intentionally experimental because it can
 produce many false positives. The old `include_valid_fragments` option remains
 as a low-level compatibility override.
 
+Reviewed exact typo pairs live in
+`dictionary_data/khmer_typo_corrections.tsv`. Only `approved` rows affect
+spellcheck; proposed additions remain `pending` until reviewed. Run
+`python scripts/sync_typo_corrections.py` after editing the canonical Python
+copy so Rust and WASM consume the same list.
+
 The legacy dictionary result remains available as
 `segment_with_metadata(text)`.
 

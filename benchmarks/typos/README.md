@@ -37,6 +37,12 @@ homophones such as `នឹង`/`និង` without a contextual model.
   licensed CC BY 4.0. The upstream dataset has only 13 rows, including
   duplicates and unchanged pairs, so only five distinct correction observations
   are used here.
+- `local-corpus-review`: candidates mined from the developer's local
+  `khmer_folktales_extracted.txt` and `khmer_wiki_corpus.txt` files. The source
+  texts and excerpts are not redistributed by this repository. Every U+200B
+  ZERO WIDTH SPACE was removed before segmentation, typo detection, counting,
+  and context review. Counts in candidate notes are evidence for prioritizing
+  review, not proof that a spelling is incorrect.
 
 Facebook observations remain links and factual minimal excerpts; no Facebook
 dataset license is asserted. Remove any record if its public source disappears

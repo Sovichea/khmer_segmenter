@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import csv
 from dataclasses import dataclass
 from functools import lru_cache
 import math
@@ -12,6 +13,28 @@ from .models import EditOperation, SpellingDiagnostic, SpellingSuggestion, Token
 
 
 _SHORT_FRAGMENT_FREQUENCY_LIMIT = 500
+
+# Human-reviewed, high-frequency misspellings that otherwise segment entirely
+# into valid dictionary fragments. Exact matching keeps these safe for live
+# typing without enabling a broad fuzzy scan over every valid word sequence.
+def load_approved_typo_corrections(path) -> dict[str, str]:
+    """Load only maintainer-approved exact correction pairs from TSV."""
+
+    if not path or not path.is_file():
+        return {}
+    approved: dict[str, str] = {}
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle, delimiter="\t"):
+            if row.get("status") != "approved":
+                continue
+            typed = row.get("typed", "").strip()
+            correction = row.get("correction", "").strip()
+            if not typed or not correction or typed == correction:
+                continue
+            if typed in approved and approved[typed] != correction:
+                raise ValueError(f"conflicting approved typo correction for {typed!r}")
+            approved[typed] = correction
+    return approved
 
 
 def _is_base(char: str) -> bool:
@@ -253,9 +276,15 @@ def weighted_edits(source: str, target: str) -> tuple[float, tuple[_LocalEdit, .
 class TypoDetector:
     """Find probable dictionary-word typos near suspicious segmentation tokens."""
 
-    def __init__(self, words: Iterable[str], frequencies: dict[str, int | float] | None = None):
+    def __init__(
+        self,
+        words: Iterable[str],
+        frequencies: dict[str, int | float] | None = None,
+        reviewed_typos: dict[str, str] | None = None,
+    ):
         self.words = frozenset(word for word in words if _is_lexical_khmer(word))
         self.frequencies = frequencies or {}
+        self.reviewed_typos = reviewed_typos or {}
         self._exact_skeleton: dict[tuple[str, ...], list[str]] = defaultdict(list)
         self._deletion_skeleton: dict[tuple[str, ...], list[str]] = defaultdict(list)
         for word in sorted(self.words):
@@ -336,8 +365,7 @@ class TypoDetector:
         limit: int,
     ) -> tuple[SpellingSuggestion, ...]:
         ranked = self._ranked_suggestions(text, max_edit_cost)
-
-        return tuple(
+        suggestions = [
             SpellingSuggestion(
                 text=word,
                 edit_cost=round(cost, 3),
@@ -352,8 +380,30 @@ class TypoDetector:
                 ),
                 frequency=self.frequencies.get(word),
             )
-            for cost, _, word, edits in ranked[:limit]
-        )
+            for cost, _, word, edits in ranked
+            if word != self.reviewed_typos.get(text)
+        ]
+        reviewed_text = self.reviewed_typos.get(text)
+        if reviewed_text is not None:
+            cost, edits = weighted_edits(text, reviewed_text)
+            suggestions.insert(
+                0,
+                SpellingSuggestion(
+                    text=reviewed_text,
+                    edit_cost=round(cost, 3),
+                    edits=tuple(
+                        EditOperation(
+                            kind=edit.kind,
+                            start=span_start + edit.start,
+                            end=span_start + edit.end,
+                            text=edit.text,
+                        )
+                        for edit in edits
+                    ),
+                    frequency=self.frequencies.get(reviewed_text),
+                ),
+            )
+        return tuple(suggestions[:limit])
 
     def suggest_word(
         self,
@@ -369,7 +419,9 @@ class TypoDetector:
             raise ValueError("max_edit_cost must be finite and greater than zero")
         if limit <= 0:
             raise ValueError("limit must be greater than zero")
-        if not _is_lexical_khmer(text) or text in self.words:
+        if not _is_lexical_khmer(text) or (
+            text in self.words and text not in self.reviewed_typos
+        ):
             return ()
         return self.suggestions(
             text,
@@ -438,6 +490,62 @@ class TypoDetector:
                 fragmentation_indices.update((index, index + 1))
         suspicious = invalid_indices | fragmentation_indices
         proposals: dict[tuple[int, int], _Proposal] = {}
+
+        # Recover reviewed whole-word errors even when every segmented fragment
+        # is a valid dictionary entry. Limit matching to token-aligned spans so
+        # an alias cannot trigger inside an unrelated longer word.
+        for start_index in range(len(tokens)):
+            candidate_text = ""
+            for end_index in range(start_index, min(len(tokens), start_index + 4)):
+                if not lexical[end_index]:
+                    break
+                if end_index > start_index and tokens[end_index - 1].end != tokens[end_index].start:
+                    break
+                candidate_text += tokens[end_index].text
+                intended = self.reviewed_typos.get(candidate_text)
+                # Approved corrections are human-reviewed and may intentionally
+                # be multiword expressions that are not single lexicon entries.
+                if intended is None:
+                    continue
+                span_start = tokens[start_index].start
+                span_end = tokens[end_index].end
+                cost, local_edits = weighted_edits(candidate_text, intended)
+                reviewed = SpellingSuggestion(
+                    text=intended,
+                    edit_cost=round(cost, 3),
+                    edits=tuple(
+                        EditOperation(
+                            kind=edit.kind,
+                            start=span_start + edit.start,
+                            end=span_start + edit.end,
+                            text=edit.text,
+                        )
+                        for edit in local_edits
+                    ),
+                    frequency=self.frequencies.get(intended),
+                )
+                alternatives = list(
+                    self.suggestions(
+                        candidate_text,
+                        span_start=span_start,
+                        max_edit_cost=1.5,
+                        limit=max(5, max_suggestions),
+                    )
+                )
+                ranked = (reviewed,) + tuple(
+                    item for item in alternatives if item.text != intended
+                )[: max_suggestions - 1]
+                diagnostic = SpellingDiagnostic(
+                    text=normalized_text[span_start:span_end],
+                    start=span_start,
+                    end=span_end,
+                    kind=self._kind(ranked[0]),
+                    confidence=0.99,
+                    suggestions=ranked,
+                )
+                proposals[(span_start, span_end)] = _Proposal(
+                    diagnostic, start_index, end_index
+                )
 
         for index in sorted(suspicious):
             run_start = index

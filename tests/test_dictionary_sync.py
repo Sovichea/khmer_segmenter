@@ -3,9 +3,22 @@ import unittest
 from pathlib import Path
 
 from scripts.sync_rac_dictionary import read_words
+from scripts.sync_typo_corrections import (
+    DEFAULT_RUST_DESTINATION,
+    DEFAULT_SOURCE,
+    validate,
+)
 
 
 class DictionarySyncTests(unittest.TestCase):
+    def test_typo_correction_data_is_valid_and_synchronized(self):
+        self.assertEqual(validate(DEFAULT_SOURCE), {
+            "approved": 186,
+            "pending": 8,
+            "rejected": 0,
+        })
+        self.assertEqual(DEFAULT_SOURCE.read_bytes(), DEFAULT_RUST_DESTINATION.read_bytes())
+
     def test_reads_first_tsv_column_and_normalizes(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "words.tsv"

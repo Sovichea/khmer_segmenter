@@ -11,6 +11,7 @@ use crate::khmer_segmenter::Segmentation;
 const COENG: char = '\u{17d2}';
 const NIKAHIT: char = '\u{17c6}';
 const RO: char = '\u{179a}';
+const TYPO_CORRECTIONS_TSV: &str = include_str!("../data/khmer_typo_corrections.tsv");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpellcheckProfile {
@@ -139,6 +140,7 @@ pub struct TypoDetector {
     entries: Vec<(String, f32)>,
     exact_skeleton: HashMap<String, Vec<usize>>,
     deletion_skeleton: HashMap<String, Vec<usize>>,
+    reviewed_typos: HashMap<String, String>,
 }
 
 impl TypoDetector {
@@ -153,7 +155,18 @@ impl TypoDetector {
                 entries.push(("ឲ្យ".to_owned(), *cost + 0.001));
             }
         }
-        let words = entries.iter().map(|(word, _)| word.clone()).collect();
+        let words: HashSet<String> = entries.iter().map(|(word, _)| word.clone()).collect();
+        let reviewed_typos = TYPO_CORRECTIONS_TSV
+            .lines()
+            .skip(1)
+            .filter_map(|line| {
+                let columns: Vec<_> = line.split('\t').collect();
+                (columns.len() >= 4 && columns[1] == "approved")
+                    .then(|| (columns[2].to_owned(), columns[3].to_owned()))
+            })
+            // Approved corrections are authoritative and may be multiword
+            // expressions rather than single spellcheck headwords.
+            .collect();
         let mut exact_skeleton: HashMap<String, Vec<usize>> = HashMap::new();
         let mut deletion_skeleton: HashMap<String, Vec<usize>> = HashMap::new();
 
@@ -179,6 +192,7 @@ impl TypoDetector {
             entries,
             exact_skeleton,
             deletion_skeleton,
+            reviewed_typos,
         }
     }
 
@@ -219,7 +233,10 @@ impl TypoDetector {
         max_edit_cost: f32,
         limit: usize,
     ) -> Vec<SpellingSuggestion> {
-        if text.is_empty() || self.words.contains(text) || limit == 0 {
+        if text.is_empty()
+            || (self.words.contains(text) && !self.reviewed_typos.contains_key(text))
+            || limit == 0
+        {
             return Vec::new();
         }
 
@@ -247,6 +264,21 @@ impl TypoDetector {
                 .then_with(|| left.lexical_cost.total_cmp(&right.lexical_cost))
                 .then_with(|| left.text.cmp(&right.text))
         });
+        if let Some(intended) = self.reviewed_typos.get(text) {
+            ranked.retain(|suggestion| suggestion.text != *intended);
+            ranked.insert(
+                0,
+                SpellingSuggestion {
+                    text: intended.clone(),
+                    edit_cost: weighted_edit_cost(text, intended),
+                    lexical_cost: self
+                        .entries
+                        .iter()
+                        .find_map(|(word, cost)| (word == intended).then_some(*cost))
+                        .unwrap_or(f32::MAX),
+                },
+            );
+        }
         ranked.truncate(limit);
         ranked
     }
@@ -273,6 +305,55 @@ impl TypoDetector {
 
         let mut proposals = Vec::new();
         let mut seen = HashSet::new();
+
+        // Exact reviewed aliases recover common errors made entirely of valid
+        // fragments without opening the precision profile to general fuzzy
+        // matching across all valid token sequences.
+        for start_token in 0..tokens.len() {
+            for end_token in start_token..(start_token + 4).min(tokens.len()) {
+                if !(start_token..=end_token).all(|index| is_lexical_khmer(tokens[index])) {
+                    break;
+                }
+                if !(start_token..end_token)
+                    .all(|index| ranges[index].end == ranges[index + 1].start)
+                {
+                    break;
+                }
+                let range = ranges[start_token].start..ranges[end_token].end;
+                let candidate_text = &text[range.clone()];
+                let Some(intended) = self.reviewed_typos.get(candidate_text) else {
+                    continue;
+                };
+                let mut suggestions = vec![SpellingSuggestion {
+                    text: intended.clone(),
+                    edit_cost: weighted_edit_cost(candidate_text, intended),
+                    lexical_cost: self
+                        .entries
+                        .iter()
+                        .find_map(|(word, cost)| (word == intended).then_some(*cost))
+                        .unwrap_or(f32::MAX),
+                }];
+                suggestions.extend(
+                    self.suggest_word(candidate_text, 1.5, max_suggestions.max(5))
+                        .into_iter()
+                        .filter(|suggestion| suggestion.text != *intended),
+                );
+                suggestions.truncate(max_suggestions);
+                seen.insert((range.start, range.end));
+                proposals.push(Proposal {
+                    diagnostic: SpellingDiagnostic {
+                        text: candidate_text.to_owned(),
+                        range,
+                        kind: diagnostic_kind(candidate_text, intended),
+                        confidence: 0.99,
+                        suggestions,
+                    },
+                    start_token,
+                    end_token,
+                });
+            }
+        }
+
         for center in suspicious {
             let first = center.saturating_sub(context_tokens);
             let last = center

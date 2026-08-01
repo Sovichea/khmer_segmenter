@@ -10,6 +10,7 @@ from khmer_segmenter import (
     SpellingDiagnostic,
     SpellingSuggestion,
 )
+from khmer_segmenter.spelling import load_approved_typo_corrections
 
 
 MISSPELLED = "\u179f\u1798\u17d2\u1794\u178f\u17d2\u178f"
@@ -129,6 +130,31 @@ def test_typo_detection_rejects_invalid_limits(segmenter):
 def test_whole_word_suggestions_recover_common_typos(segmenter, typed, intended):
     suggestions = segmenter.suggest_spelling(typed)
     assert suggestions[0].text == intended
+
+
+@pytest.mark.parametrize(("typed", "intended"), TYPO_CASES)
+def test_typing_profile_recovers_reviewed_whole_word_typos(segmenter, typed, intended):
+    diagnostics = segmenter.check_text(typed, profile="typing")
+    assert [(item.text, item.suggestions[0].text) for item in diagnostics] == [
+        (typed, intended)
+    ]
+
+
+def test_pending_typo_pairs_do_not_affect_runtime(segmenter):
+    pairs = load_approved_typo_corrections(segmenter.data_files.typo_corrections)
+    assert len(pairs) == 186
+    assert "អោយ" not in pairs
+
+
+def test_reviewed_correction_can_be_a_multiword_expression(segmenter):
+    typed = "រយះពេល"
+    intended = "រយៈពេល"
+
+    assert segmenter.suggest_spelling(typed)[0].text == intended
+    diagnostics = segmenter.check_text(typed, profile="typing")
+    assert [(item.text, item.suggestions[0].text) for item in diagnostics] == [
+        (typed, intended)
+    ]
 
 
 def test_whole_word_suggestions_skip_valid_words(segmenter):

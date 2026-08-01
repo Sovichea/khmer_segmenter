@@ -51,6 +51,7 @@ khmer_segmenter = [
   "rules.json",
   "dictionary_data/*.json",
   "dictionary_data/*.txt",
+  "dictionary_data/*.tsv",
 ]
 
 [tool.pytest.ini_options]

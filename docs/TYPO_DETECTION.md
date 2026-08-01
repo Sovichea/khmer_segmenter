@@ -80,6 +80,24 @@ the caller already knows the complete word span.
 
 ## Candidate generation and ranking
 
+### Reviewed correction pairs
+
+Exact common corrections are maintained in
+`src/khmer_segmenter/dictionary_data/khmer_typo_corrections.tsv`. A row affects
+Python, Rust, and WASM only when its status is `approved`; `pending` rows are a
+review queue and `rejected` rows preserve decisions without enabling them.
+
+After reviewing changes, synchronize and validate the Rust copy:
+
+```bash
+python scripts/sync_typo_corrections.py
+python scripts/sync_typo_corrections.py --check
+```
+
+Keep acceptance counts and user feedback statistics outside this file. They
+are evidence for review, not segmentation frequency and not automatic proof
+that a correction is valid.
+
 The detector runs after normal segmentation and considers small windows around
 suspicious tokens. It does not scan every possible substring. Candidate
 retrieval uses Khmer base-character skeleton indexes, then ranks the reduced
