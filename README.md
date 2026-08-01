@@ -28,6 +28,7 @@ unknown-word recovery without a runtime machine-learning model.
 - Frequency-weighted dictionary decisions
 - Separate RAC-curated segmentation and spelling lexicons
 - Word spelling checks through Python and the CLI
+- Whole-span typo diagnostics with Khmer-aware ranked suggestions
 - Unknown-span preservation
 - Typed token metadata with offsets and lexical POS candidates
 - Experimental Khmer hyphenation
@@ -172,6 +173,41 @@ segmenter.is_spelling_valid("នីមួយៗ")
 segmenter.check_spelling(["នីមួយៗ", "ពាក្យមិនស្គាល់"])
 ```
 
+Detect probable typos in continuous text:
+
+```python
+diagnostics = segmenter.detect_typos("សម្បត្ត")
+
+for diagnostic in diagnostics:
+    print(diagnostic.text, diagnostic.start, diagnostic.end)
+    for suggestion in diagnostic.suggestions:
+        print(suggestion.text, suggestion.edit_cost, suggestion.edits)
+```
+
+For an explicit editor lookup, treat the complete input as one word rather
+than relying on its initial segmentation:
+
+```python
+suggestions = segmenter.suggest_spelling("សសេរ")
+print(suggestions[0].text)  # សរសេរ
+```
+
+This reports the whole input span `សម្បត្ត`, suggests `សម្បត្តិ`, and records
+an insertion of `ិ` at offset 7. Diagnostics are separate from segmentation
+tokens, so typo recovery does not silently alter `segment()` output. Offsets
+refer to normalized text by default; use `normalize=False` when the caller has
+already normalized the input.
+
+Typo detection searches only near invalid Khmer tokens and uses weighted edits:
+dependent vowels and signs cost less than consonant substitutions. Results are
+probable corrections, not automatic replacements. Proper names, dialectal
+forms, and historical spellings still require application-level review.
+
+The default scan is conservative. Applications that prioritize recall can set
+`include_valid_fragments=True`; this also examines adjacent tokens that are
+individually valid, which can recover errors such as `រស់ជាតិ` → `រសជាតិ` but
+may report more false positives.
+
 The legacy dictionary result remains available as
 `segment_with_metadata(text)`.
 
@@ -206,6 +242,8 @@ Machine-readable output:
 khmer-segment segment "ខ្ញុំសរសេរឯកសារ" --format json
 khmer-segment analyze "ខ្ញុំសរសេរឯកសារ" --format json
 khmer-segment spellcheck "នីមួយៗ ពាក្យមិនស្គាល់"
+khmer-segment diagnose "សម្បត្ត" --format json
+khmer-segment diagnose "រស់ជាតិ" --include-valid-fragments --format json
 ```
 
 `analyze` reports lexical candidates; it does not claim contextual POS tagging.

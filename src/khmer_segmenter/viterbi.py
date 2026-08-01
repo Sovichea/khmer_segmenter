@@ -8,9 +8,10 @@ import unicodedata
 from pathlib import Path
 
 from .data import DataFiles, resolve_data_files
-from .models import Token
+from .models import SpellingDiagnostic, SpellingSuggestion, Token
 from .normalization import KhmerNormalizer
 from .rule_engine import RuleBasedEngine
+from .spelling import TypoDetector
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,7 @@ class KhmerSegmenter:
         self._official_words = None
         self._supplemental_words = None
         self._spellcheck_words = None
+        self._typo_detector = None
         self._pos_path = pos_path
         self.data_manifest = {}
         self.default_cost = 10.0  # High cost for dictionary words without frequency
@@ -410,6 +412,69 @@ class KhmerSegmenter:
             }
             for word in words
         ]
+
+    def suggest_spelling(
+        self,
+        word,
+        *,
+        normalize=True,
+        max_edit_cost=1.5,
+        max_suggestions=5,
+    ) -> tuple[SpellingSuggestion, ...]:
+        """Suggest RAC spellings while treating *word* as one complete span.
+
+        Unlike :meth:`detect_typos`, this method does not segment the input.
+        It is therefore suitable for explicit editor lookups, including words
+        that the segmenter can otherwise split into valid dictionary fragments.
+        """
+
+        candidate = self.normalizer.normalize(word) if normalize else word
+        return self.typo_detector.suggest_word(
+            candidate,
+            max_edit_cost=max_edit_cost,
+            limit=max_suggestions,
+        )
+
+    @property
+    def typo_detector(self):
+        """Lazily build the fuzzy index so normal segmentation startup stays fast."""
+
+        if self._typo_detector is None:
+            self._typo_detector = TypoDetector(self.spellcheck_words, self.word_frequencies)
+        return self._typo_detector
+
+    def detect_typos(
+        self,
+        text,
+        *,
+        normalize=True,
+        max_edit_cost=0.75,
+        max_suggestions=3,
+        context_tokens=1,
+        include_valid_fragments=False,
+        disable_post_processing=False,
+    ) -> list[SpellingDiagnostic]:
+        """Return whole-span probable-typo diagnostics for Khmer text.
+
+        The operation is additive: it does not change the segmentation path.
+        Offsets and edit operations refer to normalized text when ``normalize``
+        is true, matching :meth:`analyze`.
+        """
+
+        normalized_text = self.normalizer.normalize(text) if normalize else text
+        tokens = self.analyze(
+            normalized_text,
+            normalize=False,
+            disable_post_processing=disable_post_processing,
+        )
+        return self.typo_detector.detect(
+            normalized_text,
+            tokens,
+            max_edit_cost=max_edit_cost,
+            max_suggestions=max_suggestions,
+            context_tokens=context_tokens,
+            include_valid_fragments=include_valid_fragments,
+        )
 
     def segment_with_metadata(self, text, disable_post_processing=False, *, normalize=True):
         """Segment text and return lexical metadata for each token.

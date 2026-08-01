@@ -4,7 +4,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from .data import DataFiles, DataNotFoundError
 from .hyphenation import KhmerHyphenator
-from .models import Token
+from .models import EditOperation, SpellingDiagnostic, SpellingSuggestion, Token
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
 
@@ -18,6 +18,9 @@ __all__ = [
     "DataNotFoundError",
     "KhmerHyphenator",
     "KhmerSegmenter",
+    "EditOperation",
+    "SpellingDiagnostic",
+    "SpellingSuggestion",
     "Token",
     "prepare_dictionary",
     "__version__",

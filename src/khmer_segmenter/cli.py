@@ -64,6 +64,20 @@ def build_parser() -> argparse.ArgumentParser:
     spellcheck.add_argument("--format", choices=("plain", "json", "jsonl"), default="plain")
     spellcheck.add_argument("--no-normalize", action="store_true")
 
+    diagnose = commands.add_parser(
+        "diagnose", help="find probable Khmer typos and return whole-span suggestions"
+    )
+    _add_text_input(diagnose)
+    diagnose.add_argument("--format", choices=("json", "jsonl"), default="json")
+    diagnose.add_argument("--no-normalize", action="store_true")
+    diagnose.add_argument("--max-edit-cost", type=float, default=0.75)
+    diagnose.add_argument("--max-suggestions", type=int, default=3)
+    diagnose.add_argument(
+        "--include-valid-fragments",
+        action="store_true",
+        help="also inspect adjacent valid tokens (higher recall, more false positives)",
+    )
+
     hyphenate = commands.add_parser(
         "hyphenate", help="apply locally generated safe break opportunities"
     )
@@ -217,6 +231,26 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         else:
             rendered = _serialize_records(records, args.format)
         _write(rendered, args.output)
+        return 0
+
+    if args.command == "diagnose":
+        records = [
+            {
+                "text": text,
+                "diagnostics": [
+                    diagnostic.to_dict()
+                    for diagnostic in segmenter.detect_typos(
+                        text,
+                        normalize=not args.no_normalize,
+                        max_edit_cost=args.max_edit_cost,
+                        max_suggestions=args.max_suggestions,
+                        include_valid_fragments=args.include_valid_fragments,
+                    )
+                ],
+            }
+            for text in texts
+        ]
+        _write(_serialize_records(records, args.format), args.output)
         return 0
 
     if args.command == "hyphenate":

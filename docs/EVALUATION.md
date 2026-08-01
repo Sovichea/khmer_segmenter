@@ -79,6 +79,34 @@ ignored `dataset/benchmarks/` directory.
 - Unknown-token rate: predicted tokens absent from the runtime dictionary
 - Latency: segmentation execution time
 
+Typo recovery should additionally report whole-error-span exact-match recall,
+top-1 correction accuracy, top-k correction recall, false-positive rate on
+valid words, and diagnostic latency. Segmentation boundary F1 alone cannot
+detect the editor failure where only an internal unknown fragment is
+underlined.
+
+Run the deterministic missing-dependent-vowel smoke benchmark with:
+
+```bash
+python scripts/evaluate_typo_recovery.py --limit 200 \
+  --output results/typo-recovery.json
+```
+
+This mutation benchmark is useful for regressions but is not a replacement for
+human-reviewed spelling errors in real sentence context.
+
+The small sourced review set under [`benchmarks/typos/`](../benchmarks/typos/README.md)
+checks examples observed in public Khmer text without redistributing complete
+posts or personal identifiers:
+
+```bash
+python scripts/evaluate_real_world_typos.py
+```
+
+Treat its results as edge-case regression evidence, not as a population-level
+accuracy claim. Records that require context are counted separately because a
+dictionary-only checker cannot safely resolve valid-word confusions.
+
 On the curated benchmark, boundary F1 is the primary comparison metric. Exact sentence match is
 intentionally strict, and different valid compound conventions can reduce it.
 
