@@ -13,7 +13,7 @@ from scripts.sync_typo_corrections import (
 class DictionarySyncTests(unittest.TestCase):
     def test_typo_correction_data_is_valid_and_synchronized(self):
         self.assertEqual(validate(DEFAULT_SOURCE), {
-            "approved": 186,
+            "approved": 189,
             "pending": 8,
             "rejected": 0,
         })

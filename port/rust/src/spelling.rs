@@ -12,6 +12,8 @@ const COENG: char = '\u{17d2}';
 const NIKAHIT: char = '\u{17c6}';
 const RO: char = '\u{179a}';
 const TYPO_CORRECTIONS_TSV: &str = include_str!("../data/khmer_typo_corrections.tsv");
+const REAHMUK: char = '\u{17c7}'; // ះ
+const YUUKALEAPINTU: char = '\u{17c8}'; // ៈ
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpellcheckProfile {
@@ -141,6 +143,7 @@ pub struct TypoDetector {
     exact_skeleton: HashMap<String, Vec<usize>>,
     deletion_skeleton: HashMap<String, Vec<usize>>,
     reviewed_typos: HashMap<String, String>,
+    max_exact_typo_chars: usize,
 }
 
 impl TypoDetector {
@@ -156,7 +159,7 @@ impl TypoDetector {
             }
         }
         let words: HashSet<String> = entries.iter().map(|(word, _)| word.clone()).collect();
-        let reviewed_typos = TYPO_CORRECTIONS_TSV
+        let mut reviewed_typos: HashMap<String, String> = TYPO_CORRECTIONS_TSV
             .lines()
             .skip(1)
             .filter_map(|line| {
@@ -167,6 +170,17 @@ impl TypoDetector {
             // Approved corrections are authoritative and may be multiword
             // expressions rather than single spellcheck headwords.
             .collect();
+        // Derive the common ៈ -> ះ confusion directly from the loaded
+        // lexicon. Do not create an alias when the ះ form is also a valid word
+        // (for example ស្រះ), and let reviewed pairs remain authoritative.
+        for word in &words {
+            if word.contains(YUUKALEAPINTU) {
+                let typed = word.replace(YUUKALEAPINTU, &REAHMUK.to_string());
+                if !words.contains(&typed) {
+                    reviewed_typos.entry(typed).or_insert_with(|| word.clone());
+                }
+            }
+        }
         let mut exact_skeleton: HashMap<String, Vec<usize>> = HashMap::new();
         let mut deletion_skeleton: HashMap<String, Vec<usize>> = HashMap::new();
 
@@ -187,12 +201,18 @@ impl TypoDetector {
             }
         }
 
+        let max_exact_typo_chars = reviewed_typos
+            .keys()
+            .map(|word| word.chars().count())
+            .max()
+            .unwrap_or(0);
         Self {
             words,
             entries,
             exact_skeleton,
             deletion_skeleton,
             reviewed_typos,
+            max_exact_typo_chars,
         }
     }
 
@@ -306,11 +326,11 @@ impl TypoDetector {
         let mut proposals = Vec::new();
         let mut seen = HashSet::new();
 
-        // Exact reviewed aliases recover common errors made entirely of valid
-        // fragments without opening the precision profile to general fuzzy
-        // matching across all valid token sequences.
+        // Exact aliases recover errors made entirely of valid fragments. Scan
+        // only token-aligned text up to the longest alias, which supports long
+        // dictionary-derived forms without enabling general fuzzy matching.
         for start_token in 0..tokens.len() {
-            for end_token in start_token..(start_token + 4).min(tokens.len()) {
+            for end_token in start_token..tokens.len() {
                 if !(start_token..=end_token).all(|index| is_lexical_khmer(tokens[index])) {
                     break;
                 }
@@ -321,6 +341,9 @@ impl TypoDetector {
                 }
                 let range = ranges[start_token].start..ranges[end_token].end;
                 let candidate_text = &text[range.clone()];
+                if candidate_text.chars().count() > self.max_exact_typo_chars {
+                    break;
+                }
                 let Some(intended) = self.reviewed_typos.get(candidate_text) else {
                     continue;
                 };

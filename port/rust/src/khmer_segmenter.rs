@@ -762,6 +762,14 @@ mod tests {
             ("សុិ", "ស៊ី"),
             ("សុម", "សូម"),
             ("រយះពេល", "រយៈពេល"),
+            ("រយះកម្ពស់", "រយៈកម្ពស់"),
+            ("រយះបណ្តោយ", "រយៈបណ្តោយ"),
+            ("រយះទទឹង", "រយៈទទឹង"),
+            ("អាការះ", "អាការៈ"),
+            ("ព្យញ្ជនះ", "ព្យញ្ជនៈ"),
+            ("តាមរយះ", "តាមរយៈ"),
+            ("សិល្បះ", "សិល្បៈ"),
+            ("ទស្សនះ", "ទស្សនៈ"),
         ] {
             let suggestions = segmenter.suggest_spelling(typed, 1.5, 5);
             assert_eq!(
@@ -796,6 +804,14 @@ mod tests {
                 "\u{179a}\u{179f}\u{1787}\u{17b6}\u{178f}\u{17b7}",
             ),
             ("រយះពេល", "រយៈពេល"),
+            ("រយះកម្ពស់", "រយៈកម្ពស់"),
+            ("រយះបណ្តោយ", "រយៈបណ្តោយ"),
+            ("រយះទទឹង", "រយៈទទឹង"),
+            ("អាការះ", "អាការៈ"),
+            ("ព្យញ្ជនះ", "ព្យញ្ជនៈ"),
+            ("តាមរយះ", "តាមរយៈ"),
+            ("សិល្បះ", "សិល្បៈ"),
+            ("ទស្សនះ", "ទស្សនៈ"),
         ] {
             let diagnostics = segmenter
                 .check_text(typed, SpellcheckProfile::Typing)
@@ -813,5 +829,17 @@ mod tests {
 
         assert_eq!(diagnostics[0].text, "សម្បត្ត");
         assert_eq!(diagnostics[0].suggestions[0].text, "សម្បត្តិ");
+    }
+
+    #[test]
+    fn dictionary_derived_reahmuk_confusion_preserves_valid_collision() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        assert!(segmenter.is_known_word("ស្រះ"));
+        assert!(segmenter.suggest_spelling("ស្រះ", 1.5, 5).is_empty());
+        assert!(segmenter
+            .check_text("ស្រះ", SpellcheckProfile::Typing)
+            .unwrap()
+            .is_empty());
     }
 }

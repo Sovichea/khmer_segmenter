@@ -142,19 +142,40 @@ def test_typing_profile_recovers_reviewed_whole_word_typos(segmenter, typed, int
 
 def test_pending_typo_pairs_do_not_affect_runtime(segmenter):
     pairs = load_approved_typo_corrections(segmenter.data_files.typo_corrections)
-    assert len(pairs) == 186
+    assert len(pairs) == 189
     assert "អោយ" not in pairs
 
 
-def test_reviewed_correction_can_be_a_multiword_expression(segmenter):
-    typed = "រយះពេល"
-    intended = "រយៈពេល"
-
+@pytest.mark.parametrize(("typed", "intended"), [
+    ("រយះពេល", "រយៈពេល"),
+    ("រយះកម្ពស់", "រយៈកម្ពស់"),
+    ("រយះបណ្តោយ", "រយៈបណ្តោយ"),
+    ("រយះទទឹង", "រយៈទទឹង"),
+])
+def test_reviewed_correction_can_be_a_multiword_expression(segmenter, typed, intended):
     assert segmenter.suggest_spelling(typed)[0].text == intended
     diagnostics = segmenter.check_text(typed, profile="typing")
     assert [(item.text, item.suggestions[0].text) for item in diagnostics] == [
         (typed, intended)
     ]
+
+
+@pytest.mark.parametrize(("typed", "intended"), [
+    ("អាការះ", "អាការៈ"),
+    ("ព្យញ្ជនះ", "ព្យញ្ជនៈ"),
+    ("តាមរយះ", "តាមរយៈ"),
+    ("សិល្បះ", "សិល្បៈ"),
+    ("ទស្សនះ", "ទស្សនៈ"),
+])
+def test_dictionary_derived_reahmuk_confusion(segmenter, typed, intended):
+    assert segmenter.suggest_spelling(typed)[0].text == intended
+    diagnostics = segmenter.check_text(typed, profile="typing")
+    assert diagnostics[0].suggestions[0].text == intended
+
+
+def test_dictionary_derived_reahmuk_confusion_preserves_valid_collision(segmenter):
+    assert segmenter.suggest_spelling("ស្រះ") == ()
+    assert segmenter.check_text("ស្រះ", profile="typing") == []
 
 
 def test_whole_word_suggestions_skip_valid_words(segmenter):

@@ -13,6 +13,8 @@ from .models import EditOperation, SpellingDiagnostic, SpellingSuggestion, Token
 
 
 _SHORT_FRAGMENT_FREQUENCY_LIMIT = 500
+_REAHMUK = "\u17c7"  # ះ
+_YUUKALEAPINTU = "\u17c8"  # ៈ
 
 # Human-reviewed, high-frequency misspellings that otherwise segment entirely
 # into valid dictionary fragments. Exact matching keeps these safe for live
@@ -284,7 +286,18 @@ class TypoDetector:
     ):
         self.words = frozenset(word for word in words if _is_lexical_khmer(word))
         self.frequencies = frequencies or {}
-        self.reviewed_typos = reviewed_typos or {}
+        # A frequent Khmer spelling confusion replaces YUUKALEAPINTU (ៈ) with
+        # REAHMUK (ះ). Derive safe exact aliases from the lexicon, but never
+        # override a typed form that is itself a valid word (for example ស្រះ).
+        generated_confusions = {
+            word.replace(_YUUKALEAPINTU, _REAHMUK): word
+            for word in self.words
+            if _YUUKALEAPINTU in word
+            and word.replace(_YUUKALEAPINTU, _REAHMUK) not in self.words
+        }
+        generated_confusions.update(reviewed_typos or {})
+        self.reviewed_typos = generated_confusions
+        self._max_exact_typo_length = max(map(len, self.reviewed_typos), default=0)
         self._exact_skeleton: dict[tuple[str, ...], list[str]] = defaultdict(list)
         self._deletion_skeleton: dict[tuple[str, ...], list[str]] = defaultdict(list)
         for word in sorted(self.words):
@@ -491,17 +504,20 @@ class TypoDetector:
         suspicious = invalid_indices | fragmentation_indices
         proposals: dict[tuple[int, int], _Proposal] = {}
 
-        # Recover reviewed whole-word errors even when every segmented fragment
-        # is a valid dictionary entry. Limit matching to token-aligned spans so
-        # an alias cannot trigger inside an unrelated longer word.
+        # Recover exact whole-word errors even when every segmented fragment is
+        # valid. Matching remains token-aligned and bounded by the longest
+        # exact alias, so long dictionary-derived forms are supported without
+        # opening the precision profile to general fuzzy scans.
         for start_index in range(len(tokens)):
             candidate_text = ""
-            for end_index in range(start_index, min(len(tokens), start_index + 4)):
+            for end_index in range(start_index, len(tokens)):
                 if not lexical[end_index]:
                     break
                 if end_index > start_index and tokens[end_index - 1].end != tokens[end_index].start:
                     break
                 candidate_text += tokens[end_index].text
+                if len(candidate_text) > self._max_exact_typo_length:
+                    break
                 intended = self.reviewed_typos.get(candidate_text)
                 # Approved corrections are human-reviewed and may intentionally
                 # be multiword expressions that are not single lexicon entries.
