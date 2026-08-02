@@ -345,11 +345,21 @@ def step_export_binary_frequencies(freq_json_path, output_bin_path):
             f.write(struct.pack('<f', cost))
     print(f"  > Binary frequencies written to {output_bin_path}")
 
-def step_compile_kdict(dict_path, freq_json_path, output_kdict):
+def step_compile_kdict(
+    dict_path,
+    freq_json_path,
+    output_kdict,
+    supplemental_path=None,
+    spellcheck_path=None,
+    supplemental_penalty=1.5,
+):
     print(f"[*] Step 4: Compiling KDict Binary...")
     
     # 1. Load Words and Generate Variants
     words = set()
+    primary_words = set()
+    supplemental_words = set()
+    protected_spelling_words = set()
     word_to_primary = {}
     with open(dict_path, 'r', encoding='utf-8') as f:
         for line in f:
@@ -364,10 +374,36 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
             if '\u17D7' in w: continue
 
             words.add(w)
+            primary_words.add(w)
             for v in sorted(generate_variants(w)):
                 if v not in words:
                     words.add(v)
                     word_to_primary[v] = w
+                primary_words.add(v)
+
+    if spellcheck_path and os.path.isfile(spellcheck_path):
+        with open(spellcheck_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                w = strip_control_chars(line.strip())
+                if not w:
+                    continue
+                protected_spelling_words.add(w)
+
+    if supplemental_path and os.path.isfile(supplemental_path):
+        with open(supplemental_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                w = strip_control_chars(line.strip())
+                if not w or w in primary_words or w in protected_spelling_words:
+                    continue
+                if len(w) == 1 or w.startswith('\u17D2') or '\u17D7' in w:
+                    continue
+                words.add(w)
+                supplemental_words.add(w)
+                for v in sorted(generate_variants(w)):
+                    if v not in primary_words and v not in protected_spelling_words:
+                        words.add(v)
+                        supplemental_words.add(v)
+                        word_to_primary.setdefault(v, w)
 
     # Python's 'ឬ' Filtering
     words_to_remove = set()
@@ -405,12 +441,21 @@ def step_compile_kdict(dict_path, freq_json_path, output_kdict):
 
     word_costs = {}
     max_bytes = 0
+    variant_penalty = 0.001
     for w in words:
         c = counts.get(w, 0)
         if c == 0 and w in word_to_primary:
             c = counts.get(word_to_primary[w], 0)
         
         cost = -math.log10(c/total_tokens) if c > 0 else default_cost
+        # Preserve generated encoding aliases for lookup while allowing
+        # spellcheck ranking to prefer the source RAC dictionary spelling.
+        if w in word_to_primary:
+            cost += variant_penalty
+        if w in supplemental_words and w not in primary_words:
+            # Supplemental observations provide boundary evidence only. They
+            # must never become cheaper than the curated frequency floor.
+            cost = default_cost + supplemental_penalty
         word_costs[w] = cost
         max_bytes = max(max_bytes, len(w.encode('utf-8')))
 

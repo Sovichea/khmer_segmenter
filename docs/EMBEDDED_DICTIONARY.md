@@ -45,9 +45,11 @@ khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 port/common/khmer_dictionary_words.txt
 ```
 
-The runtime file is `khmer_dictionary_words.txt`, a normalized UTF-8 file with
-one word per line. If a local supplemental file already exists, the sync script
-keeps its entries and merges them with the upstream headwords.
+The authoritative base is `khmer_dictionary_words.txt`, a normalized UTF-8 file
+with one word per line. If a local supplemental file already exists, the sync
+step decomposes phrase-like entries into conservative chunks and records an
+audit. Python loads the two layers separately so supplemental entries receive a
+penalty and remain invalid for spelling.
 
 Verify Python segmentation before compiling native data:
 
@@ -72,6 +74,8 @@ Explicit paths are also supported:
 ```bash
 python scripts/build_dictionary_kdict.py \
   --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt \
+  --supplemental khmer_segmenter/dictionary_data/khmer_dictionary_supplemental_words.txt \
+  --spellcheck khmer_segmenter/dictionary_data/khmer_spellcheck_words.txt \
   --freq khmer_segmenter/dictionary_data/khmer_word_frequencies.json \
   --output port/common/khmer_dictionary.kdict
 ```
@@ -82,8 +86,10 @@ The output is:
 port/common/khmer_dictionary.kdict
 ```
 
-The compiled file includes word costs, so C and Rust do not need a separate
-frequency file when loading `khmer_dictionary.kdict`.
+The compiled file includes word costs and the supplemental penalty, so C and
+Rust do not need a separate frequency file when loading
+`khmer_dictionary.kdict`. Rust spelling and completion use the synchronized
+curated spelling list, not every KDIC segmentation entry.
 
 ## 4. Rebuild frequencies from a local corpus
 

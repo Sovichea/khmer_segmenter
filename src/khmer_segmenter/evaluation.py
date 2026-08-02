@@ -6,6 +6,7 @@ import json
 import hashlib
 import urllib.request
 import zipfile
+from collections import defaultdict
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -18,6 +19,7 @@ KHPOS_MARKERS = str.maketrans("", "", "_~^")
 KHMER_ALT_URL = "https://zenodo.org/records/3937914/files/km-nova.zip?download=1"
 KHMER_ALT_MEMBER = "km-nova/data_km.km-tok.nova"
 DERIVED_SPLITS = {"train", "dev", "test", "all"}
+CURATED_SPLITS = {"dev", "test", "all"}
 
 
 def derived_split(dataset: str, source_id: str) -> str:
@@ -107,9 +109,7 @@ def parse_khmer_alt_lines(lines: Iterable[str], split: str = "train") -> Iterato
         try:
             source_id, tokenized_text = line.split("\t", 1)
         except ValueError as exc:
-            raise ValueError(
-                f"Invalid Khmer ALT record on source line {line_number}"
-            ) from exc
+            raise ValueError(f"Invalid Khmer ALT record on source line {line_number}") from exc
         tokens = tokenized_text.split()
         assigned_split = derived_split("khmer_alt_pos", source_id)
         if split != "all" and assigned_split != split:
@@ -146,6 +146,54 @@ def load_khmer_alt(
             yield from parse_khmer_alt_lines(lines, split=split)
 
 
+def parse_curated_jsonl(lines: Iterable[str], split: str = "all") -> Iterator[dict]:
+    """Parse the project-owned, human-reviewed benchmark JSONL format."""
+
+    if split not in CURATED_SPLITS:
+        raise ValueError(f"Unknown curated split {split!r}; use dev, test, or all")
+    seen_ids: set[str] = set()
+    for line_number, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        required = {"id", "split", "text", "tokens", "category", "source", "review"}
+        missing = required - record.keys()
+        if missing:
+            raise ValueError(f"Curated record on line {line_number} is missing: {sorted(missing)}")
+        record_id = str(record["id"])
+        if record_id in seen_ids:
+            raise ValueError(f"Duplicate curated record id: {record_id}")
+        seen_ids.add(record_id)
+        record_split = record["split"]
+        if record_split not in {"dev", "test"}:
+            raise ValueError(f"Invalid curated split on line {line_number}: {record_split!r}")
+        if "".join(record["tokens"]) != record["text"]:
+            raise ValueError(f"Tokens do not reconstruct text for curated record {record_id}")
+        if record["review"].get("status") != "approved":
+            continue
+        if split != "all" and record_split != split:
+            continue
+        yield {
+            **record,
+            "dataset": "khmer_segmenter_curated",
+            "metadata": {
+                "category": record["category"],
+                "source": record["source"],
+                "review": record["review"],
+            },
+        }
+
+
+def load_curated_benchmark(
+    path: str | Path,
+    split: str = "all",
+) -> Iterator[dict]:
+    """Load the redistribution-cleared benchmark maintained by this project."""
+
+    with Path(path).open(encoding="utf-8-sig") as handle:
+        yield from parse_curated_jsonl(handle, split=split)
+
+
 def boundary_offsets(tokens: Iterable[str]) -> set[int]:
     """Return code-point offsets after every token except the final token."""
     token_list = list(tokens)
@@ -172,6 +220,9 @@ def evaluate_records(segmenter, records: Iterable[dict], limit: int | None = Non
     count = 0
     dataset_name = None
     split_name = None
+    category_counts: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"correct": 0, "predicted": 0, "gold": 0, "exact": 0, "sentences": 0}
+    )
 
     for record in records:
         if limit is not None and count >= limit:
@@ -203,9 +254,19 @@ def evaluate_records(segmenter, records: Iterable[dict], limit: int | None = Non
         gold_total += len(gold_boundaries)
         is_exact = not missing and not extra
         exact += int(is_exact)
+        category = record.get("category") or record.get("metadata", {}).get(
+            "category", "uncategorized"
+        )
+        category_row = category_counts[category]
+        category_row["correct"] += len(matched)
+        category_row["predicted"] += len(predicted_boundaries)
+        category_row["gold"] += len(gold_boundaries)
+        category_row["exact"] += int(is_exact)
+        category_row["sentences"] += 1
 
         unknown_tokens = [
-            token for token in predicted_tokens
+            token
+            for token in predicted_tokens
             if token not in segmenter.words
             and not segmenter._is_digit(token)
             and not segmenter._is_separator(token)
@@ -214,20 +275,38 @@ def evaluate_records(segmenter, records: Iterable[dict], limit: int | None = Non
         token_total += len(predicted_tokens)
 
         if not is_exact:
-            errors.append({
-                "id": record["id"],
-                "text": text,
-                "gold_tokens": gold_tokens,
-                "pred_tokens": predicted_tokens,
-                "missing_boundaries": missing,
-                "extra_boundaries": extra,
-                "unknown_tokens": unknown_tokens,
-            })
+            errors.append(
+                {
+                    "id": record["id"],
+                    "text": text,
+                    "gold_tokens": gold_tokens,
+                    "pred_tokens": predicted_tokens,
+                    "missing_boundaries": missing,
+                    "extra_boundaries": extra,
+                    "unknown_tokens": unknown_tokens,
+                }
+            )
         count += 1
 
     precision = safe_ratio(correct, predicted_total)
     recall = safe_ratio(correct, gold_total)
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    categories = {}
+    for category, values in sorted(category_counts.items()):
+        category_precision = safe_ratio(values["correct"], values["predicted"])
+        category_recall = safe_ratio(values["correct"], values["gold"])
+        category_f1 = (
+            2 * category_precision * category_recall / (category_precision + category_recall)
+            if category_precision + category_recall
+            else 0.0
+        )
+        categories[category] = {
+            "num_sentences": values["sentences"],
+            "boundary_precision": category_precision,
+            "boundary_recall": category_recall,
+            "boundary_f1": category_f1,
+            "exact_sentence_match": safe_ratio(values["exact"], values["sentences"]),
+        }
     return {
         "summary": {
             "dataset": dataset_name or "khpos",
@@ -241,6 +320,7 @@ def evaluate_records(segmenter, records: Iterable[dict], limit: int | None = Non
             "avg_latency_ms": safe_ratio(int(latency_seconds * 1_000_000), count) / 1000,
             "total_latency_seconds": latency_seconds,
         },
+        "categories": categories,
         "errors": errors,
     }
 
@@ -248,6 +328,4 @@ def evaluate_records(segmenter, records: Iterable[dict], limit: int | None = Non
 def write_report(report: dict, output: str | Path) -> None:
     destination = Path(output)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    destination.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

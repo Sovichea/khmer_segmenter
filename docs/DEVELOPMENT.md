@@ -41,8 +41,16 @@ Pin input datasets and artifacts when reproducible output matters.
 
 ## Incrementally add dictionary words
 
-After reviewing a candidate, add it to the appropriate supplemental source and
-run:
+After reviewing a candidate, add it to the supplemental source. Do not copy a
+long phrase directly into the runtime list; rebuild conservative chunks and
+inspect the audit first:
+
+```bash
+python scripts/prepare_supplemental_lexicon.py path/to/reviewed_words.txt \
+  --audit build/supplemental_audit.tsv
+```
+
+Then update experimental frequencies when appropriate:
 
 ```bash
 python scripts/incremental_update.py \

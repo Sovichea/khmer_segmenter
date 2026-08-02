@@ -1,5 +1,8 @@
+#[cfg(not(target_arch = "wasm32"))]
 use memmap2::Mmap;
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs::File;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
 
 #[repr(C, packed)]
@@ -141,6 +144,30 @@ impl KDict {
             }
             index = (index + 1) & self.table_mask;
         }
+    }
+
+    pub fn default_cost(&self) -> f32 {
+        unsafe { (*self.header).default_cost }
+    }
+
+    /// Copy all dictionary entries into safe Rust values.
+    ///
+    /// This is primarily used to build secondary indexes such as spellcheck
+    /// candidate maps. Segmentation continues to query the compact KDIC hash
+    /// table directly.
+    pub fn words_with_costs(&self) -> Vec<(String, f32)> {
+        let table_size = unsafe { (*self.header).table_size as usize };
+        let mut words = Vec::with_capacity(unsafe { (*self.header).num_entries as usize });
+        for index in 0..table_size {
+            let entry = unsafe { &*self.table.add(index) };
+            if entry.name_offset == 0 {
+                continue;
+            }
+            if let Ok(word) = std::str::from_utf8(self.get_pool_bytes(entry.name_offset)) {
+                words.push((word.to_owned(), entry.cost));
+            }
+        }
+        words
     }
 }
 

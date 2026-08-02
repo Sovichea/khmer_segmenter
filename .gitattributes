@@ -1,0 +1,6 @@
+src/khmer_segmenter/dictionary_data/*.txt text eol=lf
+src/khmer_segmenter/dictionary_data/*.json text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf

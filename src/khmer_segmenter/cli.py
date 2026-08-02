@@ -20,6 +20,7 @@ from .data import (
     candidate_data_dirs,
 )
 from .hyphenation import KhmerHyphenator
+from .models import SpellcheckProfile
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
 
@@ -46,9 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     segment = commands.add_parser("segment", help="segment text into tokens")
     _add_text_input(segment)
-    segment.add_argument(
-        "--format", choices=("plain", "json", "jsonl"), default="plain"
-    )
+    segment.add_argument("--format", choices=("plain", "json", "jsonl"), default="plain")
     segment.add_argument("--delimiter", default=" | ", help="plain-output delimiter")
     segment.add_argument("--no-normalize", action="store_true")
 
@@ -58,6 +57,35 @@ def build_parser() -> argparse.ArgumentParser:
     _add_text_input(analyze)
     analyze.add_argument("--format", choices=("json", "jsonl"), default="json")
     analyze.add_argument("--no-normalize", action="store_true")
+
+    spellcheck = commands.add_parser(
+        "spellcheck", help="check words against the curated RAC spelling lexicon"
+    )
+    _add_text_input(spellcheck)
+    spellcheck.add_argument("--format", choices=("plain", "json", "jsonl"), default="plain")
+    spellcheck.add_argument("--no-normalize", action="store_true")
+
+    diagnose = commands.add_parser(
+        "diagnose", help="find probable Khmer typos and return whole-span suggestions"
+    )
+    _add_text_input(diagnose)
+    diagnose.add_argument("--format", choices=("json", "jsonl"), default="json")
+    diagnose.add_argument("--no-normalize", action="store_true")
+    diagnose.add_argument(
+        "--profile",
+        choices=tuple(profile.value for profile in SpellcheckProfile),
+        default=SpellcheckProfile.TYPING.value,
+        help="typing (default), document, or experimental high-recall checking",
+    )
+    diagnose.add_argument("--max-edit-cost", type=float)
+    diagnose.add_argument("--max-suggestions", type=int)
+    diagnose.add_argument("--min-confidence", type=float)
+    diagnose.add_argument(
+        "--include-valid-fragments",
+        action="store_true",
+        default=None,
+        help="legacy alias for high-recall fragment inspection",
+    )
 
     hyphenate = commands.add_parser(
         "hyphenate", help="apply locally generated safe break opportunities"
@@ -157,9 +185,7 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
 
     if args.command == "benchmark":
         lines = [
-            line
-            for line in args.input.read_text(encoding="utf-8-sig").splitlines()
-            if line.strip()
+            line for line in args.input.read_text(encoding="utf-8-sig").splitlines() if line.strip()
         ]
         if args.limit >= 0:
             lines = lines[: args.limit]
@@ -203,12 +229,47 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         _write(_serialize_records(records, args.format), args.output)
         return 0
 
+    if args.command == "spellcheck":
+        words = [word for text in texts for word in text.split()]
+        records = segmenter.check_spelling(words, normalize=not args.no_normalize)
+        if args.format == "plain":
+            rendered = "\n".join(
+                f"{'valid' if record['valid'] else 'invalid'}\t{record['word']}"
+                for record in records
+            )
+        else:
+            rendered = _serialize_records(records, args.format)
+        _write(rendered, args.output)
+        return 0
+
+    if args.command == "diagnose":
+        records = [
+            {
+                "text": text,
+                "profile": args.profile,
+                "diagnostics": [
+                    diagnostic.to_dict()
+                    for diagnostic in segmenter.detect_typos(
+                        text,
+                        profile=args.profile,
+                        normalize=not args.no_normalize,
+                        max_edit_cost=args.max_edit_cost,
+                        max_suggestions=args.max_suggestions,
+                        include_valid_fragments=args.include_valid_fragments,
+                        min_confidence=args.min_confidence,
+                    )
+                ],
+            }
+            for text in texts
+        ]
+        _write(_serialize_records(records, args.format), args.output)
+        return 0
+
     if args.command == "hyphenate":
         hyphenator = KhmerHyphenator.from_data_dir(args.data_dir)
         separator = "-" if args.visible_hyphen else args.separator
         rendered = "\n".join(
-            hyphenator.hyphenate(text, segmenter=segmenter, separator=separator)
-            for text in texts
+            hyphenator.hyphenate(text, segmenter=segmenter, separator=separator) for text in texts
         )
         _write(rendered, args.output)
         return 0

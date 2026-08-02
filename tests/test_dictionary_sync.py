@@ -3,9 +3,34 @@ import unittest
 from pathlib import Path
 
 from scripts.sync_rac_dictionary import read_words
+from scripts.sync_typo_corrections import (
+    DEFAULT_RUST_DESTINATION,
+    DEFAULT_SOURCE,
+    validate,
+)
 
 
 class DictionarySyncTests(unittest.TestCase):
+    def test_typo_correction_data_is_valid_and_synchronized(self):
+        self.assertEqual(validate(DEFAULT_SOURCE), {
+            "approved": 166,
+            "pending": 8,
+            "rejected": 0,
+        })
+        self.assertEqual(DEFAULT_SOURCE.read_bytes(), DEFAULT_RUST_DESTINATION.read_bytes())
+
+    def test_curated_spellcheck_vocabulary_is_synchronized_with_rust(self):
+        root = Path(__file__).resolve().parents[1]
+        python_words = (
+            root
+            / "src"
+            / "khmer_segmenter"
+            / "dictionary_data"
+            / "khmer_spellcheck_words.txt"
+        )
+        rust_words = root / "port" / "rust" / "data" / "khmer_spellcheck_words.txt"
+        self.assertEqual(python_words.read_bytes(), rust_words.read_bytes())
+
     def test_reads_first_tsv_column_and_normalizes(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "words.tsv"

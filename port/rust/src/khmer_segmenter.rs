@@ -3,10 +3,15 @@ use crate::normalization::{
     khmer_normalize, khmer_normalize_mapped, MappedNormalization, NormalizedUnit,
 };
 use crate::rule_engine::RuleEngine;
+use crate::spelling::{
+    SpellcheckConfig, SpellcheckProfile, SpellingDiagnostic, SpellingSuggestion, TypoDetector,
+};
 use crate::utils;
 use std::fmt;
 use std::ops::Range;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
+use std::sync::OnceLock;
 // For handling null-terminated strings in KDict (Removed CStr)
 
 #[derive(Clone)]
@@ -40,6 +45,7 @@ impl Default for SegmenterConfig {
 
 pub struct KhmerSegmenter {
     kdict: Option<KDict>,
+    typo_detector: OnceLock<TypoDetector>,
     rule_engine: RuleEngine,
     config: SegmenterConfig,
 }
@@ -129,27 +135,17 @@ impl KhmerSegmenter {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn from_path(path: impl AsRef<Path>, config: SegmenterConfig) -> std::io::Result<Self> {
-        let kdict = {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                Some(KDict::load(path)?)
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                let _ = path;
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Unsupported,
-                    "File loading is not supported on WASM",
-                ));
-            }
-        };
+        Ok(Self::new_with_dict(Some(KDict::load(path)?), config))
+    }
 
-        Ok(Self {
-            kdict,
-            rule_engine: RuleEngine::new(),
-            config,
-        })
+    #[cfg(target_arch = "wasm32")]
+    pub fn from_path(_path: impl AsRef<str>, _config: SegmenterConfig) -> std::io::Result<Self> {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "File loading is not supported on WASM; use from_bytes",
+        ))
     }
 
     pub fn from_bytes(bytes: impl Into<Vec<u8>>, config: SegmenterConfig) -> std::io::Result<Self> {
@@ -162,6 +158,7 @@ impl KhmerSegmenter {
     pub fn new_with_dict(kdict: Option<KDict>, config: SegmenterConfig) -> Self {
         Self {
             kdict,
+            typo_detector: OnceLock::new(),
             rule_engine: RuleEngine::new(),
             config,
         }
@@ -515,6 +512,90 @@ impl KhmerSegmenter {
         }
     }
 
+    pub fn is_known_word(&self, word: &str) -> bool {
+        self.is_dictionary_word(word)
+            || self
+                .typo_detector()
+                .is_some_and(|detector| detector.is_word(word))
+    }
+
+    pub fn suggest_spelling(
+        &self,
+        word: &str,
+        max_edit_cost: f32,
+        max_suggestions: usize,
+    ) -> Vec<SpellingSuggestion> {
+        self.typo_detector()
+            .map(|detector| detector.suggest_word(word, max_edit_cost, max_suggestions))
+            .unwrap_or_default()
+    }
+
+    /// Suggest dictionary words beginning with the supplied prefix.
+    pub fn complete_word(&self, prefix: &str, max_suggestions: usize) -> Vec<SpellingSuggestion> {
+        self.typo_detector()
+            .map(|detector| detector.complete_prefix(prefix, max_suggestions))
+            .unwrap_or_default()
+    }
+
+    pub fn detect_typos(
+        &self,
+        raw_text: &str,
+        max_edit_cost: f32,
+        max_suggestions: usize,
+        include_valid_fragments: bool,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        self.check_text_with_config(
+            raw_text,
+            SpellcheckConfig::new(
+                max_edit_cost,
+                max_suggestions,
+                1,
+                include_valid_fragments,
+                0.0,
+            ),
+        )
+    }
+
+    /// Check continuous Khmer text with stable integration-oriented defaults.
+    pub fn check_text(
+        &self,
+        raw_text: &str,
+        profile: SpellcheckProfile,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        self.check_text_with_config(raw_text, profile.config())
+    }
+
+    /// Advanced spellcheck entry point for applications that need custom tuning.
+    pub fn check_text_with_config(
+        &self,
+        raw_text: &str,
+        config: SpellcheckConfig,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        let segmentation = self.segment_detailed(raw_text)?;
+        Ok(self
+            .typo_detector()
+            .map(|detector| {
+                detector.detect(
+                    &segmentation,
+                    config.max_edit_cost,
+                    config.max_suggestions,
+                    config.context_tokens,
+                    config.include_valid_fragments,
+                )
+            })
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|diagnostic| diagnostic.confidence >= config.min_confidence)
+            .collect())
+    }
+
+    fn typo_detector(&self) -> Option<&TypoDetector> {
+        self.kdict.as_ref().map(|dictionary| {
+            self.typo_detector
+                .get_or_init(|| TypoDetector::from_kdict(dictionary))
+        })
+    }
+
     fn refine_segments_for_short_length(
         &self,
         text: &str,
@@ -642,10 +723,10 @@ mod tests {
     fn long_segmentation_preserves_current_long_dictionary_tokens() {
         let segmenter = segmenter(SegmentationLength::Long);
 
-        assert_eq!(tokens(&segmenter, "ភាសាខ្មែរ"), vec!["ភាសាខ្មែរ"]);
-        assert_eq!(tokens(&segmenter, "ភាសាផ្លូវការ"), vec!["ភាសាផ្លូវការ"]);
+        assert_eq!(tokens(&segmenter, "ភាសាខ្មែរ"), vec!["ភាសា", "ខ្មែរ"]);
+        assert_eq!(tokens(&segmenter, "ភាសាផ្លូវការ"), vec!["ភាសា", "ផ្លូវ", "ការ"]);
         assert_eq!(tokens(&segmenter, "ប្រើប្រាស់"), vec!["ប្រើប្រាស់"]);
-        assert_eq!(tokens(&segmenter, "ប្រចាំថ្ងៃ"), vec!["ប្រចាំថ្ងៃ"]);
+        assert_eq!(tokens(&segmenter, "ប្រចាំថ្ងៃ"), vec!["ប្រចាំ", "ថ្ងៃ"]);
     }
 
     #[test]
@@ -667,5 +748,165 @@ mod tests {
         assert!(!tokens(&segmenter, "ភាសាផ្លូវការ")
             .iter()
             .any(|token| token == "រ" || token == "វ"));
+    }
+
+    #[test]
+    fn spelling_suggestions_recover_reviewed_typos() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        for (typed, intended) in [
+            ("សួរស្តី", "សួស្ដី"),
+            ("ជម្រុញ", "ជំរុញ"),
+            ("ប្រហេស", "ប្រហែស"),
+            ("សសេរ", "សរសេរ"),
+            ("រស់ជាតិ", "រសជាតិ"),
+            ("សុិ", "ស៊ី"),
+            ("សុម", "សូម"),
+            ("រយះពេល", "រយៈពេល"),
+            ("រយះកម្ពស់", "រយៈកម្ពស់"),
+            ("រយះបណ្តោយ", "រយៈបណ្តោយ"),
+            ("រយះទទឹង", "រយៈទទឹង"),
+            ("អាការះ", "អាការៈ"),
+            ("ព្យញ្ជនះ", "ព្យញ្ជនៈ"),
+            ("តាមរយះ", "តាមរយៈ"),
+            ("សិល្បះ", "សិល្បៈ"),
+            ("ទស្សនះ", "ទស្សនៈ"),
+        ] {
+            let suggestions = segmenter.suggest_spelling(typed, 1.5, 5);
+            assert_eq!(
+                suggestions.first().map(|item| item.text.as_str()),
+                Some(intended)
+            );
+        }
+    }
+
+    #[test]
+    fn typing_profile_recovers_reviewed_valid_fragment_typos() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        for (typed, intended) in [
+            (
+                "\u{179f}\u{17bd}\u{179a}\u{179f}\u{17d2}\u{178f}\u{17b8}",
+                "\u{179f}\u{17bd}\u{179f}\u{17d2}\u{178a}\u{17b8}",
+            ),
+            (
+                "\u{1787}\u{1798}\u{17d2}\u{179a}\u{17bb}\u{1789}",
+                "\u{1787}\u{17c6}\u{179a}\u{17bb}\u{1789}",
+            ),
+            (
+                "\u{1794}\u{17d2}\u{179a}\u{17a0}\u{17c1}\u{179f}",
+                "\u{1794}\u{17d2}\u{179a}\u{17a0}\u{17c2}\u{179f}",
+            ),
+            (
+                "\u{179f}\u{179f}\u{17c1}\u{179a}",
+                "\u{179f}\u{179a}\u{179f}\u{17c1}\u{179a}",
+            ),
+            (
+                "\u{179a}\u{179f}\u{17cb}\u{1787}\u{17b6}\u{178f}\u{17b7}",
+                "\u{179a}\u{179f}\u{1787}\u{17b6}\u{178f}\u{17b7}",
+            ),
+            ("រយះពេល", "រយៈពេល"),
+            ("រយះកម្ពស់", "រយៈកម្ពស់"),
+            ("រយះបណ្តោយ", "រយៈបណ្តោយ"),
+            ("រយះទទឹង", "រយៈទទឹង"),
+            ("អាការះ", "អាការៈ"),
+            ("ព្យញ្ជនះ", "ព្យញ្ជនៈ"),
+            ("តាមរយះ", "តាមរយៈ"),
+            ("សិល្បះ", "សិល្បៈ"),
+            ("ទស្សនះ", "ទស្សនៈ"),
+        ] {
+            let diagnostics = segmenter
+                .check_text(typed, SpellcheckProfile::Typing)
+                .unwrap();
+            assert_eq!(diagnostics.len(), 1, "{typed}");
+            assert_eq!(diagnostics[0].text, typed);
+            assert_eq!(diagnostics[0].suggestions[0].text, intended);
+        }
+    }
+
+    #[test]
+    fn typo_diagnostic_can_cover_fragmented_word() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        let diagnostics = segmenter.detect_typos("សម្បត្ត", 0.75, 5, true).unwrap();
+
+        assert_eq!(diagnostics[0].text, "សម្បត្ត");
+        assert_eq!(diagnostics[0].suggestions[0].text, "សម្បត្តិ");
+    }
+
+    #[test]
+    fn dictionary_derived_reahmuk_confusion_preserves_valid_collision() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        assert!(segmenter.is_known_word("ស្រះ"));
+        assert!(segmenter.suggest_spelling("ស្រះ", 1.5, 5).is_empty());
+        assert!(segmenter
+            .check_text("ស្រះ", SpellcheckProfile::Typing)
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn dictionary_derived_visual_confusions_work_in_typing_profile() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for (typed, intended) in [
+            ("ជូយ", "ជួយ"),
+            ("ស្ថានការណ៏", "ស្ថានការណ៍"),
+            ("បញ្ជូល", "បញ្ចូល"),
+            ("អញ្ចើញ", "អញ្ជើញ"),
+        ] {
+            let diagnostics = segmenter
+                .check_text(typed, SpellcheckProfile::Typing)
+                .unwrap();
+            assert_eq!(diagnostics.len(), 1, "{typed}");
+            assert_eq!(diagnostics[0].confidence, 0.99);
+            assert_eq!(diagnostics[0].suggestions[0].text, intended);
+        }
+    }
+
+    #[test]
+    fn dictionary_derived_vowel_confusion_preserves_valid_words() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for word in ["ជូរ", "ជួរ"] {
+            assert!(segmenter.is_known_word(word));
+            assert!(segmenter.suggest_spelling(word, 1.5, 5).is_empty());
+            assert!(segmenter
+                .check_text(word, SpellcheckProfile::Typing)
+                .unwrap()
+                .is_empty());
+        }
+    }
+
+    #[test]
+    fn dictionary_derived_extra_final_ro_works_in_typing_profile() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for (typed, intended) in [
+            ("ស្មើរ", "ស្មើ"),
+            ("ថវិការ", "ថវិកា"),
+            ("វិញ្ញាសារ", "វិញ្ញាសា"),
+            ("សិក្សារ", "សិក្សា"),
+            ("កីឡារ", "កីឡា"),
+        ] {
+            let diagnostics = segmenter
+                .check_text(typed, SpellcheckProfile::Typing)
+                .unwrap();
+            assert_eq!(diagnostics.len(), 1, "{typed}");
+            assert_eq!(diagnostics[0].confidence, 0.99);
+            assert_eq!(diagnostics[0].suggestions[0].text, intended);
+        }
+    }
+
+    #[test]
+    fn contextual_confusion_rules_preserve_valid_words() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for word in ["បញ្ជា", "បញ្ចា", "កា", "ការ"] {
+            assert!(segmenter.is_known_word(word));
+            assert!(segmenter.suggest_spelling(word, 1.5, 5).is_empty());
+            assert!(segmenter
+                .check_text(word, SpellcheckProfile::Typing)
+                .unwrap()
+                .is_empty());
+        }
     }
 }

@@ -1,11 +1,163 @@
 use rayon::prelude::*;
 use std::env;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::time::Instant;
 
 use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmentationLength, SegmenterConfig};
+use khmer_segmenter::SpellcheckProfile;
+
+fn default_dictionary_path() -> Option<&'static str> {
+    [
+        "khmer_dictionary.kdict",
+        "../../port/common/khmer_dictionary.kdict",
+        "../common/khmer_dictionary.kdict",
+        "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_dictionary.kdict",
+    ]
+    .into_iter()
+    .find(|path| Path::new(path).exists())
+}
+
+fn run_diagnose(args: &[String]) -> io::Result<()> {
+    let mut profile = SpellcheckProfile::Typing;
+    let mut dictionary: Option<String> = None;
+    let mut input: Option<String> = None;
+    let mut format = "json";
+    let mut text_parts = Vec::new();
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--profile" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "--profile requires a value")
+                })?;
+                profile = value
+                    .parse()
+                    .map_err(|error: String| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            }
+            "--dictionary" | "--data" => {
+                index += 1;
+                dictionary = Some(
+                    args.get(index)
+                        .ok_or_else(|| {
+                            io::Error::new(
+                                io::ErrorKind::InvalidInput,
+                                "--dictionary requires a path",
+                            )
+                        })?
+                        .clone(),
+                );
+            }
+            "--input" | "-i" => {
+                index += 1;
+                input = Some(
+                    args.get(index)
+                        .ok_or_else(|| {
+                            io::Error::new(io::ErrorKind::InvalidInput, "--input requires a path")
+                        })?
+                        .clone(),
+                );
+            }
+            "--format" => {
+                index += 1;
+                format = args.get(index).map(String::as_str).ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "--format requires a value")
+                })?;
+                if !matches!(format, "json" | "jsonl" | "plain") {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "--format must be json, jsonl, or plain",
+                    ));
+                }
+            }
+            value if value.starts_with('-') => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("unknown diagnose option: {value}"),
+                ));
+            }
+            value => text_parts.push(value.to_owned()),
+        }
+        index += 1;
+    }
+
+    if input.is_some() && !text_parts.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "provide text or --input, not both",
+        ));
+    }
+    let text = if let Some(path) = input {
+        std::fs::read_to_string(path)?
+    } else if !text_parts.is_empty() {
+        text_parts.join(" ")
+    } else {
+        let mut value = String::new();
+        io::stdin().read_to_string(&mut value)?;
+        value
+    };
+    let dictionary = dictionary.or_else(|| default_dictionary_path().map(str::to_owned));
+    let segmenter = KhmerSegmenter::new(dictionary.as_deref(), SegmenterConfig::default())
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+    let diagnostics = segmenter
+        .check_text(&text, profile)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+
+    if format == "plain" {
+        for diagnostic in diagnostics {
+            let suggestion = diagnostic
+                .suggestions
+                .first()
+                .map(|item| item.text.as_str())
+                .unwrap_or("");
+            println!(
+                "{}\t{}\t{}\t{:.3}\t{}",
+                diagnostic.range.start,
+                diagnostic.range.end,
+                diagnostic.text,
+                diagnostic.confidence,
+                suggestion
+            );
+        }
+        return Ok(());
+    }
+
+    let diagnostics: Vec<_> = diagnostics
+        .into_iter()
+        .map(|diagnostic| {
+            serde_json::json!({
+                "text": diagnostic.text,
+                "start": diagnostic.range.start,
+                "end": diagnostic.range.end,
+                "kind": diagnostic.kind,
+                "confidence": diagnostic.confidence,
+                "suggestions": diagnostic.suggestions.into_iter().map(|suggestion| {
+                    serde_json::json!({
+                        "text": suggestion.text,
+                        "edit_cost": suggestion.edit_cost,
+                    })
+                }).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    let record = serde_json::json!({
+        "text": text,
+        "profile": profile.as_str(),
+        "diagnostics": diagnostics,
+    });
+    if format == "jsonl" {
+        println!("{record}");
+    } else {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&record)
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?
+        );
+    }
+    Ok(())
+}
 
 #[cfg(target_os = "linux")]
 fn get_memory_mb() -> f64 {
@@ -47,6 +199,9 @@ fn main() -> io::Result<()> {
     let mut test_hyphenation_word: Option<String> = None;
 
     let args: Vec<String> = env::args().collect();
+    if args.get(1).map(String::as_str) == Some("diagnose") {
+        return run_diagnose(&args[2..]);
+    }
     let mut i = 1;
     while i < args.len() {
         let arg = &args[i];
@@ -481,6 +636,8 @@ fn main() -> io::Result<()> {
         println!("  --short           Alias for --segmentation-length short");
         println!("  --test-hyphenation <word> Test lookup in khmer_hyphenation.kdict");
         println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
+        println!("  diagnose [--profile typing|document|high-recall] <text>");
+        println!("                    Return spellcheck diagnostics as JSON");
         println!("  <text>            Process raw text");
     }
 

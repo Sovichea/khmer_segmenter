@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Sovichea/khmer_segmenter/benchmarks/curated/schema.json",
+  "title": "Khmer Segmenter curated benchmark record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "split", "text", "tokens", "category", "source", "review"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "split": {"enum": ["dev", "test"]},
+    "text": {"type": "string", "minLength": 1},
+    "tokens": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "category": {"type": "string", "minLength": 1},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "url", "license", "attribution"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "minLength": 1},
+        "license": {"type": "string", "minLength": 1},
+        "attribution": {"type": "string", "minLength": 1}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "primary", "adjudication_notes"],
+      "properties": {
+        "status": {"enum": ["draft", "approved", "rejected"]},
+        "primary": {"type": "string", "minLength": 1},
+        "secondary": {"type": ["string", "null"]},
+        "adjudication_notes": {"type": "string"}
+      }
+    }
+  }
+}
+

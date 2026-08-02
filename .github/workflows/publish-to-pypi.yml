@@ -33,6 +33,9 @@ jobs:
       - name: Audit bundled linguistic data
         run: python scripts/check_distribution.py dist/*
 
+      - name: Validate bundled RAC model
+        run: python scripts/validate_findings.py --bundled-only
+
       - name: Store distribution artifacts
         uses: actions/upload-artifact@v4
         with:

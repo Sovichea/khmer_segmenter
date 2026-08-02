@@ -8,11 +8,14 @@ main README.
 - [Project overview and quick start](../README.md)
 - [Design philosophy](DESIGN_PHILOSOPHY.md)
 - [Data sources, attribution, and provenance](DATA.md)
+- [RAC-only model rebuild](RAC_REBUILD.md)
+- [Migration from 0.1.1 to 0.2](MIGRATION_0_2.md)
 - [PyPI release guide](PYPI_RELEASE.md)
 
 ## Use and evaluate
 
-- [Evaluation guide](EVALUATION.md): gold datasets, splits, metrics, and commands
+- [Evaluation guide](EVALUATION.md): curated gate, legacy diagnostics, metrics, and commands
+- [Typo detection](TYPO_DETECTION.md): whole-span diagnostics, suggestions, and edit scripts
 - [Benchmark results](BENCHMARKS.md): accuracy and runtime measurements
 - [Development workflows](DEVELOPMENT.md): tests, corpus preparation,
   frequencies, dictionaries, and unknown-word review

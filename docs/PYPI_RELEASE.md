@@ -27,7 +27,8 @@ git check-ignore port/common/khmer_dictionary.kdict
 
 ```bash
 python -m pip install -e .
-python -m unittest discover -s tests -q
+python -m pytest -q
+python scripts/validate_findings.py --bundled-only
 khmer-segment --help
 khmer-segment data sources
 ```
@@ -45,9 +46,10 @@ python -m twine check dist/*
 python scripts/check_distribution.py dist/*
 ```
 
-The audit permits exactly four attributed runtime files in the package data
-directory. It rejects corpora, native binaries, provenance, backups, and any
-other linguistic artifacts. Do not publish if it reports a prohibited member.
+The audit permits only the attributed runtime model, its reproducibility
+manifest, and the preserved experimental hyphenation asset in the package data
+directory. It rejects source corpora, native binaries, audit outputs, backups,
+and other linguistic artifacts. Do not publish if it reports a prohibited member.
 
 ## 4. Test the wheel outside the repository
 
@@ -62,7 +64,8 @@ python -m venv /tmp/khmer-segmenter-wheel-test
 
 On Windows, use a normal directory such as
 `$env:TEMP\khmer-segmenter-wheel-test` and its `Scripts` folder. The dictionary,
-frequencies, lexical POS data, and hyphenation pairs must report as available.
+frequencies, spellcheck lexicon, model manifest, lexical POS data, and
+hyphenation pairs must report as available.
 Run a real segmentation command to confirm direct use after installation.
 
 ## 5. TestPyPI and PyPI
@@ -78,7 +81,7 @@ PyPI environment: pypi
 
 After committing and pushing the workflow, open **GitHub Actions → Publish
 Python package → Run workflow**. A manual run builds, validates, and publishes
-version `0.1.0` to TestPyPI.
+version `0.2.0rc1` to TestPyPI.
 
 Test installation from TestPyPI before publishing a production release:
 
@@ -86,13 +89,15 @@ Test installation from TestPyPI before publishing a production release:
 python -m pip install \
   --index-url https://test.pypi.org/simple/ \
   --no-deps \
-  khmer-viterbi-segmenter==0.1.0
+  khmer-viterbi-segmenter==0.2.0rc1
 ```
 
-Create and publish a GitHub Release for tag `v0.1.0` only after the TestPyPI
-check succeeds. The release event rebuilds from the tagged commit, reruns the
-metadata and data audits, and publishes to production PyPI. Configure required
-reviewers on the `pypi` GitHub environment for manual production approval.
+Do not publish the release candidate to production PyPI until the 300-sentence
+curated benchmark is approved and its stable gate passes. Then create the
+corresponding GitHub Release tag; the release event rebuilds from that commit,
+reruns the metadata and data audits, and publishes through trusted publishing.
+Configure required reviewers on the `pypi` GitHub environment for manual
+production approval.
 
 Before the first public release, review old Git history separately. Clean wheel
 contents do not remove restricted artifacts from historical commits.
