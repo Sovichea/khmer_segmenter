@@ -50,6 +50,24 @@ The standalone Rust CLI provides the same compiler:
 khmer_segmenter data compile custom.klex.json --output custom.kdict
 ```
 
+To keep the official pack unchanged while adding application vocabulary, compile
+the KLEX file as an overlay on a KDIC v2 base:
+
+```bash
+khmer-segment data compile local.klex.json \
+  --base official.kdict --output application.kdict
+
+khmer_segmenter data compile local.klex.json \
+  --base official.kdict --output application.kdict
+```
+
+The output is a standalone pack; applications load only `application.kdict`.
+Base costs and corrections are preserved. Overlay uses are additive, and an
+overlay correction for the same typo replaces the base correction. An overlay
+cannot remove a base word or revoke one of its uses; rebuild the base source for
+that policy change. Python and Rust produce byte-identical packs from the same
+base and KLEX input.
+
 A copyable source is available at [`examples/custom.klex.json`](../examples/custom.klex.json).
 
 ## Compile the repository's existing data
@@ -89,6 +107,12 @@ let segmenter = KhmerSegmenter::from_path(
     "custom.kdict",
     SegmenterConfig::default(),
 )?;
+
+let analysis = segmenter.analyze_text(
+    "...",
+    khmer_segmenter::SpellcheckProfile::Typing,
+)?;
+// Segments and diagnostics include normalized and original-source ranges.
 ```
 
 CLI:
@@ -107,3 +131,7 @@ lookup remains compact. Updated readers use the appended `KDX2` metadata.
 Rust continues to read KDIC v1 with its bundled spelling fallback. Python's
 `from_kdict()` intentionally requires v2 because v1 does not contain enough
 information to distinguish segmentation vocabulary from accepted spelling.
+
+Both readers reject truncated tables, invalid extension offsets, malformed
+string references, and inconsistent entry counts before exposing the pack to a
+runtime.

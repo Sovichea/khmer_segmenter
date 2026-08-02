@@ -64,6 +64,11 @@ def build_parser() -> argparse.ArgumentParser:
     _add_text_input(analyze)
     analyze.add_argument("--format", choices=("json", "jsonl"), default="json")
     analyze.add_argument("--no-normalize", action="store_true")
+    analyze.add_argument(
+        "--profile",
+        choices=tuple(profile.value for profile in SpellcheckProfile),
+        help="also return spelling diagnostics from the same pass",
+    )
 
     spellcheck = commands.add_parser(
         "spellcheck", help="check words against the curated RAC spelling lexicon"
@@ -129,6 +134,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     compile_data.add_argument("lexicon", type=Path, help="input .klex.json file")
     compile_data.add_argument("--output", "-o", required=True, type=Path)
+    compile_data.add_argument(
+        "--base", type=Path, help="optional KDIC v2 base pack to extend"
+    )
     return parser
 
 
@@ -192,7 +200,7 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
             print(f"Prepared local dictionary in: {Path(output_dir).resolve()}")
             return 0
         if args.data_command == "compile":
-            output = compile_klex(args.lexicon, args.output)
+            output = compile_klex(args.lexicon, args.output, base_path=args.base)
             print(f"Compiled unified KDIC v2 pack: {output.resolve()}")
             return 0
         files = _data_files_for_status(args.data_dir)
@@ -234,16 +242,36 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         return 0
 
     if args.command == "analyze":
-        records = [
-            {
-                "text": text,
-                "tokens": [
-                    token.to_dict()
-                    for token in segmenter.analyze(text, normalize=not args.no_normalize)
-                ],
-            }
-            for text in texts
-        ]
+        if args.profile:
+            records = []
+            for text in texts:
+                analysis = segmenter.analyze_text(
+                    text,
+                    profile=args.profile,
+                    normalize=not args.no_normalize,
+                )
+                records.append(
+                    {
+                        "text": text,
+                        "normalized": analysis.normalized,
+                        "profile": args.profile,
+                        "tokens": [token.to_dict() for token in analysis.tokens],
+                        "diagnostics": [
+                            diagnostic.to_dict() for diagnostic in analysis.diagnostics
+                        ],
+                    }
+                )
+        else:
+            records = [
+                {
+                    "text": text,
+                    "tokens": [
+                        token.to_dict()
+                        for token in segmenter.analyze(text, normalize=not args.no_normalize)
+                    ],
+                }
+                for text in texts
+            ]
         _write(_serialize_records(records, args.format), args.output)
         return 0
 

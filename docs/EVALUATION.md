@@ -107,6 +107,20 @@ Treat its results as edge-case regression evidence, not as a population-level
 accuracy claim. Records that require context are counted separately because a
 dictionary-only checker cannot safely resolve valid-word confusions.
 
+Measure editor-facing latency and false positives separately from segmentation:
+
+```bash
+python scripts/benchmark_spellcheck.py \
+  --input path/to/paragraph.txt \
+  --valid-input path/to/reviewed-valid-lines.txt \
+  --output results/spellcheck-performance.json
+```
+
+This reports initialization, first lazy spellcheck, repeated spellcheck,
+completion latency, resident-memory growth (when `psutil` is installed), and the rate of valid lines receiving
+at least one diagnostic. Use reviewed valid prose for `--valid-input`; raw web
+text is not a trustworthy false-positive reference.
+
 On the curated benchmark, boundary F1 is the primary comparison metric. Exact sentence match is
 intentionally strict, and different valid compound conventions can reduce it.
 

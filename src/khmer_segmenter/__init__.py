@@ -6,12 +6,14 @@ from .data import DataFiles, DataNotFoundError
 from .hyphenation import KhmerHyphenator
 from .kdict import KDict, KDictWord, compile_klex
 from .models import (
+    DiagnosticKind,
     EditOperation,
     SpellcheckConfig,
     SpellcheckProfile,
     SpellingDiagnostic,
     SpellingSuggestion,
     Token,
+    TextAnalysis,
 )
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
@@ -30,11 +32,13 @@ __all__ = [
     "KDictWord",
     "compile_klex",
     "EditOperation",
+    "DiagnosticKind",
     "SpellcheckConfig",
     "SpellcheckProfile",
     "SpellingDiagnostic",
     "SpellingSuggestion",
     "Token",
+    "TextAnalysis",
     "prepare_dictionary",
     "__version__",
 ]

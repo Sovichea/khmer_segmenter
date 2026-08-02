@@ -5,6 +5,7 @@ import math
 import json
 import logging
 import unicodedata
+from dataclasses import replace
 from pathlib import Path
 
 from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
@@ -14,6 +15,7 @@ from .models import (
     SpellingDiagnostic,
     SpellingSuggestion,
     Token,
+    TextAnalysis,
 )
 from .normalization import KhmerNormalizer
 from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
@@ -574,6 +576,35 @@ class KhmerSegmenter:
         is true, matching :meth:`analyze`.
         """
 
+        return list(
+            self.analyze_text(
+                text,
+                profile=profile,
+                normalize=normalize,
+                max_edit_cost=max_edit_cost,
+                max_suggestions=max_suggestions,
+                context_tokens=context_tokens,
+                include_valid_fragments=include_valid_fragments,
+                min_confidence=min_confidence,
+                disable_post_processing=disable_post_processing,
+            ).diagnostics
+        )
+
+    def analyze_text(
+        self,
+        text,
+        *,
+        profile=SpellcheckProfile.TYPING,
+        normalize=True,
+        max_edit_cost=None,
+        max_suggestions=None,
+        context_tokens=None,
+        include_valid_fragments=None,
+        min_confidence=None,
+        disable_post_processing=False,
+    ) -> TextAnalysis:
+        """Segment and spellcheck once, preserving normalized and source offsets."""
+
         config = SpellcheckConfig.for_profile(profile)
         advanced_override = any(
             value is not None
@@ -602,7 +633,11 @@ class KhmerSegmenter:
         if not 0.0 <= min_confidence <= 1.0:
             raise ValueError("min_confidence must be between zero and one")
 
-        normalized_text = self.normalizer.normalize(text) if normalize else text
+        if normalize:
+            normalized_text, source_mapping = self.normalizer.normalize_with_mapping(text)
+        else:
+            normalized_text = text
+            source_mapping = tuple((index, index + 1) for index in range(len(text)))
         tokens = self.analyze(
             normalized_text,
             normalize=False,
@@ -616,11 +651,38 @@ class KhmerSegmenter:
             context_tokens=context_tokens,
             include_valid_fragments=include_valid_fragments,
         )
-        return [
-            diagnostic
+        diagnostics = tuple(
+            self._map_diagnostic_to_source(diagnostic, source_mapping)
             for diagnostic in diagnostics
             if diagnostic.confidence >= min_confidence
-        ]
+        )
+        mapped_tokens = tuple(
+            replace(
+                token,
+                source_start=self._source_range(token.start, token.end, source_mapping)[0],
+                source_end=self._source_range(token.start, token.end, source_mapping)[1],
+            )
+            for token in tokens
+        )
+        return TextAnalysis(normalized_text, mapped_tokens, diagnostics)
+
+    @staticmethod
+    def _source_range(start, end, mapping):
+        covered = mapping[start:end]
+        if not covered:
+            return start, end
+        return min(item[0] for item in covered), max(item[1] for item in covered)
+
+    @classmethod
+    def _map_diagnostic_to_source(cls, diagnostic, mapping):
+        source_start, source_end = cls._source_range(
+            diagnostic.start, diagnostic.end, mapping
+        )
+        return replace(
+            diagnostic,
+            source_start=source_start,
+            source_end=source_end,
+        )
 
     def check_text(
         self,

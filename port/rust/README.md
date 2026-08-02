@@ -67,6 +67,15 @@ feedback, `document` for an explicit full-document check, and reserve
 use khmer_segmenter::{KhmerSegmenter, SpellcheckProfile};
 
 let diagnostics = segmenter.check_text(text, SpellcheckProfile::Typing)?;
+
+// Preferred when the caller also needs tokens and original-source ranges.
+let analysis = segmenter.analyze_text(text, SpellcheckProfile::Typing)?;
+```
+
+The native CLI exposes the same combined output:
+
+```bash
+khmer_segmenter analyze --profile typing "សួរស្តី"
 ```
 
 Load a custom unified pack without recompiling the library:

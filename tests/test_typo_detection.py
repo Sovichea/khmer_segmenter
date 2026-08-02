@@ -68,6 +68,17 @@ def test_typo_edit_uses_absolute_normalized_offsets(segmenter):
     assert (edit.kind, edit.start, edit.end, edit.text) == ("insert", 8, 8, "\u17b7")
 
 
+def test_unified_analysis_maps_normalized_ranges_to_original_source(segmenter):
+    source = "\u200b" + MISSPELLED
+    analysis = segmenter.analyze_text(source)
+
+    assert analysis.normalized == MISSPELLED
+    assert analysis.diagnostics[0].start == 0
+    assert analysis.diagnostics[0].source_start == 1
+    assert analysis.diagnostics[0].source_end == len(source)
+    assert analysis.tokens[0].source_start == 1
+
+
 def test_valid_word_has_no_typo_diagnostic(segmenter):
     assert segmenter.detect_typos(CORRECT) == []
 

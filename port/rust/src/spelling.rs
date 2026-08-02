@@ -125,11 +125,37 @@ pub struct SpellingSuggestion {
     pub lexical_cost: f32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiagnosticKind {
+    MissingDependentVowel,
+    ExtraCharacter,
+    ProbableMisspelling,
+}
+
+impl DiagnosticKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::MissingDependentVowel => "missing_dependent_vowel",
+            Self::ExtraCharacter => "extra_character",
+            Self::ProbableMisspelling => "probable_misspelling",
+        }
+    }
+}
+
+impl std::fmt::Display for DiagnosticKind {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SpellingDiagnostic {
     pub text: String,
+    /// Byte range in normalized text.
     pub range: Range<usize>,
-    pub kind: String,
+    /// Byte range in the original input. Populated by the segmenter analysis API.
+    pub source_range: Range<usize>,
+    pub kind: DiagnosticKind,
     pub confidence: f32,
     pub suggestions: Vec<SpellingSuggestion>,
 }
@@ -515,6 +541,7 @@ impl TypoDetector {
                 proposals.push(Proposal {
                     diagnostic: SpellingDiagnostic {
                         text: candidate_text.to_owned(),
+                        source_range: range.clone(),
                         range,
                         kind: diagnostic_kind(candidate_text, intended),
                         confidence: 0.99,
@@ -566,6 +593,7 @@ impl TypoDetector {
                     proposals.push(Proposal {
                         diagnostic: SpellingDiagnostic {
                             text: candidate_text.to_owned(),
+                            source_range: range.clone(),
                             range,
                             kind: diagnostic_kind(candidate_text, &suggestions[0].text),
                             confidence,
@@ -803,23 +831,49 @@ fn confidence(suggestions: &[SpellingSuggestion], max_edit_cost: f32) -> f32 {
     value.clamp(0.0, 1.0)
 }
 
-fn diagnostic_kind(source: &str, target: &str) -> String {
+fn diagnostic_kind(source: &str, target: &str) -> DiagnosticKind {
     let source_chars: Vec<char> = source.chars().collect();
     let target_chars: Vec<char> = target.chars().collect();
-    if target_chars.len() == source_chars.len() + 1
-        && target_chars
-            .iter()
-            .any(|character| is_dependent_vowel(*character))
-    {
-        "missing_dependent_vowel".to_owned()
+    let inserted = single_inserted_character(&source_chars, &target_chars);
+    if inserted.is_some_and(is_dependent_vowel) {
+        DiagnosticKind::MissingDependentVowel
+    } else if single_inserted_character(&target_chars, &source_chars).is_some() {
+        DiagnosticKind::ExtraCharacter
     } else {
-        "probable_misspelling".to_owned()
+        DiagnosticKind::ProbableMisspelling
     }
+}
+
+fn single_inserted_character(shorter: &[char], longer: &[char]) -> Option<char> {
+    if longer.len() != shorter.len() + 1 {
+        return None;
+    }
+    for index in 0..longer.len() {
+        if shorter[..index.min(shorter.len())] == longer[..index]
+            && shorter[index.min(shorter.len())..] == longer[index + 1..]
+        {
+            return Some(longer[index]);
+        }
+    }
+    None
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn diagnostic_kinds_require_a_single_matching_edit() {
+        assert_eq!(
+            diagnostic_kind("\u{1780}", "\u{1780}\u{17b7}"),
+            DiagnosticKind::MissingDependentVowel
+        );
+        assert_eq!(diagnostic_kind("ab", "a"), DiagnosticKind::ExtraCharacter);
+        assert_eq!(
+            diagnostic_kind("abc", "ad"),
+            DiagnosticKind::ProbableMisspelling
+        );
+    }
 
     #[test]
     fn weights_informal_khmer_sign_sequences() {

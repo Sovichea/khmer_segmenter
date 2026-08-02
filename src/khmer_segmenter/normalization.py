@@ -38,78 +38,100 @@ class KhmerNormalizer:
         1. Fixing composite vowels (merging split vowels).
         2. Reordering clusters (Base + Subscripts + Registers + Vowels + Signs).
         """
+        return self.normalize_with_mapping(text)[0]
+
+    def normalize_with_mapping(self, text):
+        """Return normalized text and one original-source range per output character."""
         if not text:
-            return ""
-            
-        # Step 0: Strip ZWS, ZWNJ, ZWJ
-        text = text.replace('\u200b', '').replace('\u200c', '').replace('\u200d', '')
-            
-        # Step 1: Fix Composites (Simple string replacement loop)
-        # We invoke this before cluster processing to ensure units are correct.
-        # Check standard splits
-        text = text.replace('\u17C1\u17B8', '\u17BE') # e + i -> oe
-        text = text.replace('\u17C1\u17B6', '\u17C4') # e + aa -> au
-        
-        # Step 2: Cluster processing
-        # We need to identify clusters. A cluster starts with a BASE or INDEP_VOWEL.
-        # But wait, what if text starts with broken vowels? We treat them as 'OTHER'.
-        
-        # We can iterate and build clusters.
+            return "", ()
+
+        prepared = []
+        i = 0
+        while i < len(text):
+            char = text[i]
+            if char in {'\u200b', '\u200c', '\u200d'}:
+                i += 1
+                continue
+            if char == '\u17c1' and i + 1 < len(text):
+                replacement = {'\u17b8': '\u17be', '\u17b6': '\u17c4'}.get(text[i + 1])
+                if replacement is not None:
+                    prepared.append((replacement, i, i + 2))
+                    i += 2
+                    continue
+            prepared.append((char, i, i + 1))
+            i += 1
+
         result = []
         current_cluster = []
-        
         i = 0
-        n = len(text)
-        
+        n = len(prepared)
+
         while i < n:
-            char = text[i]
+            char, start, end = prepared[i]
             ctype = self._get_char_type(char)
-            
+
             if ctype == 'BASE':
-                # Start of new cluster. Flush previous.
                 if current_cluster:
-                    result.append(self._sort_cluster(current_cluster))
+                    result.extend(self._sort_cluster_units(current_cluster))
                     current_cluster = []
-                current_cluster.append(char)
+                current_cluster.append((char, start, end))
                 i += 1
             elif ctype == 'COENG':
-                # Coeng consumes next char if valid consonant
                 if i + 1 < n:
-                    next_char = text[i+1]
+                    next_char, _, next_end = prepared[i + 1]
                     next_type = self._get_char_type(next_char)
-                    if next_type == 'BASE': # Consonants are BASE
-                        # It is a subscript unit
-                        current_cluster.append(char + next_char)
+                    if next_type == 'BASE':
+                        current_cluster.append((char + next_char, start, next_end))
                         i += 2
                         continue
-                    else:
-                        # Stray Coeng? Or Coeng + Vowel (Invalid but exists)?
-                        # Treat as single char
-                        current_cluster.append(char)
-                        i += 1
-                else:
-                    # Trailing Coeng
-                    current_cluster.append(char)
-                    i += 1
+                current_cluster.append((char, start, end))
+                i += 1
             elif ctype in ['VOWEL', 'SIGN', 'REGISTER']:
-                # Append to current cluster if exists, else treat as isolated
                 if current_cluster:
-                     current_cluster.append(char)
+                    current_cluster.append((char, start, end))
                 else:
-                     result.append(char) # Isolated vowel/sign
+                    result.append((char, start, end))
                 i += 1
             else:
-                # Other (Space, Punc, English). Flush cluster.
                 if current_cluster:
-                    result.append(self._sort_cluster(current_cluster))
+                    result.extend(self._sort_cluster_units(current_cluster))
                     current_cluster = []
-                result.append(char)
+                result.append((char, start, end))
                 i += 1
-                
+
         if current_cluster:
-            result.append(self._sort_cluster(current_cluster))
-            
-        return "".join(result)
+            result.extend(self._sort_cluster_units(current_cluster))
+
+        normalized = "".join(unit[0] for unit in result)
+        mapping = tuple(
+            (start, end)
+            for value, start, end in result
+            for _ in value
+        )
+        return normalized, mapping
+
+    def _sort_cluster_units(self, parts):
+        if not parts:
+            return []
+        base = parts[0]
+        modifiers = parts[1:]
+
+        def sort_key(unit):
+            item = unit[0]
+            if item.startswith('\u17D2'):
+                if len(item) == 2:
+                    return 2 if ord(item[1]) == self.RO else 1
+                return 1.5
+            code = ord(item[0])
+            if code in self.REGISTERS:
+                return 2.5
+            if code in self.DEP_VOWELS:
+                return 3
+            if code in self.SIGNS or code == 0x17DD:
+                return 4
+            return 5
+
+        return [base, *sorted(modifiers, key=sort_key)]
 
     def _sort_cluster(self, parts):
         """

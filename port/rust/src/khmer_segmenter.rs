@@ -63,6 +63,12 @@ pub struct MappedSegment {
     pub source_range: Range<usize>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct TextAnalysis {
+    pub segmentation: Segmentation,
+    pub diagnostics: Vec<SpellingDiagnostic>,
+}
+
 impl Segmentation {
     pub fn normalized(&self) -> &str {
         &self.normalized
@@ -101,6 +107,21 @@ impl Segmentation {
             output.push_str(token);
         }
         output
+    }
+
+    pub fn source_range_for(&self, normalized_range: &Range<usize>) -> Option<Range<usize>> {
+        let mut matches = self.mapped_segments.iter().filter(|segment| {
+            segment.normalized_range.start < normalized_range.end
+                && normalized_range.start < segment.normalized_range.end
+        });
+        let first = matches.next()?;
+        let mut start = first.source_range.start;
+        let mut end = first.source_range.end;
+        for segment in matches {
+            start = start.min(segment.source_range.start);
+            end = end.max(segment.source_range.end);
+        }
+        Some(start..end)
     }
 }
 
@@ -575,15 +596,43 @@ impl KhmerSegmenter {
         self.check_text_with_config(raw_text, profile.config())
     }
 
+    /// Segment and spellcheck once, retaining both normalized and source ranges.
+    pub fn analyze_text(
+        &self,
+        raw_text: &str,
+        profile: SpellcheckProfile,
+    ) -> Result<TextAnalysis, SegmentationError> {
+        self.analyze_text_with_config(raw_text, profile.config())
+    }
+
+    pub fn analyze_text_with_config(
+        &self,
+        raw_text: &str,
+        config: SpellcheckConfig,
+    ) -> Result<TextAnalysis, SegmentationError> {
+        let segmentation = self.segment_detailed(raw_text)?;
+        let diagnostics = self.diagnostics_for_segmentation(&segmentation, config);
+        Ok(TextAnalysis {
+            segmentation,
+            diagnostics,
+        })
+    }
+
     /// Advanced spellcheck entry point for applications that need custom tuning.
     pub fn check_text_with_config(
         &self,
         raw_text: &str,
         config: SpellcheckConfig,
     ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
-        let segmentation = self.segment_detailed(raw_text)?;
-        Ok(self
-            .typo_detector()
+        Ok(self.analyze_text_with_config(raw_text, config)?.diagnostics)
+    }
+
+    fn diagnostics_for_segmentation(
+        &self,
+        segmentation: &Segmentation,
+        config: SpellcheckConfig,
+    ) -> Vec<SpellingDiagnostic> {
+        self.typo_detector()
             .map(|detector| {
                 detector.detect(
                     &segmentation,
@@ -596,7 +645,13 @@ impl KhmerSegmenter {
             .unwrap_or_default()
             .into_iter()
             .filter(|diagnostic| diagnostic.confidence >= config.min_confidence)
-            .collect())
+            .map(|mut diagnostic| {
+                if let Some(source_range) = segmentation.source_range_for(&diagnostic.range) {
+                    diagnostic.source_range = source_range;
+                }
+                diagnostic
+            })
+            .collect()
     }
 
     fn typo_detector(&self) -> Option<&TypoDetector> {
@@ -834,6 +889,20 @@ mod tests {
             assert_eq!(diagnostics[0].text, typed);
             assert_eq!(diagnostics[0].suggestions[0].text, intended);
         }
+    }
+
+    #[test]
+    fn unified_analysis_maps_diagnostics_to_original_source() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        let typo = "\u{179f}\u{1798}\u{17d2}\u{1794}\u{178f}\u{17d2}\u{178f}";
+        let source = format!("\u{200b}{typo}");
+        let analysis = segmenter
+            .analyze_text(&source, SpellcheckProfile::Typing)
+            .unwrap();
+
+        assert_eq!(analysis.segmentation.normalized(), typo);
+        assert_eq!(analysis.diagnostics[0].range, 0..typo.len());
+        assert_eq!(analysis.diagnostics[0].source_range, 3..source.len());
     }
 
     #[test]

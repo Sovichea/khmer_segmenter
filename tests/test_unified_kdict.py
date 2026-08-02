@@ -1,5 +1,8 @@
 import json
 from pathlib import Path
+import struct
+
+import pytest
 
 from khmer_segmenter import KhmerSegmenter, compile_klex
 from khmer_segmenter.cli import main as cli_main
@@ -10,6 +13,81 @@ from khmer_segmenter.kdict import (
     TYPO_SURFACE,
     KDict,
 )
+
+
+def test_klex_overlay_preserves_base_and_adds_local_policy(tmp_path: Path):
+    base_source = Path(__file__).parents[1] / "examples" / "custom.klex.json"
+    base_output = tmp_path / "base.kdict"
+    overlay_source = tmp_path / "overlay.klex.json"
+    overlay_output = tmp_path / "overlay.kdict"
+    compile_klex(base_source, base_output)
+    base = KDict.load(base_output)
+
+    overlay_source.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "entries": [
+                    {
+                        "word": "customword",
+                        "uses": ["segmentation", "spelling", "autocomplete"],
+                        "frequency": 5,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    compile_klex(overlay_source, overlay_output, base_path=base_output)
+    overlay = KDict.load(overlay_output)
+
+    assert "customword" in overlay.words
+    assert overlay.typo_corrections == base.typo_corrections
+    first_base_word = next(iter(base.words))
+    assert overlay.words[first_base_word].cost == base.words[first_base_word].cost
+
+
+def test_python_cli_compiles_overlay(tmp_path: Path):
+    base_source = Path(__file__).parents[1] / "examples" / "custom.klex.json"
+    base_output = tmp_path / "base.kdict"
+    overlay_source = tmp_path / "overlay.klex.json"
+    overlay_output = tmp_path / "overlay.kdict"
+    compile_klex(base_source, base_output)
+    overlay_source.write_text(
+        '{"version":1,"entries":[{"word":"customword","uses":["segmentation"]}]}',
+        encoding="utf-8",
+    )
+
+    assert (
+        cli_main(
+            [
+                "data",
+                "compile",
+                str(overlay_source),
+                "--base",
+                str(base_output),
+                "--output",
+                str(overlay_output),
+            ]
+        )
+        == 0
+    )
+    assert "customword" in KDict.load(overlay_output).words
+
+
+def test_kdict_reader_rejects_malformed_table_and_metadata(tmp_path: Path):
+    source = Path(__file__).parents[1] / "examples" / "custom.klex.json"
+    output = tmp_path / "valid.kdict"
+    compile_klex(source, output)
+    valid = output.read_bytes()
+
+    invalid_table = bytearray(valid)
+    struct.pack_into("<I", invalid_table, 12, 3)
+    with pytest.raises(ValueError, match="power of two"):
+        KDict(bytes(invalid_table))
+
+    with pytest.raises(ValueError, match="truncated"):
+        KDict(valid[:-1])
 
 
 def test_unified_kdict_drives_segmentation_spelling_completion_and_correction(tmp_path: Path):

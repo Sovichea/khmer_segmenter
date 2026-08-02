@@ -10,7 +10,7 @@ from itertools import combinations
 import math
 from typing import Iterable
 
-from .models import EditOperation, SpellingDiagnostic, SpellingSuggestion, Token
+from .models import DiagnosticKind, EditOperation, SpellingDiagnostic, SpellingSuggestion, Token
 
 
 _SHORT_FRAGMENT_FREQUENCY_LIMIT = 500
@@ -556,13 +556,13 @@ class TypoDetector:
         )
 
     @staticmethod
-    def _kind(suggestion: SpellingSuggestion) -> str:
+    def _kind(suggestion: SpellingSuggestion) -> DiagnosticKind:
         edits = suggestion.edits
         if edits and all(edit.kind == "insert" and _is_dependent_vowel(edit.text) for edit in edits):
-            return "missing_dependent_vowel"
+            return DiagnosticKind.MISSING_DEPENDENT_VOWEL
         if edits and all(edit.kind == "delete" for edit in edits):
-            return "extra_character"
-        return "probable_typo"
+            return DiagnosticKind.EXTRA_CHARACTER
+        return DiagnosticKind.PROBABLE_MISSPELLING
 
     @staticmethod
     def _confidence(suggestions: tuple[SpellingSuggestion, ...], max_edit_cost: float) -> float:

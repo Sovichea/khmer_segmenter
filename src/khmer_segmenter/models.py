@@ -25,6 +25,14 @@ class SpellcheckProfile(str, Enum):
             raise ValueError(f"unknown spellcheck profile {value!r}; expected {choices}") from error
 
 
+class DiagnosticKind(str, Enum):
+    """Stable machine-readable spelling diagnostic categories."""
+
+    MISSING_DEPENDENT_VOWEL = "missing_dependent_vowel"
+    EXTRA_CHARACTER = "extra_character"
+    PROBABLE_MISSPELLING = "probable_misspelling"
+
+
 @dataclass(frozen=True, slots=True)
 class SpellcheckConfig:
     """Resolved typo-detection settings shared by APIs and CLIs."""
@@ -59,6 +67,8 @@ class Token:
     pos: str | None = None
     pos_candidates: tuple[str, ...] = ()
     spelling_valid: bool = False
+    source_start: int | None = None
+    source_end: int | None = None
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> "Token":
@@ -73,6 +83,8 @@ class Token:
             pos=value.get("pos"),
             pos_candidates=tuple(value.get("pos_candidates", ())),
             spelling_valid=bool(value.get("spelling_valid", value.get("known", False))),
+            source_start=value.get("source_start"),
+            source_end=value.get("source_end"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -119,16 +131,29 @@ class SpellingDiagnostic:
     text: str
     start: int
     end: int
-    kind: str
+    kind: DiagnosticKind
     confidence: float
     suggestions: tuple[SpellingSuggestion, ...] = ()
+    source_start: int | None = None
+    source_end: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "text": self.text,
             "start": self.start,
             "end": self.end,
-            "kind": self.kind,
+            "kind": self.kind.value,
             "confidence": self.confidence,
             "suggestions": [suggestion.to_dict() for suggestion in self.suggestions],
+            "source_start": self.source_start,
+            "source_end": self.source_end,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class TextAnalysis:
+    """One-pass segmentation and spelling result with mapped source offsets."""
+
+    normalized: str
+    tokens: tuple[Token, ...]
+    diagnostics: tuple[SpellingDiagnostic, ...]

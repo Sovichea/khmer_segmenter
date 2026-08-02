@@ -140,6 +140,16 @@ installed CLI, without cloning the repository scripts:
 khmer-segment data compile custom.klex.json --output custom.kdict
 ```
 
+Extend an official pack without rebuilding it from source:
+
+```bash
+khmer-segment data compile local.klex.json \
+  --base official.kdict --output application.kdict
+```
+
+The generated pack is standalone and works with Python, Rust, and WASM. See
+[Unified KDIC v2 Language Packs](docs/KDICT_V2.md).
+
 The audit records every curated match, retained chunk, and rejected fragment.
 
 ```bash
@@ -246,8 +256,19 @@ from khmer_segmenter import SpellcheckProfile
 # Live editor underlines: strict confidence filtering and low latency.
 diagnostics = segmenter.check_text(text, profile=SpellcheckProfile.TYPING)
 
+# One segmentation pass with diagnostics and original-source offsets.
+analysis = segmenter.analyze_text(text, profile=SpellcheckProfile.TYPING)
+
 # Explicit "Check document": broader OOV correction search.
 diagnostics = segmenter.check_text(text, profile="document")
+```
+
+The CLI exposes the same combined result without making applications run
+segmentation twice:
+
+```bash
+khmer-segment analyze --profile typing --format json "សួរស្តី"
+khmer_segmenter analyze --profile typing "សួរស្តី"
 ```
 
 `typing` is the production default. `document` allows a wider edit distance

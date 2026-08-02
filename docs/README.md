@@ -11,6 +11,7 @@ main README.
 - [RAC-only model rebuild](RAC_REBUILD.md)
 - [Migration from 0.1.1 to 0.2](MIGRATION_0_2.md)
 - [PyPI release guide](PYPI_RELEASE.md)
+- [0.2 release checklist](RELEASE_CHECKLIST_0_2.md)
 
 ## Use and evaluate
 

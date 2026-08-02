@@ -7,7 +7,7 @@ use std::path::Path;
 use std::time::Instant;
 
 use khmer_segmenter::kdict::{
-    WORD_AUTOCOMPLETE, WORD_SEGMENT, WORD_SPELLCHECK, WORD_SUPPLEMENTAL, WORD_TYPO_SURFACE,
+    KDict, WORD_AUTOCOMPLETE, WORD_SEGMENT, WORD_SPELLCHECK, WORD_SUPPLEMENTAL, WORD_TYPO_SURFACE,
 };
 use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmentationLength, SegmenterConfig};
 use khmer_segmenter::SpellcheckProfile;
@@ -22,7 +22,7 @@ fn clean_klex_word(value: &str) -> String {
         .replace(['\u{200b}', '\u{200c}', '\u{200d}'], "")
 }
 
-fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
+fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -> io::Result<()> {
     let source: serde_json::Value = serde_json::from_reader(File::open(source_path)?)
         .map_err(|error| invalid_data(error.to_string()))?;
     if source.get("version").and_then(|value| value.as_u64()) != Some(1) {
@@ -33,9 +33,35 @@ fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
         .and_then(|value| value.as_array())
         .ok_or_else(|| invalid_data("KLEX requires an entries array"))?;
 
-    let mut flags_by_word: BTreeMap<String, u32> = BTreeMap::new();
+    let base = base_path.map(KDict::load).transpose()?;
+    if base.as_ref().is_some_and(|pack| pack.version() < 2) {
+        return Err(invalid_data("KLEX overlays require a KDIC v2 base pack"));
+    }
+    let mut flags_by_word: BTreeMap<String, u32> = base
+        .as_ref()
+        .map(|pack| {
+            pack.lexical_entries()
+                .into_iter()
+                .map(|entry| (entry.word, entry.flags))
+                .collect()
+        })
+        .unwrap_or_default();
+    let base_costs: BTreeMap<String, f32> = base
+        .as_ref()
+        .map(|pack| {
+            pack.lexical_entries()
+                .into_iter()
+                .map(|entry| (entry.word, entry.cost))
+                .collect()
+        })
+        .unwrap_or_default();
     let mut counts: BTreeMap<String, f64> = BTreeMap::new();
-    let mut corrections: BTreeMap<String, String> = BTreeMap::new();
+    let mut overlay_words = std::collections::BTreeSet::new();
+    let mut corrections: BTreeMap<String, String> = base
+        .as_ref()
+        .map(|pack| pack.typo_corrections().into_iter().collect())
+        .unwrap_or_default();
+    let mut overlay_corrections: BTreeMap<String, String> = BTreeMap::new();
     for (position, record) in records.iter().enumerate() {
         let number = position + 1;
         let record = record
@@ -56,6 +82,7 @@ fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
                 "KLEX entry {number} requires word and uses"
             )));
         }
+        overlay_words.insert(word.clone());
         let mut flags = 0_u32;
         for usage in uses {
             flags |= match usage.as_str() {
@@ -115,7 +142,7 @@ fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
                         "KLEX entry {number}: typo requires a different correction"
                     )));
                 }
-                if corrections
+                if overlay_corrections
                     .insert(word.clone(), correction.clone())
                     .is_some_and(|previous| previous != correction)
                 {
@@ -123,6 +150,7 @@ fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
                         "conflicting KLEX correction for {word:?}"
                     )));
                 }
+                corrections.insert(word.clone(), correction);
             } else {
                 flags &= !WORD_TYPO_SURFACE;
             }
@@ -143,20 +171,34 @@ fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
     }
 
     let floor = 5.0_f64;
-    let total = counts
-        .values()
-        .map(|count| count.max(floor))
-        .sum::<f64>()
-        .max(floor);
-    let default_cost = -(floor / total).log10() as f32;
-    let unknown_cost = default_cost + 5.0;
-    let costs: BTreeMap<_, _> = flags_by_word
-        .keys()
-        .map(|word| {
-            let count = counts.get(word).copied().unwrap_or(0.0).max(floor);
-            (word.clone(), -(count / total).log10() as f32)
-        })
-        .collect();
+    let (default_cost, unknown_cost, costs) = if let Some(base) = base.as_ref() {
+        let default_cost = base.default_cost();
+        let total = floor * 10_f64.powf(default_cost as f64);
+        let mut costs = base_costs;
+        for word in overlay_words {
+            if costs.contains_key(&word) {
+                continue;
+            }
+            let count = counts.get(&word).copied().unwrap_or(0.0).max(floor);
+            costs.insert(word, -(count / total).log10() as f32);
+        }
+        (default_cost, base.unknown_cost(), costs)
+    } else {
+        let total = counts
+            .values()
+            .map(|count| count.max(floor))
+            .sum::<f64>()
+            .max(floor);
+        let default_cost = -(floor / total).log10() as f32;
+        let costs = flags_by_word
+            .keys()
+            .map(|word| {
+                let count = counts.get(word).copied().unwrap_or(0.0).max(floor);
+                (word.clone(), -(count / total).log10() as f32)
+            })
+            .collect();
+        (default_cost, default_cost + 5.0, costs)
+    };
     let segmentation_words: Vec<_> = flags_by_word
         .iter()
         .filter_map(|(word, flags)| (flags & WORD_SEGMENT != 0).then_some(word.clone()))
@@ -224,12 +266,17 @@ fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
 fn run_data_compile(args: &[String]) -> io::Result<()> {
     let mut source = None;
     let mut output = None;
+    let mut base = None;
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
             "--output" | "-o" => {
                 index += 1;
                 output = args.get(index).cloned();
+            }
+            "--base" => {
+                index += 1;
+                base = args.get(index).cloned();
             }
             value if value.starts_with('-') => {
                 return Err(io::Error::new(
@@ -259,7 +306,7 @@ fn run_data_compile(args: &[String]) -> io::Result<()> {
             "data compile requires --output",
         )
     })?;
-    compile_klex(&source, &output)?;
+    compile_klex(&source, &output, base.as_deref())?;
     println!("Compiled unified KDIC v2 pack: {output}");
     Ok(())
 }
@@ -275,7 +322,7 @@ fn default_dictionary_path() -> Option<&'static str> {
     .find(|path| Path::new(path).exists())
 }
 
-fn run_diagnose(args: &[String]) -> io::Result<()> {
+fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
     let mut profile = SpellcheckProfile::Typing;
     let mut dictionary: Option<String> = None;
     let mut input: Option<String> = None;
@@ -357,9 +404,29 @@ fn run_diagnose(args: &[String]) -> io::Result<()> {
     let dictionary = dictionary.or_else(|| default_dictionary_path().map(str::to_owned));
     let segmenter = KhmerSegmenter::new(dictionary.as_deref(), SegmenterConfig::default())
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
-    let diagnostics = segmenter
-        .check_text(&text, profile)
+    let analysis = segmenter
+        .analyze_text(&text, profile)
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+    let normalized = analysis.segmentation.normalized().to_owned();
+    let segments: Vec<_> = analysis
+        .segmentation
+        .ranges()
+        .iter()
+        .zip(analysis.segmentation.mapped_segments())
+        .map(|(range, mapped)| {
+            let word = &normalized[range.clone()];
+            serde_json::json!({
+                "text": word,
+                "start": range.start,
+                "end": range.end,
+                "source_start": mapped.source_range.start,
+                "source_end": mapped.source_range.end,
+                "known": segmenter.is_known_word(word),
+                "spelling_valid": segmenter.is_spelling_valid(word),
+            })
+        })
+        .collect();
+    let diagnostics = analysis.diagnostics;
 
     if format == "plain" {
         for diagnostic in diagnostics {
@@ -387,7 +454,9 @@ fn run_diagnose(args: &[String]) -> io::Result<()> {
                 "text": diagnostic.text,
                 "start": diagnostic.range.start,
                 "end": diagnostic.range.end,
-                "kind": diagnostic.kind,
+                "source_start": diagnostic.source_range.start,
+                "source_end": diagnostic.source_range.end,
+                "kind": diagnostic.kind.as_str(),
                 "confidence": diagnostic.confidence,
                 "suggestions": diagnostic.suggestions.into_iter().map(|suggestion| {
                     serde_json::json!({
@@ -398,11 +467,15 @@ fn run_diagnose(args: &[String]) -> io::Result<()> {
             })
         })
         .collect();
-    let record = serde_json::json!({
+    let mut record = serde_json::json!({
         "text": text,
         "profile": profile.as_str(),
         "diagnostics": diagnostics,
     });
+    if include_segments {
+        record["normalized"] = serde_json::Value::String(normalized);
+        record["segments"] = serde_json::Value::Array(segments);
+    }
     if format == "jsonl" {
         println!("{record}");
     } else {
@@ -457,7 +530,10 @@ fn main() -> io::Result<()> {
 
     let args: Vec<String> = env::args().collect();
     if args.get(1).map(String::as_str) == Some("diagnose") {
-        return run_diagnose(&args[2..]);
+        return run_diagnose(&args[2..], false);
+    }
+    if args.get(1).map(String::as_str) == Some("analyze") {
+        return run_diagnose(&args[2..], true);
     }
     if args.get(1).map(String::as_str) == Some("data")
         && args.get(2).map(String::as_str) == Some("compile")
@@ -908,7 +984,9 @@ fn main() -> io::Result<()> {
         println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
         println!("  diagnose [--profile typing|document|high-recall] <text>");
         println!("                    Return spellcheck diagnostics as JSON");
-        println!("  data compile <file.klex.json> --output <file.kdict>");
+        println!("  analyze [--profile typing|document|high-recall] <text>");
+        println!("                    Return mapped segments and diagnostics in one pass");
+        println!("  data compile <file.klex.json> --output <file.kdict> [--base <base.kdict>]");
         println!("                    Compile a unified KDIC v2 language pack");
         println!("  <text>            Process raw text");
     }
@@ -926,8 +1004,10 @@ mod cli_tests {
         let stem = format!("khmer-klex-test-{}", std::process::id());
         let source = std::env::temp_dir().join(format!("{stem}.json"));
         let output = std::env::temp_dir().join(format!("{stem}.kdict"));
+        let overlay_source = std::env::temp_dir().join(format!("{stem}-overlay.json"));
+        let overlay_output = std::env::temp_dir().join(format!("{stem}-overlay.kdict"));
         std::fs::write(&source, include_str!("../../../examples/custom.klex.json")).unwrap();
-        compile_klex(source.to_str().unwrap(), output.to_str().unwrap()).unwrap();
+        compile_klex(source.to_str().unwrap(), output.to_str().unwrap(), None).unwrap();
 
         let dictionary = KDict::load(&output).unwrap();
         assert_eq!(dictionary.version(), 2);
@@ -944,7 +1024,37 @@ mod cli_tests {
             .typo_corrections()
             .contains(&("ដេល".to_owned(), "ដែល".to_owned())));
 
+        let preserved = dictionary.lexical_entries().into_iter().next().unwrap();
+        std::fs::write(
+            &overlay_source,
+            r#"{"version":1,"entries":[{"word":"customword","uses":["segmentation","spelling"],"frequency":5}]}"#,
+        )
+        .unwrap();
+        compile_klex(
+            overlay_source.to_str().unwrap(),
+            overlay_output.to_str().unwrap(),
+            Some(output.to_str().unwrap()),
+        )
+        .unwrap();
+        let overlay = KDict::load(&overlay_output).unwrap();
+        assert!(overlay
+            .lexical_entries()
+            .iter()
+            .any(|entry| entry.word == "customword"));
+        assert_eq!(
+            overlay
+                .lexical_entries()
+                .iter()
+                .find(|entry| entry.word == preserved.word)
+                .unwrap()
+                .cost,
+            preserved.cost
+        );
+        assert_eq!(overlay.typo_corrections(), dictionary.typo_corrections());
+
         let _ = std::fs::remove_file(source);
         let _ = std::fs::remove_file(output);
+        let _ = std::fs::remove_file(overlay_source);
+        let _ = std::fs::remove_file(overlay_output);
     }
 }

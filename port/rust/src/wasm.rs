@@ -19,6 +19,8 @@ struct BrowserSegment {
     word: String,
     start: usize,
     end: usize,
+    source_start: usize,
+    source_end: usize,
     is_unknown: bool,
     spelling_valid: bool,
 }
@@ -29,6 +31,8 @@ struct BrowserDiagnostic {
     text: String,
     start: usize,
     end: usize,
+    source_start: usize,
+    source_end: usize,
     kind: String,
     confidence: f32,
     suggestions: Vec<BrowserSuggestion>,
@@ -75,15 +79,17 @@ impl WasmKhmerSegmenter {
     }
 
     fn analysis(&self, text: &str, profile: SpellcheckProfile) -> Result<JsValue, JsValue> {
-        let segmentation = self
+        let analysis = self
             .inner
-            .segment_detailed(text)
+            .analyze_text(text, profile)
             .map_err(|error| JsValue::from_str(&error.to_string()))?;
+        let segmentation = &analysis.segmentation;
         let normalized = segmentation.normalized();
         let segments = segmentation
             .ranges()
             .iter()
-            .map(|range| {
+            .zip(segmentation.mapped_segments())
+            .map(|(range, mapped)| {
                 let word = normalized[range.clone()].to_owned();
                 BrowserSegment {
                     is_unknown: is_lexical_khmer(&word) && !self.inner.is_known_word(&word),
@@ -91,15 +97,15 @@ impl WasmKhmerSegmenter {
                     word,
                     start: utf16_offset(normalized, range.start),
                     end: utf16_offset(normalized, range.end),
+                    source_start: utf16_offset(text, mapped.source_range.start),
+                    source_end: utf16_offset(text, mapped.source_range.end),
                 }
             })
             .collect();
-        let diagnostics = self
-            .inner
-            .check_text(text, profile)
-            .map_err(|error| JsValue::from_str(&error.to_string()))?
+        let diagnostics = analysis
+            .diagnostics
             .into_iter()
-            .map(|diagnostic| browser_diagnostic(normalized, diagnostic))
+            .map(|diagnostic| browser_diagnostic(normalized, text, diagnostic))
             .collect();
         serde_wasm_bindgen::to_value(&BrowserAnalysis {
             normalized: normalized.to_owned(),
@@ -133,12 +139,18 @@ impl WasmKhmerSegmenter {
     }
 }
 
-fn browser_diagnostic(normalized: &str, diagnostic: SpellingDiagnostic) -> BrowserDiagnostic {
+fn browser_diagnostic(
+    normalized: &str,
+    source: &str,
+    diagnostic: SpellingDiagnostic,
+) -> BrowserDiagnostic {
     BrowserDiagnostic {
         text: diagnostic.text,
         start: utf16_offset(normalized, diagnostic.range.start),
         end: utf16_offset(normalized, diagnostic.range.end),
-        kind: diagnostic.kind,
+        source_start: utf16_offset(source, diagnostic.source_range.start),
+        source_end: utf16_offset(source, diagnostic.source_range.end),
+        kind: diagnostic.kind.as_str().to_owned(),
         confidence: diagnostic.confidence,
         suggestions: diagnostic
             .suggestions

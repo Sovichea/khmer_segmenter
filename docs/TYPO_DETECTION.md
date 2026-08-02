@@ -29,6 +29,9 @@ diagnostics = segmenter.detect_typos(
 # Preferred integration API for a live editor or word processor.
 diagnostics = segmenter.check_text(text, profile=SpellcheckProfile.TYPING)
 
+# Segment and spellcheck in one pass, with normalized and original-source ranges.
+analysis = segmenter.analyze_text(text, profile=SpellcheckProfile.TYPING)
+
 # Explicit lookup: do not segment the input word first.
 suggestions = segmenter.suggest_spelling("សសេរ")
 
@@ -38,7 +41,8 @@ for diagnostic in diagnostics:
 
 Each `SpellingDiagnostic` contains:
 
-- `text`, `start`, and `end`: the complete suspected input span;
+- `text`, `start`, and `end`: the complete span in normalized text;
+- `source_start` and `source_end`: the matching span in the original input;
 - `kind`: a useful classification such as `missing_dependent_vowel`;
 - `confidence`: a deterministic ranking indicator, not a calibrated
   probability;
@@ -46,10 +50,13 @@ Each `SpellingDiagnostic` contains:
 - `edits`: absolute normalized-text insertion, deletion, or replacement
   operations suitable for an editor quick fix.
 
-When normalization is enabled, offsets refer to the normalized text, matching
-`analyze()`. An editor that needs offsets into the original unnormalized buffer
-should normalize before calling and retain its own source mapping, or call with
-`normalize=False` after normalization.
+`analyze_text()` is the preferred editor API. It returns segmentation and
+diagnostics from one pass, and maps both back to the original input even when
+normalization reorders signs, composes a vowel, or removes a zero-width mark.
+The `kind` field is a typed enum in native APIs and a stable string in JSON.
+Python offsets use Unicode code-point indices, native Rust offsets use UTF-8
+byte indices, and WASM converts both normalized and source ranges to UTF-16
+code units for browser editors.
 
 ## Integration profiles
 
