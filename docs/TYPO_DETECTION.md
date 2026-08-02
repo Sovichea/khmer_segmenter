@@ -98,6 +98,14 @@ Keep acceptance counts and user feedback statistics outside this file. They
 are evidence for review, not segmentation frequency and not automatic proof
 that a correction is valid.
 
+Common small-screen visual confusions are derived from the active dictionary
+for `ះ`/`ៈ`, `ូ`/`ួ`, `៏`/`៍`, and the subscript forms `្ច`/`្ជ`. The visual
+rules operate in both directions and change one character at a time. A separate
+directional rule detects an extra final `រ` after a dependent vowel, limited to
+frequent intended words. Generated forms receive exact-alias confidence only
+when they are neither valid dictionary words nor ambiguous between two intended
+words. Explicit approved correction pairs take precedence.
+
 The detector runs after normal segmentation and considers small windows around
 suspicious tokens. It does not scan every possible substring. Candidate
 retrieval uses Khmer base-character skeleton indexes, then ranks the reduced

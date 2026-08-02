@@ -11,9 +11,19 @@ use crate::khmer_segmenter::Segmentation;
 const COENG: char = '\u{17d2}';
 const NIKAHIT: char = '\u{17c6}';
 const RO: char = '\u{179a}';
+const CA: char = '\u{1785}';
+const CO: char = '\u{1787}';
 const TYPO_CORRECTIONS_TSV: &str = include_str!("../data/khmer_typo_corrections.tsv");
 const REAHMUK: char = '\u{17c7}'; // ះ
 const YUUKALEAPINTU: char = '\u{17c8}'; // ៈ
+const COMMON_VISUAL_CONFUSIONS: &[(char, char)] = &[
+    (REAHMUK, YUUKALEAPINTU),
+    (YUUKALEAPINTU, REAHMUK),
+    ('\u{17bc}', '\u{17bd}'), // ូ -> ួ
+    ('\u{17bd}', '\u{17bc}'), // ួ -> ូ
+    ('\u{17cf}', '\u{17cd}'), // ៏ -> ៍
+    ('\u{17cd}', '\u{17cf}'), // ៍ -> ៏
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpellcheckProfile {
@@ -170,15 +180,60 @@ impl TypoDetector {
             // Approved corrections are authoritative and may be multiword
             // expressions rather than single spellcheck headwords.
             .collect();
-        // Derive the common ៈ -> ះ confusion directly from the loaded
-        // lexicon. Do not create an alias when the ះ form is also a valid word
-        // (for example ស្រះ), and let reviewed pairs remain authoritative.
-        for word in &words {
-            if word.contains(YUUKALEAPINTU) {
-                let typed = word.replace(YUUKALEAPINTU, &REAHMUK.to_string());
-                if !words.contains(&typed) {
-                    reviewed_typos.entry(typed).or_insert_with(|| word.clone());
+        // Some Khmer signs are difficult to distinguish on small screens.
+        // Derive one-character aliases, excluding valid words and aliases that
+        // could refer to more than one dictionary entry. Reviewed pairs remain
+        // authoritative when they overlap a generated rule.
+        let mut generated_candidates: HashMap<String, HashSet<String>> = HashMap::new();
+        let common_ending_cost_limit = dictionary.default_cost() - 0.30;
+        for (word, lexical_cost) in &entries {
+            let characters: Vec<char> = word.chars().collect();
+            for (index, character) in characters.iter().enumerate() {
+                for (typed_character, intended_character) in COMMON_VISUAL_CONFUSIONS {
+                    if character != intended_character {
+                        continue;
+                    }
+                    let mut alias = characters.clone();
+                    alias[index] = *typed_character;
+                    let alias: String = alias.into_iter().collect();
+                    if !words.contains(&alias) {
+                        generated_candidates
+                            .entry(alias)
+                            .or_default()
+                            .insert(word.clone());
+                    }
                 }
+                if index > 0 && characters[index - 1] == COENG && matches!(*character, CA | CO) {
+                    let mut alias = characters.clone();
+                    alias[index] = if *character == CA { CO } else { CA };
+                    let alias: String = alias.into_iter().collect();
+                    if !words.contains(&alias) {
+                        generated_candidates
+                            .entry(alias)
+                            .or_default()
+                            .insert(word.clone());
+                    }
+                }
+            }
+            if characters
+                .last()
+                .is_some_and(|character| is_dependent_vowel(*character))
+                && *lexical_cost <= common_ending_cost_limit
+            {
+                let alias = format!("{word}{RO}");
+                if !words.contains(&alias) {
+                    generated_candidates
+                        .entry(alias)
+                        .or_default()
+                        .insert(word.clone());
+                }
+            }
+        }
+        for (typed, candidates) in generated_candidates {
+            if candidates.len() == 1 {
+                reviewed_typos
+                    .entry(typed)
+                    .or_insert_with(|| candidates.into_iter().next().unwrap());
             }
         }
         let mut exact_skeleton: HashMap<String, Vec<usize>> = HashMap::new();

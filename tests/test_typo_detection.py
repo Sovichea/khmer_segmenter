@@ -142,7 +142,7 @@ def test_typing_profile_recovers_reviewed_whole_word_typos(segmenter, typed, int
 
 def test_pending_typo_pairs_do_not_affect_runtime(segmenter):
     pairs = load_approved_typo_corrections(segmenter.data_files.typo_corrections)
-    assert len(pairs) == 189
+    assert len(pairs) == 166
     assert "អោយ" not in pairs
 
 
@@ -176,6 +176,45 @@ def test_dictionary_derived_reahmuk_confusion(segmenter, typed, intended):
 def test_dictionary_derived_reahmuk_confusion_preserves_valid_collision(segmenter):
     assert segmenter.suggest_spelling("ស្រះ") == ()
     assert segmenter.check_text("ស្រះ", profile="typing") == []
+
+
+@pytest.mark.parametrize(("typed", "intended"), [
+    ("ជូយ", "ជួយ"),
+    ("ស្ថានការណ៏", "ស្ថានការណ៍"),
+    ("បញ្ជូល", "បញ្ចូល"),
+    ("អញ្ចើញ", "អញ្ជើញ"),
+])
+def test_dictionary_derived_visual_confusions(segmenter, typed, intended):
+    assert segmenter.suggest_spelling(typed)[0].text == intended
+    diagnostics = segmenter.check_text(typed, profile="typing")
+    assert diagnostics[0].confidence == 0.99
+    assert diagnostics[0].suggestions[0].text == intended
+
+
+@pytest.mark.parametrize("word", ["ជូរ", "ជួរ"])
+def test_dictionary_derived_vowel_confusion_preserves_valid_words(segmenter, word):
+    assert segmenter.suggest_spelling(word) == ()
+    assert segmenter.check_text(word, profile="typing") == []
+
+
+@pytest.mark.parametrize(("typed", "intended"), [
+    ("ស្មើរ", "ស្មើ"),
+    ("ថវិការ", "ថវិកា"),
+    ("វិញ្ញាសារ", "វិញ្ញាសា"),
+    ("សិក្សារ", "សិក្សា"),
+    ("កីឡារ", "កីឡា"),
+])
+def test_dictionary_derived_extra_final_ro(segmenter, typed, intended):
+    assert segmenter.suggest_spelling(typed)[0].text == intended
+    diagnostics = segmenter.check_text(typed, profile="typing")
+    assert diagnostics[0].confidence == 0.99
+    assert diagnostics[0].suggestions[0].text == intended
+
+
+@pytest.mark.parametrize("word", ["បញ្ជា", "បញ្ចា", "កា", "ការ"])
+def test_contextual_confusion_rules_preserve_valid_words(segmenter, word):
+    assert segmenter.suggest_spelling(word) == ()
+    assert segmenter.check_text(word, profile="typing") == []
 
 
 def test_whole_word_suggestions_skip_valid_words(segmenter):

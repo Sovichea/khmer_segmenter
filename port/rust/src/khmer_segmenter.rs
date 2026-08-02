@@ -842,4 +842,71 @@ mod tests {
             .unwrap()
             .is_empty());
     }
+
+    #[test]
+    fn dictionary_derived_visual_confusions_work_in_typing_profile() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for (typed, intended) in [
+            ("ជូយ", "ជួយ"),
+            ("ស្ថានការណ៏", "ស្ថានការណ៍"),
+            ("បញ្ជូល", "បញ្ចូល"),
+            ("អញ្ចើញ", "អញ្ជើញ"),
+        ] {
+            let diagnostics = segmenter
+                .check_text(typed, SpellcheckProfile::Typing)
+                .unwrap();
+            assert_eq!(diagnostics.len(), 1, "{typed}");
+            assert_eq!(diagnostics[0].confidence, 0.99);
+            assert_eq!(diagnostics[0].suggestions[0].text, intended);
+        }
+    }
+
+    #[test]
+    fn dictionary_derived_vowel_confusion_preserves_valid_words() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for word in ["ជូរ", "ជួរ"] {
+            assert!(segmenter.is_known_word(word));
+            assert!(segmenter.suggest_spelling(word, 1.5, 5).is_empty());
+            assert!(segmenter
+                .check_text(word, SpellcheckProfile::Typing)
+                .unwrap()
+                .is_empty());
+        }
+    }
+
+    #[test]
+    fn dictionary_derived_extra_final_ro_works_in_typing_profile() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for (typed, intended) in [
+            ("ស្មើរ", "ស្មើ"),
+            ("ថវិការ", "ថវិកា"),
+            ("វិញ្ញាសារ", "វិញ្ញាសា"),
+            ("សិក្សារ", "សិក្សា"),
+            ("កីឡារ", "កីឡា"),
+        ] {
+            let diagnostics = segmenter
+                .check_text(typed, SpellcheckProfile::Typing)
+                .unwrap();
+            assert_eq!(diagnostics.len(), 1, "{typed}");
+            assert_eq!(diagnostics[0].confidence, 0.99);
+            assert_eq!(diagnostics[0].suggestions[0].text, intended);
+        }
+    }
+
+    #[test]
+    fn contextual_confusion_rules_preserve_valid_words() {
+        let segmenter = segmenter(SegmentationLength::Long);
+
+        for word in ["បញ្ជា", "បញ្ចា", "កា", "ការ"] {
+            assert!(segmenter.is_known_word(word));
+            assert!(segmenter.suggest_spelling(word, 1.5, 5).is_empty());
+            assert!(segmenter
+                .check_text(word, SpellcheckProfile::Typing)
+                .unwrap()
+                .is_empty());
+        }
+    }
 }

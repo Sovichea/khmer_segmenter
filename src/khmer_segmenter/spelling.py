@@ -13,8 +13,21 @@ from .models import EditOperation, SpellingDiagnostic, SpellingSuggestion, Token
 
 
 _SHORT_FRAGMENT_FREQUENCY_LIMIT = 500
+_COMMON_ENDING_FREQUENCY_MINIMUM = 10
+_COENG = "\u17d2"
+_RO = "\u179a"
+_CA = "\u1785"
+_CO = "\u1787"
 _REAHMUK = "\u17c7"  # ះ
 _YUUKALEAPINTU = "\u17c8"  # ៈ
+_COMMON_VISUAL_CONFUSIONS = (
+    (_REAHMUK, _YUUKALEAPINTU),
+    (_YUUKALEAPINTU, _REAHMUK),
+    ("\u17bc", "\u17bd"),  # ូ -> ួ
+    ("\u17bd", "\u17bc"),  # ួ -> ូ
+    ("\u17cf", "\u17cd"),  # ៏ -> ៍
+    ("\u17cd", "\u17cf"),  # ៍ -> ៏
+)
 
 # Human-reviewed, high-frequency misspellings that otherwise segment entirely
 # into valid dictionary fragments. Exact matching keeps these safe for live
@@ -286,14 +299,34 @@ class TypoDetector:
     ):
         self.words = frozenset(word for word in words if _is_lexical_khmer(word))
         self.frequencies = frequencies or {}
-        # A frequent Khmer spelling confusion replaces YUUKALEAPINTU (ៈ) with
-        # REAHMUK (ះ). Derive safe exact aliases from the lexicon, but never
-        # override a typed form that is itself a valid word (for example ស្រះ).
+        # Some Khmer signs are difficult to distinguish on small screens.
+        # Derive one-character exact aliases from the lexicon, but never treat
+        # another valid dictionary word or an ambiguous alias as a typo.
+        generated_candidates: dict[str, set[str]] = defaultdict(set)
+        for word in self.words:
+            for index, character in enumerate(word):
+                for typed, intended in _COMMON_VISUAL_CONFUSIONS:
+                    if character != intended:
+                        continue
+                    alias = word[:index] + typed + word[index + 1 :]
+                    if alias not in self.words:
+                        generated_candidates[alias].add(word)
+                if index > 0 and word[index - 1] == _COENG and character in (_CA, _CO):
+                    typed = _CO if character == _CA else _CA
+                    alias = word[:index] + typed + word[index + 1 :]
+                    if alias not in self.words:
+                        generated_candidates[alias].add(word)
+            if (
+                _is_dependent_vowel(word[-1])
+                and float(self.frequencies.get(word, 0)) >= _COMMON_ENDING_FREQUENCY_MINIMUM
+            ):
+                alias = word + _RO
+                if alias not in self.words:
+                    generated_candidates[alias].add(word)
         generated_confusions = {
-            word.replace(_YUUKALEAPINTU, _REAHMUK): word
-            for word in self.words
-            if _YUUKALEAPINTU in word
-            and word.replace(_YUUKALEAPINTU, _REAHMUK) not in self.words
+            alias: next(iter(candidates))
+            for alias, candidates in generated_candidates.items()
+            if len(candidates) == 1
         }
         generated_confusions.update(reviewed_typos or {})
         self.reviewed_typos = generated_confusions

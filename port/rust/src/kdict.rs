@@ -146,6 +146,10 @@ impl KDict {
         }
     }
 
+    pub fn default_cost(&self) -> f32 {
+        unsafe { (*self.header).default_cost }
+    }
+
     /// Copy all dictionary entries into safe Rust values.
     ///
     /// This is primarily used to build secondary indexes such as spellcheck
