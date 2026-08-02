@@ -34,3 +34,8 @@ required-features = ["cli"]
 name = "debug_dict"
 path = "src/bin/debug_dict.rs"
 required-features = ["cli"]
+
+[[bin]]
+name = "mine_typos"
+path = "src/bin/mine_typos.rs"
+required-features = ["cli"]

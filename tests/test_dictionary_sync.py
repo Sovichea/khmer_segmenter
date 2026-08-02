@@ -17,7 +17,10 @@ class DictionarySyncTests(unittest.TestCase):
             "pending": 8,
             "rejected": 0,
         })
-        self.assertEqual(DEFAULT_SOURCE.read_bytes(), DEFAULT_RUST_DESTINATION.read_bytes())
+        self.assertEqual(
+            DEFAULT_SOURCE.read_text(encoding="utf-8").splitlines(),
+            DEFAULT_RUST_DESTINATION.read_text(encoding="utf-8").splitlines(),
+        )
 
     def test_curated_spellcheck_vocabulary_is_synchronized_with_rust(self):
         root = Path(__file__).resolve().parents[1]

@@ -1,5 +1,6 @@
 src/khmer_segmenter/dictionary_data/*.txt text eol=lf
 src/khmer_segmenter/dictionary_data/*.json text eol=lf
+src/khmer_segmenter/dictionary_data/*.tsv text eol=lf
 port/rust/data/*.txt text eol=lf
 port/rust/data/*.tsv text eol=lf
 *.py text eol=lf
