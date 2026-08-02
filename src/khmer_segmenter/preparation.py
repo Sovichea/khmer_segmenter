@@ -199,7 +199,7 @@ def read_words(path: Path, tsv: bool = False) -> tuple[list[str], int]:
 
 def write_words(path: Path, words: set[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(sorted(words)) + "\n", encoding="utf-8")
+    path.write_bytes(("\n".join(sorted(words)) + "\n").encode("utf-8"))
 
 
 def prepare_dictionary(

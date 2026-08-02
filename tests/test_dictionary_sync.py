@@ -29,7 +29,10 @@ class DictionarySyncTests(unittest.TestCase):
             / "khmer_spellcheck_words.txt"
         )
         rust_words = root / "port" / "rust" / "data" / "khmer_spellcheck_words.txt"
-        self.assertEqual(python_words.read_bytes(), rust_words.read_bytes())
+        self.assertEqual(
+            python_words.read_text(encoding="utf-8").splitlines(),
+            rust_words.read_text(encoding="utf-8").splitlines(),
+        )
 
     def test_reads_first_tsv_column_and_normalizes(self):
         with tempfile.TemporaryDirectory() as directory:

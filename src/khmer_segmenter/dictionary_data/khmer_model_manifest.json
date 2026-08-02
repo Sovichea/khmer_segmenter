@@ -61,8 +61,8 @@
       "records": 37341
     },
     "khmer_dictionary_supplemental_words.txt": {
-      "sha256": "cad954258a3cf7876a315ece70b7fe4da4ecb54d5bd1e9c1ab02cf448f0ab4aa",
-      "bytes": 267227,
+      "sha256": "232a2a84ed664bb2b80ee9fdf422b281f9fd4951b7d4792b3ef012b1549b9111",
+      "bytes": 254599,
       "records": 12628
     },
     "khmer_spellcheck_words.txt": {

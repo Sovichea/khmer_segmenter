@@ -91,7 +91,7 @@ def main() -> None:
         )
         for decision in decisions
     )
-    args.audit.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    args.audit.write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
     if args.manifest.is_file():
         manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
         output_bytes = args.output.read_bytes()
@@ -121,9 +121,10 @@ def main() -> None:
             "bytes": len(output_bytes),
             "records": len(accepted),
         }
-        args.manifest.write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
+        args.manifest.write_bytes(
+            (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode(
+                "utf-8"
+            )
         )
     print(
         f"accepted={len(accepted)} decisions={len(decisions)} "
