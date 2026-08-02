@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from khmer_segmenter import KhmerSegmenter  # noqa: E402
 from khmer_segmenter.rac_rebuild import MODEL_DATA_FILES, MODEL_ID, build_rac_model  # noqa: E402
 
+LAYERED_MODEL_ID = "rac-2022-layered-v1"
 EXPECTED_COUNTS = {
     "rac_rows": 44752,
     "explicit_spellcheck_words": 37727,
@@ -62,13 +63,18 @@ def normalized_text_bytes(path: Path) -> bytes:
     return data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
 
 
-def validate_manifest(data_dir: Path, failures: list[str]) -> None:
+def validate_manifest(
+    data_dir: Path,
+    failures: list[str],
+    *,
+    expected_model_id: str,
+) -> None:
     manifest_path = data_dir / "khmer_model_manifest.json"
     if not manifest_path.is_file():
         failures.append("missing khmer_model_manifest.json")
         return
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("model_id") != MODEL_ID:
+    if manifest.get("model_id") != expected_model_id:
         failures.append(f"unexpected model_id: {manifest.get('model_id')!r}")
     described = manifest.get("files", {})
     for filename in RUNTIME_FILES:
@@ -139,7 +145,11 @@ def main() -> int:
                     failures.append(f"rebuilt file has different content: {filename}")
 
     segmenter = KhmerSegmenter(data_dir=generated_data)
-    validate_manifest(generated_data, failures)
+    validate_manifest(
+        generated_data,
+        failures,
+        expected_model_id=LAYERED_MODEL_ID if args.bundled_only else MODEL_ID,
+    )
     for text, expected in EXPECTED_CASES.items():
         actual = segmenter.segment(text, disable_post_processing=True)
         if actual != expected:
