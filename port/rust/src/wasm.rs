@@ -20,6 +20,7 @@ struct BrowserSegment {
     start: usize,
     end: usize,
     is_unknown: bool,
+    spelling_valid: bool,
 }
 
 #[derive(Serialize)]
@@ -86,6 +87,7 @@ impl WasmKhmerSegmenter {
                 let word = normalized[range.clone()].to_owned();
                 BrowserSegment {
                     is_unknown: is_lexical_khmer(&word) && !self.inner.is_known_word(&word),
+                    spelling_valid: !is_lexical_khmer(&word) || self.inner.is_spelling_valid(&word),
                     word,
                     start: utf16_offset(normalized, range.start),
                     end: utf16_offset(normalized, range.end),

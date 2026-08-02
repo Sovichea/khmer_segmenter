@@ -519,6 +519,16 @@ impl KhmerSegmenter {
                 .is_some_and(|detector| detector.is_word(word))
     }
 
+    /// Return whether `word` is accepted by the curated spelling vocabulary.
+    ///
+    /// This intentionally differs from [`Self::is_known_word`]: supplemental
+    /// forms may be useful as coherent segmentation units without being
+    /// authoritative spellings.
+    pub fn is_spelling_valid(&self, word: &str) -> bool {
+        self.typo_detector()
+            .is_some_and(|detector| detector.is_word(word))
+    }
+
     pub fn suggest_spelling(
         &self,
         word: &str,
@@ -898,6 +908,14 @@ mod tests {
             assert_eq!(diagnostics[0].confidence, 0.99);
             assert_eq!(diagnostics[0].suggestions[0].text, intended);
         }
+    }
+
+    #[test]
+    fn unified_kdict_keeps_segmentation_and_spelling_policy_separate() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        assert!(segmenter.is_known_word("ដេល"));
+        assert!(!segmenter.is_spelling_valid("ដេល"));
+        assert_eq!(segmenter.suggest_spelling("ដេល", 1.5, 1)[0].text, "ដែល");
     }
 
     #[test]

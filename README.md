@@ -128,6 +128,18 @@ python scripts/prepare_supplemental_lexicon.py path/to/legacy_words.txt \
 python scripts/build_dictionary_kdict.py
 ```
 
+The compiler now produces one unified KDIC v2 language pack containing
+segmentation costs, spelling-validity flags, autocomplete eligibility, and
+approved typo corrections. Developers can replace any source list and deploy
+only the resulting `.kdict` file. See [Unified KDIC v2 Language Packs](docs/KDICT_V2.md).
+
+Application developers can compile a single editable KLEX source using the
+installed CLI, without cloning the repository scripts:
+
+```bash
+khmer-segment data compile custom.klex.json --output custom.kdict
+```
+
 The audit records every curated match, retained chunk, and rejected fragment.
 
 ```bash
@@ -171,6 +183,14 @@ To use a replacement dictionary, set `KHMER_SEGMENTER_DATA_DIR` or pass
 ```python
 segmenter = KhmerSegmenter(data_dir="/path/to/replacement-data")
 ```
+
+Load a unified custom pack instead:
+
+```python
+segmenter = KhmerSegmenter.from_kdict("/path/to/custom.kdict")
+```
+
+The equivalent CLI option is `--kdict custom.kdict`.
 
 Typed analysis results include normalized offsets and optional lexical data:
 

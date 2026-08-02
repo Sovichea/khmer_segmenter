@@ -173,3 +173,4 @@ dataset-171	approved	ដំនាក់កាល	ដំណាក់កាល	top
 dataset-172	approved	ដំនាំ	ដំណាំ	top1	local-corpus-review	23 corpus occurrences; wrong consonant before vowel sign
 dataset-173	approved	រយះពេល	រយៈពេល	exact	community-review	User-reviewed complete expression; correction intentionally segments as រយៈ + ពេល
 dataset-175	approved	រយះបណ្តោយ	រយៈបណ្តោយ	exact	community-review	User-reviewed complete expression commonly confused by users
+dataset-176	approved	ដេល	ដែល	top1	community-review	Common dependent-vowel confusion; keep as a segmentation surface but reject for spelling

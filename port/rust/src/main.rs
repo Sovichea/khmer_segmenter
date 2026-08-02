@@ -1,12 +1,268 @@
 use rayon::prelude::*;
+use std::collections::BTreeMap;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::time::Instant;
 
+use khmer_segmenter::kdict::{
+    WORD_AUTOCOMPLETE, WORD_SEGMENT, WORD_SPELLCHECK, WORD_SUPPLEMENTAL, WORD_TYPO_SURFACE,
+};
 use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmentationLength, SegmenterConfig};
 use khmer_segmenter::SpellcheckProfile;
+
+fn invalid_data(message: impl Into<String>) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, message.into())
+}
+
+fn clean_klex_word(value: &str) -> String {
+    value
+        .trim()
+        .replace(['\u{200b}', '\u{200c}', '\u{200d}'], "")
+}
+
+fn compile_klex(source_path: &str, output_path: &str) -> io::Result<()> {
+    let source: serde_json::Value = serde_json::from_reader(File::open(source_path)?)
+        .map_err(|error| invalid_data(error.to_string()))?;
+    if source.get("version").and_then(|value| value.as_u64()) != Some(1) {
+        return Err(invalid_data("KLEX requires version 1"));
+    }
+    let records = source
+        .get("entries")
+        .and_then(|value| value.as_array())
+        .ok_or_else(|| invalid_data("KLEX requires an entries array"))?;
+
+    let mut flags_by_word: BTreeMap<String, u32> = BTreeMap::new();
+    let mut counts: BTreeMap<String, f64> = BTreeMap::new();
+    let mut corrections: BTreeMap<String, String> = BTreeMap::new();
+    for (position, record) in records.iter().enumerate() {
+        let number = position + 1;
+        let record = record
+            .as_object()
+            .ok_or_else(|| invalid_data(format!("KLEX entry {number} must be an object")))?;
+        let word = clean_klex_word(
+            record
+                .get("word")
+                .and_then(|value| value.as_str())
+                .unwrap_or(""),
+        );
+        let uses = record
+            .get("uses")
+            .and_then(|value| value.as_array())
+            .ok_or_else(|| invalid_data(format!("KLEX entry {number} requires uses")))?;
+        if word.is_empty() || uses.is_empty() {
+            return Err(invalid_data(format!(
+                "KLEX entry {number} requires word and uses"
+            )));
+        }
+        let mut flags = 0_u32;
+        for usage in uses {
+            flags |= match usage.as_str() {
+                Some("segmentation") => WORD_SEGMENT,
+                Some("spelling") => WORD_SPELLCHECK,
+                Some("autocomplete") => WORD_AUTOCOMPLETE,
+                Some("typo") => WORD_TYPO_SURFACE,
+                Some("supplemental") => WORD_SUPPLEMENTAL,
+                Some(value) => {
+                    return Err(invalid_data(format!(
+                        "KLEX entry {number} has unknown use {value:?}"
+                    )))
+                }
+                None => {
+                    return Err(invalid_data(format!(
+                        "KLEX entry {number} uses must contain strings"
+                    )))
+                }
+            };
+        }
+        if flags & WORD_SUPPLEMENTAL != 0 {
+            flags |= WORD_SEGMENT;
+        }
+        if flags & WORD_AUTOCOMPLETE != 0 && flags & WORD_SPELLCHECK == 0 {
+            return Err(invalid_data(format!(
+                "KLEX entry {number}: autocomplete requires spelling"
+            )));
+        }
+        let frequency = record
+            .get("frequency")
+            .map(|value| {
+                value.as_f64().ok_or_else(|| {
+                    invalid_data(format!("KLEX entry {number}: frequency must be a number"))
+                })
+            })
+            .transpose()?
+            .unwrap_or(0.0);
+        if !frequency.is_finite() || frequency < 0.0 {
+            return Err(invalid_data(format!(
+                "KLEX entry {number}: frequency must be finite and non-negative"
+            )));
+        }
+        if flags & WORD_TYPO_SURFACE != 0 {
+            let status = record
+                .get("status")
+                .and_then(|value| value.as_str())
+                .unwrap_or("approved");
+            if status == "approved" {
+                let correction = clean_klex_word(
+                    record
+                        .get("correction")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or(""),
+                );
+                if correction.is_empty() || correction == word {
+                    return Err(invalid_data(format!(
+                        "KLEX entry {number}: typo requires a different correction"
+                    )));
+                }
+                if corrections
+                    .insert(word.clone(), correction.clone())
+                    .is_some_and(|previous| previous != correction)
+                {
+                    return Err(invalid_data(format!(
+                        "conflicting KLEX correction for {word:?}"
+                    )));
+                }
+            } else {
+                flags &= !WORD_TYPO_SURFACE;
+            }
+        }
+        *flags_by_word.entry(word.clone()).or_insert(0) |= flags;
+        counts
+            .entry(word)
+            .and_modify(|value| *value = value.max(frequency))
+            .or_insert(frequency);
+    }
+
+    for (typed, correction) in &corrections {
+        if flags_by_word.get(correction).copied().unwrap_or(0) & WORD_SPELLCHECK == 0 {
+            return Err(invalid_data(format!(
+                "KLEX correction {typed:?} -> {correction:?} must target a spelling entry"
+            )));
+        }
+    }
+
+    let floor = 5.0_f64;
+    let total = counts
+        .values()
+        .map(|count| count.max(floor))
+        .sum::<f64>()
+        .max(floor);
+    let default_cost = -(floor / total).log10() as f32;
+    let unknown_cost = default_cost + 5.0;
+    let costs: BTreeMap<_, _> = flags_by_word
+        .keys()
+        .map(|word| {
+            let count = counts.get(word).copied().unwrap_or(0.0).max(floor);
+            (word.clone(), -(count / total).log10() as f32)
+        })
+        .collect();
+    let segmentation_words: Vec<_> = flags_by_word
+        .iter()
+        .filter_map(|(word, flags)| (flags & WORD_SEGMENT != 0).then_some(word.clone()))
+        .collect();
+    let required_size = ((segmentation_words.len() as f64 / 0.70).ceil() as usize).max(2);
+    let table_size = required_size.next_power_of_two();
+
+    let mut pool = vec![0_u8];
+    let mut offsets = BTreeMap::new();
+    for word in flags_by_word.keys() {
+        offsets.insert(word.clone(), pool.len() as u32);
+        pool.extend_from_slice(word.as_bytes());
+        pool.push(0);
+    }
+    let mut table = vec![(0_u32, 0_f32); table_size];
+    for word in &segmentation_words {
+        let mut slot =
+            khmer_segmenter::utils::djb2_hash(word.as_bytes()) as usize & (table_size - 1);
+        while table[slot].0 != 0 {
+            slot = (slot + 1) & (table_size - 1);
+        }
+        table[slot] = (offsets[word], costs[word]);
+    }
+
+    let extension_offset = 32 + table_size * 8 + pool.len();
+    let mut output = Vec::new();
+    output.extend_from_slice(b"KDIC");
+    output.extend_from_slice(&2_u32.to_le_bytes());
+    output.extend_from_slice(&(segmentation_words.len() as u32).to_le_bytes());
+    output.extend_from_slice(&(table_size as u32).to_le_bytes());
+    output.extend_from_slice(&default_cost.to_le_bytes());
+    output.extend_from_slice(&unknown_cost.to_le_bytes());
+    let max_word_bytes = segmentation_words
+        .iter()
+        .map(|word| word.len() as u32)
+        .max()
+        .unwrap_or(0);
+    output.extend_from_slice(&max_word_bytes.to_le_bytes());
+    output.extend_from_slice(&(extension_offset as u32).to_le_bytes());
+    for (offset, cost) in table {
+        output.extend_from_slice(&offset.to_le_bytes());
+        output.extend_from_slice(&cost.to_le_bytes());
+    }
+    output.extend_from_slice(&pool);
+    output.extend_from_slice(b"KDX2");
+    output.extend_from_slice(&1_u32.to_le_bytes());
+    output.extend_from_slice(&(flags_by_word.len() as u32).to_le_bytes());
+    output.extend_from_slice(&(corrections.len() as u32).to_le_bytes());
+    for (word, flags) in &flags_by_word {
+        output.extend_from_slice(&offsets[word].to_le_bytes());
+        output.extend_from_slice(&flags.to_le_bytes());
+        output.extend_from_slice(&costs[word].to_le_bytes());
+    }
+    for (typed, correction) in &corrections {
+        output.extend_from_slice(&offsets[typed].to_le_bytes());
+        output.extend_from_slice(&offsets[correction].to_le_bytes());
+    }
+    if let Some(parent) = Path::new(output_path).parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(output_path, output)?;
+    Ok(())
+}
+
+fn run_data_compile(args: &[String]) -> io::Result<()> {
+    let mut source = None;
+    let mut output = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--output" | "-o" => {
+                index += 1;
+                output = args.get(index).cloned();
+            }
+            value if value.starts_with('-') => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("unknown data compile option: {value}"),
+                ));
+            }
+            value if source.is_none() => source = Some(value.to_owned()),
+            value => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("unexpected data compile argument: {value}"),
+                ));
+            }
+        }
+        index += 1;
+    }
+    let source = source.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "data compile requires a KLEX file",
+        )
+    })?;
+    let output = output.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "data compile requires --output",
+        )
+    })?;
+    compile_klex(&source, &output)?;
+    println!("Compiled unified KDIC v2 pack: {output}");
+    Ok(())
+}
 
 fn default_dictionary_path() -> Option<&'static str> {
     [
@@ -197,10 +453,16 @@ fn main() -> io::Result<()> {
     let mut threads = 4;
     let mut limit: i32 = -1;
     let mut test_hyphenation_word: Option<String> = None;
+    let mut dictionary_path: Option<String> = None;
 
     let args: Vec<String> = env::args().collect();
     if args.get(1).map(String::as_str) == Some("diagnose") {
         return run_diagnose(&args[2..]);
+    }
+    if args.get(1).map(String::as_str) == Some("data")
+        && args.get(2).map(String::as_str) == Some("compile")
+    {
+        return run_data_compile(&args[3..]);
     }
     let mut i = 1;
     while i < args.len() {
@@ -208,6 +470,11 @@ fn main() -> io::Result<()> {
         if arg == "--benchmark" || arg == "--bench" {
             mode_benchmark = true;
             eprintln!("DEBUG: Set benchmark match {}", arg);
+        } else if arg == "--dictionary" || arg == "--kdict" {
+            if i + 1 < args.len() {
+                dictionary_path = Some(args[i + 1].clone());
+                i += 1;
+            }
         } else if arg == "--input" || arg == "--file" {
             eprintln!("DEBUG: Found input flag at {}", i);
             while i + 1 < args.len() && !args[i + 1].starts_with('-') {
@@ -367,11 +634,13 @@ fn main() -> io::Result<()> {
         "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_dictionary.kdict", // Absolute fallback
     ];
 
-    let mut dict_path: Option<&str> = None;
-    for p in &dict_paths {
-        if Path::new(p).exists() {
-            dict_path = Some(p);
-            break;
+    let mut dict_path = dictionary_path.as_deref();
+    if dict_path.is_none() {
+        for p in &dict_paths {
+            if Path::new(p).exists() {
+                dict_path = Some(p);
+                break;
+            }
         }
     }
 
@@ -624,6 +893,7 @@ fn main() -> io::Result<()> {
     } else {
         println!("Usage: khmer_segmenter.exe [flags] [text]");
         println!("  --input <path...> Multiple input files");
+        println!("  --dictionary <path> Unified KDIC v2 language pack");
         println!("  --output <path>   Output file path");
         println!("  --limit <N>       Limit total lines processed");
         println!("  --threads <N>     Number of threads (default: 4)");
@@ -638,8 +908,43 @@ fn main() -> io::Result<()> {
         println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
         println!("  diagnose [--profile typing|document|high-recall] <text>");
         println!("                    Return spellcheck diagnostics as JSON");
+        println!("  data compile <file.klex.json> --output <file.kdict>");
+        println!("                    Compile a unified KDIC v2 language pack");
         println!("  <text>            Process raw text");
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod cli_tests {
+    use super::*;
+    use khmer_segmenter::kdict::{KDict, WORD_SEGMENT, WORD_SPELLCHECK, WORD_TYPO_SURFACE};
+
+    #[test]
+    fn native_cli_compiler_writes_unified_policy_and_corrections() {
+        let stem = format!("khmer-klex-test-{}", std::process::id());
+        let source = std::env::temp_dir().join(format!("{stem}.json"));
+        let output = std::env::temp_dir().join(format!("{stem}.kdict"));
+        std::fs::write(&source, include_str!("../../../examples/custom.klex.json")).unwrap();
+        compile_klex(source.to_str().unwrap(), output.to_str().unwrap()).unwrap();
+
+        let dictionary = KDict::load(&output).unwrap();
+        assert_eq!(dictionary.version(), 2);
+        let entries: BTreeMap<_, _> = dictionary
+            .lexical_entries()
+            .into_iter()
+            .map(|entry| (entry.word.clone(), entry))
+            .collect();
+        assert_eq!(
+            entries["ដេល"].flags & (WORD_SEGMENT | WORD_SPELLCHECK | WORD_TYPO_SURFACE),
+            WORD_SEGMENT | WORD_TYPO_SURFACE
+        );
+        assert!(dictionary
+            .typo_corrections()
+            .contains(&("ដេល".to_owned(), "ដែល".to_owned())));
+
+        let _ = std::fs::remove_file(source);
+        let _ = std::fs::remove_file(output);
+    }
 }

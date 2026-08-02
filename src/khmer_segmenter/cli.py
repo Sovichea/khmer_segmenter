@@ -20,6 +20,7 @@ from .data import (
     candidate_data_dirs,
 )
 from .hyphenation import KhmerHyphenator
+from .kdict import compile_klex
 from .models import SpellcheckProfile
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
@@ -37,10 +38,16 @@ def build_parser() -> argparse.ArgumentParser:
         description="Segment and analyze Khmer text using bundled or user-supplied data.",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument(
+    resources = parser.add_mutually_exclusive_group()
+    resources.add_argument(
         "--data-dir",
         type=Path,
         help=f"local linguistic data directory (or set {DATA_DIR_ENV})",
+    )
+    resources.add_argument(
+        "--kdict",
+        type=Path,
+        help="unified KDIC v2 language pack",
     )
     parser.add_argument("--verbose", action="store_true", help="show data-loading details")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -117,6 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="destination; defaults to --data-dir or the user data directory",
     )
+    compile_data = data_commands.add_parser(
+        "compile", help="compile one KLEX JSON source into a unified KDIC v2 pack"
+    )
+    compile_data.add_argument("lexicon", type=Path, help="input .klex.json file")
+    compile_data.add_argument("--output", "-o", required=True, type=Path)
     return parser
 
 
@@ -149,6 +161,8 @@ def _serialize_records(records: list[dict[str, Any]], output_format: str) -> str
 
 
 def _segmenter(args: argparse.Namespace) -> KhmerSegmenter:
+    if args.kdict is not None:
+        return KhmerSegmenter.from_kdict(args.kdict)
     return KhmerSegmenter.from_data_dir(args.data_dir)
 
 
@@ -176,6 +190,10 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
             report = prepare_dictionary(args.rac_tsv, output_dir)
             print(json.dumps(report, ensure_ascii=False, indent=2))
             print(f"Prepared local dictionary in: {Path(output_dir).resolve()}")
+            return 0
+        if args.data_command == "compile":
+            output = compile_klex(args.lexicon, args.output)
+            print(f"Compiled unified KDIC v2 pack: {output.resolve()}")
             return 0
         files = _data_files_for_status(args.data_dir)
         print(f"Data directory: {files.root}")

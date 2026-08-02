@@ -48,6 +48,27 @@ impl DataSource {
             DataSource::Owned(v) => v.len(),
         }
     }
+
+    fn as_slice(&self) -> &[u8] {
+        match self {
+            #[cfg(not(target_arch = "wasm32"))]
+            DataSource::Mmap(m) => m,
+            DataSource::Owned(v) => v,
+        }
+    }
+}
+
+pub const WORD_SEGMENT: u32 = 1 << 0;
+pub const WORD_SPELLCHECK: u32 = 1 << 1;
+pub const WORD_AUTOCOMPLETE: u32 = 1 << 2;
+pub const WORD_TYPO_SURFACE: u32 = 1 << 3;
+pub const WORD_SUPPLEMENTAL: u32 = 1 << 4;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct KDictWord {
+    pub word: String,
+    pub flags: u32,
+    pub cost: f32,
 }
 
 pub struct KDict {
@@ -90,6 +111,12 @@ impl KDict {
                 "Invalid magic",
             ));
         }
+        if !matches!(header.version, 1 | 2) {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Unsupported KDIC version",
+            ));
+        }
 
         let table_offset = std::mem::size_of::<KDictHeader>();
         // Check bounds would be good here
@@ -103,6 +130,21 @@ impl KDict {
                 std::io::ErrorKind::InvalidData,
                 "File truncated",
             ));
+        }
+        if header.version >= 2 {
+            let extension_offset = header.padding as usize;
+            if extension_offset < pool_offset || extension_offset + 16 > source.len() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Invalid KDIC v2 extension offset",
+                ));
+            }
+            if &source.as_slice()[extension_offset..extension_offset + 4] != b"KDX2" {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Invalid KDIC v2 extension",
+                ));
+            }
         }
 
         let pool_ptr = unsafe { base_ptr.add(pool_offset) };
@@ -148,6 +190,91 @@ impl KDict {
 
     pub fn default_cost(&self) -> f32 {
         unsafe { (*self.header).default_cost }
+    }
+
+    pub fn version(&self) -> u32 {
+        unsafe { (*self.header).version }
+    }
+
+    pub fn has_unified_metadata(&self) -> bool {
+        self.version() >= 2
+    }
+
+    fn read_u32(&self, offset: usize) -> Option<u32> {
+        let bytes = self.source.as_slice().get(offset..offset + 4)?;
+        Some(u32::from_le_bytes(bytes.try_into().ok()?))
+    }
+
+    fn read_f32(&self, offset: usize) -> Option<f32> {
+        self.read_u32(offset).map(f32::from_bits)
+    }
+
+    /// Return all typed lexical records embedded in KDIC v2.
+    pub fn lexical_entries(&self) -> Vec<KDictWord> {
+        if !self.has_unified_metadata() {
+            return self
+                .words_with_costs()
+                .into_iter()
+                .map(|(word, cost)| KDictWord {
+                    word,
+                    flags: WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE,
+                    cost,
+                })
+                .collect();
+        }
+        let extension = unsafe { (*self.header).padding as usize };
+        let count = self.read_u32(extension + 8).unwrap_or(0) as usize;
+        let mut entries = Vec::with_capacity(count);
+        let mut cursor = extension + 16;
+        for _ in 0..count {
+            let Some(name_offset) = self.read_u32(cursor) else {
+                break;
+            };
+            let Some(flags) = self.read_u32(cursor + 4) else {
+                break;
+            };
+            let Some(cost) = self.read_f32(cursor + 8) else {
+                break;
+            };
+            cursor += 12;
+            if let Ok(word) = std::str::from_utf8(self.get_pool_bytes(name_offset)) {
+                entries.push(KDictWord {
+                    word: word.to_owned(),
+                    flags,
+                    cost,
+                });
+            }
+        }
+        entries
+    }
+
+    /// Return approved exact typo mappings embedded in KDIC v2.
+    pub fn typo_corrections(&self) -> Vec<(String, String)> {
+        if !self.has_unified_metadata() {
+            return Vec::new();
+        }
+        let extension = unsafe { (*self.header).padding as usize };
+        let word_count = self.read_u32(extension + 8).unwrap_or(0) as usize;
+        let typo_count = self.read_u32(extension + 12).unwrap_or(0) as usize;
+        let mut cursor = extension + 16 + word_count * 12;
+        let mut corrections = Vec::with_capacity(typo_count);
+        for _ in 0..typo_count {
+            let Some(typed_offset) = self.read_u32(cursor) else {
+                break;
+            };
+            let Some(correction_offset) = self.read_u32(cursor + 4) else {
+                break;
+            };
+            cursor += 8;
+            let Ok(typed) = std::str::from_utf8(self.get_pool_bytes(typed_offset)) else {
+                continue;
+            };
+            let Ok(correction) = std::str::from_utf8(self.get_pool_bytes(correction_offset)) else {
+                continue;
+            };
+            corrections.push((typed.to_owned(), correction.to_owned()));
+        }
+        corrections
     }
 
     /// Copy all dictionary entries into safe Rust values.

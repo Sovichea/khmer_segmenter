@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "word": "ដែល",
+      "uses": ["segmentation", "spelling", "autocomplete"],
+      "frequency": 100
+    },
+    {
+      "word": "ដេល",
+      "uses": ["segmentation", "supplemental", "typo"],
+      "correction": "ដែល"
+    },
+    {
+      "word": "ពាក្យសាកល្បង",
+      "uses": ["segmentation", "spelling", "autocomplete"],
+      "frequency": 10
+    }
+  ]
+}

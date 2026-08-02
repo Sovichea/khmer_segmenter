@@ -345,12 +345,138 @@ def step_export_binary_frequencies(freq_json_path, output_bin_path):
             f.write(struct.pack('<f', cost))
     print(f"  > Binary frequencies written to {output_bin_path}")
 
+def _write_kdict_v2(
+    output_kdict,
+    word_costs,
+    flags_by_word,
+    typo_corrections,
+    default_cost,
+    unknown_cost,
+):
+    """Write one optimized KDIC v2 file from normalized logical records."""
+
+    segmentation_words = {
+        word for word, flags in flags_by_word.items() if flags & (1 << 0)
+    }
+    num_entries = len(segmentation_words)
+    table_size = next_power_of_two(max(2, int(num_entries / 0.70)))
+    metadata_words = set(flags_by_word) | set(typo_corrections) | set(typo_corrections.values())
+
+    string_pool = bytearray(b'\x00')
+    word_offsets = {}
+    for word in sorted(metadata_words):
+        word_offsets[word] = len(string_pool)
+        string_pool.extend(word.encode('utf-8') + b'\x00')
+
+    table = [(0, 0.0)] * table_size
+    for word in sorted(segmentation_words):
+        cost = word_costs.get(word, default_cost)
+        index = djb2_hash(word) & (table_size - 1)
+        while table[index][0] != 0:
+            index = (index + 1) & (table_size - 1)
+        table[index] = (word_offsets[word], cost)
+
+    metadata = [
+        (word_offsets[word], flags_by_word[word], word_costs.get(word, default_cost))
+        for word in sorted(flags_by_word)
+    ]
+    max_bytes = max((len(word.encode('utf-8')) for word in segmentation_words), default=0)
+    extension_offset = 32 + table_size * 8 + len(string_pool)
+
+    with open(output_kdict, 'wb') as f:
+        f.write(b'KDIC')
+        f.write(struct.pack('<III', 2, num_entries, table_size))
+        f.write(struct.pack('<ff', default_cost, unknown_cost))
+        f.write(struct.pack('<II', max_bytes, extension_offset))
+        for offset, cost in table:
+            f.write(struct.pack('<If', offset, cost))
+        f.write(string_pool)
+        f.write(struct.pack('<4sIII', b'KDX2', 1, len(metadata), len(typo_corrections)))
+        for offset, flags, cost in metadata:
+            f.write(struct.pack('<IIf', offset, flags, cost))
+        for typed, correction in sorted(typo_corrections.items()):
+            f.write(struct.pack('<II', word_offsets[typed], word_offsets[correction]))
+
+
+def step_compile_klex(klex_path, output_kdict):
+    """Compile one human-editable KLEX JSON file into KDIC v2."""
+
+    with open(klex_path, 'r', encoding='utf-8') as handle:
+        source = json.load(handle)
+    if source.get('version') != 1 or not isinstance(source.get('entries'), list):
+        raise ValueError('KLEX requires version 1 and an entries array')
+
+    use_flags = {
+        'segmentation': 1 << 0,
+        'spelling': 1 << 1,
+        'autocomplete': 1 << 2,
+        'typo': 1 << 3,
+        'supplemental': 1 << 4,
+    }
+    flags_by_word = {}
+    counts = {}
+    corrections = {}
+    for index, record in enumerate(source['entries'], start=1):
+        if not isinstance(record, dict):
+            raise ValueError(f'KLEX entry {index} must be an object')
+        word = strip_control_chars(str(record.get('word', '')).strip())
+        uses = record.get('uses', [])
+        if not word or not isinstance(uses, list) or not uses:
+            raise ValueError(f'KLEX entry {index} requires word and uses')
+        unknown_uses = set(uses) - set(use_flags)
+        if unknown_uses:
+            raise ValueError(f'KLEX entry {index} has unknown uses: {sorted(unknown_uses)}')
+        flags = sum(use_flags[use] for use in set(uses))
+        if flags & use_flags['supplemental']:
+            flags |= use_flags['segmentation']
+        if flags & use_flags['autocomplete'] and not flags & use_flags['spelling']:
+            raise ValueError(f'KLEX entry {index}: autocomplete requires spelling')
+        frequency = float(record.get('frequency', 0) or 0)
+        if frequency < 0:
+            raise ValueError(f'KLEX entry {index}: frequency cannot be negative')
+        counts[word] = max(counts.get(word, 0), frequency)
+        correction = strip_control_chars(str(record.get('correction', '')).strip())
+        if flags & use_flags['typo']:
+            if record.get('status', 'approved') == 'approved':
+                if not correction or correction == word:
+                    raise ValueError(f'KLEX entry {index}: typo requires a different correction')
+                corrections[word] = correction
+            else:
+                flags &= ~use_flags['typo']
+        flags_by_word[word] = flags_by_word.get(word, 0) | flags
+
+    for typed, correction in corrections.items():
+        if not flags_by_word.get(correction, 0) & use_flags['spelling']:
+            raise ValueError(
+                f'KLEX correction {typed!r} -> {correction!r} must target a spelling entry'
+            )
+
+    floor = 5.0
+    total = sum(max(count, floor) for count in counts.values()) or floor
+    default_cost = -math.log10(floor / total)
+    unknown_cost = default_cost + 5.0
+    word_costs = {
+        word: -math.log10(max(counts.get(word, 0), floor) / total)
+        for word in flags_by_word
+    }
+    _write_kdict_v2(
+        output_kdict,
+        word_costs,
+        flags_by_word,
+        corrections,
+        default_cost,
+        unknown_cost,
+    )
+    print(f"  > Compiled KLEX to {output_kdict} ({os.path.getsize(output_kdict)/1024:.2f} KB)")
+
+
 def step_compile_kdict(
     dict_path,
     freq_json_path,
     output_kdict,
     supplemental_path=None,
     spellcheck_path=None,
+    typo_corrections_path=None,
     supplemental_penalty=1.5,
 ):
     print(f"[*] Step 4: Compiling KDict Binary...")
@@ -459,35 +585,47 @@ def step_compile_kdict(
         word_costs[w] = cost
         max_bytes = max(max_bytes, len(w.encode('utf-8')))
 
-    # 3. Build Hash Table
-    num_entries = len(words)
-    table_size = next_power_of_two(int(num_entries / 0.70))
-    
-    string_pool = bytearray(b'\x00')
-    word_offsets = {}
-    for w in sorted(list(words)):
-        word_offsets[w] = len(string_pool)
-        string_pool.extend(w.encode('utf-8') + b'\x00')
+    approved_typos = {}
+    if typo_corrections_path and os.path.isfile(typo_corrections_path):
+        import csv
 
-    table = [(0, 0.0)] * table_size
-    # Stable insertion order makes KDIC byte-for-byte reproducible for the
-    # same dictionary and frequency inputs, including collision placement.
-    for w in sorted(word_costs):
-        cost = word_costs[w]
-        idx = djb2_hash(w) & (table_size - 1)
-        while table[idx][0] != 0:
-            idx = (idx + 1) & (table_size - 1)
-        table[idx] = (word_offsets[w], cost)
+        with open(typo_corrections_path, 'r', encoding='utf-8', newline='') as f:
+            for row in csv.DictReader(f, delimiter='\t'):
+                if row.get('status') != 'approved':
+                    continue
+                typed = strip_control_chars(row.get('typed', '').strip())
+                correction = strip_control_chars(row.get('correction', '').strip())
+                if typed and correction and typed != correction:
+                    approved_typos[typed] = correction
 
-    # 4. Write
-    with open(output_kdict, 'wb') as f:
-        f.write(b'KDIC')
-        f.write(struct.pack('<III', 1, num_entries, table_size))
-        f.write(struct.pack('<ff', default_cost, unknown_cost))
-        f.write(struct.pack('<II', max_bytes, 0))
-        for offset, cost in table:
-            f.write(struct.pack('<If', offset, cost))
-        f.write(string_pool)
+    segment_flag = 1 << 0
+    spellcheck_flag = 1 << 1
+    autocomplete_flag = 1 << 2
+    typo_surface_flag = 1 << 3
+    supplemental_flag = 1 << 4
+    flags_by_word = {}
+    metadata_words = words | protected_spelling_words | set(approved_typos)
+    metadata_words |= set(approved_typos.values())
+    for word in metadata_words:
+        flags = 0
+        if word in words:
+            flags |= segment_flag
+        if word in protected_spelling_words:
+            flags |= spellcheck_flag | autocomplete_flag
+        if word in approved_typos:
+            flags |= typo_surface_flag
+        if word in supplemental_words and word not in primary_words:
+            flags |= supplemental_flag
+        flags_by_word[word] = flags
+
+    _write_kdict_v2(
+        output_kdict,
+        word_costs,
+        flags_by_word,
+        approved_typos,
+        default_cost,
+        unknown_cost,
+    )
     
     print(f"  > Compiled KDict to {output_kdict} ({os.path.getsize(output_kdict)/1024:.2f} KB)")
 

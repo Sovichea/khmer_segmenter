@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::str::FromStr;
 
-use crate::kdict::KDict;
+use crate::kdict::{KDict, WORD_AUTOCOMPLETE, WORD_SPELLCHECK};
 use crate::khmer_segmenter::Segmentation;
 
 const COENG: char = '\u{17d2}';
@@ -150,6 +150,7 @@ impl Proposal {
 
 pub struct TypoDetector {
     words: HashSet<String>,
+    autocomplete_words: HashSet<String>,
     entries: Vec<(String, f32)>,
     exact_skeleton: HashMap<String, Vec<usize>>,
     deletion_skeleton: HashMap<String, Vec<usize>>,
@@ -162,36 +163,58 @@ impl TypoDetector {
         // KDIC is the broad segmentation lexicon and may contain supplemental
         // words or known typo surfaces. Spelling and completion intentionally
         // use only the separately curated spelling vocabulary.
-        let mut entries: Vec<_> = SPELLCHECK_WORDS
-            .lines()
-            .map(str::trim)
-            .filter(|word| is_lexical_khmer(word))
-            .map(|word| {
-                (
-                    word.to_owned(),
-                    dictionary
-                        .cost(word)
-                        .unwrap_or_else(|| dictionary.default_cost()),
-                )
-            })
-            .collect();
+        let (mut entries, mut autocomplete_words, mut reviewed_typos): (
+            Vec<(String, f32)>,
+            HashSet<String>,
+            HashMap<String, String>,
+        ) = if dictionary.has_unified_metadata() {
+            let lexical_entries = dictionary.lexical_entries();
+            (
+                lexical_entries
+                    .iter()
+                    .filter(|entry| entry.flags & WORD_SPELLCHECK != 0)
+                    .map(|entry| (entry.word.clone(), entry.cost))
+                    .collect(),
+                lexical_entries
+                    .iter()
+                    .filter(|entry| entry.flags & WORD_AUTOCOMPLETE != 0)
+                    .map(|entry| entry.word.clone())
+                    .collect(),
+                dictionary.typo_corrections().into_iter().collect(),
+            )
+        } else {
+            let entries: Vec<_> = SPELLCHECK_WORDS
+                .lines()
+                .map(str::trim)
+                .filter(|word| is_lexical_khmer(word))
+                .map(|word| {
+                    (
+                        word.to_owned(),
+                        dictionary
+                            .cost(word)
+                            .unwrap_or_else(|| dictionary.default_cost()),
+                    )
+                })
+                .collect();
+            let autocomplete_words = entries.iter().map(|(word, _)| word.clone()).collect();
+            let reviewed_typos = TYPO_CORRECTIONS_TSV
+                .lines()
+                .skip(1)
+                .filter_map(|line| {
+                    let columns: Vec<_> = line.split('\t').collect();
+                    (columns.len() >= 4 && columns[1] == "approved")
+                        .then(|| (columns[2].to_owned(), columns[3].to_owned()))
+                })
+                .collect();
+            (entries, autocomplete_words, reviewed_typos)
+        };
         if !entries.iter().any(|(word, _)| word == "ឲ្យ") {
             if let Some((_, cost)) = entries.iter().find(|(word, _)| word == "ឱ្យ") {
                 entries.push(("ឲ្យ".to_owned(), *cost + 0.001));
+                autocomplete_words.insert("ឲ្យ".to_owned());
             }
         }
         let words: HashSet<String> = entries.iter().map(|(word, _)| word.clone()).collect();
-        let mut reviewed_typos: HashMap<String, String> = TYPO_CORRECTIONS_TSV
-            .lines()
-            .skip(1)
-            .filter_map(|line| {
-                let columns: Vec<_> = line.split('\t').collect();
-                (columns.len() >= 4 && columns[1] == "approved")
-                    .then(|| (columns[2].to_owned(), columns[3].to_owned()))
-            })
-            // Approved corrections are authoritative and may be multiword
-            // expressions rather than single spellcheck headwords.
-            .collect();
         // Some Khmer signs are difficult to distinguish on small screens.
         // Derive one-character aliases, excluding valid words and aliases that
         // could refer to more than one dictionary entry. Reviewed pairs remain
@@ -333,6 +356,7 @@ impl TypoDetector {
             .unwrap_or(0);
         Self {
             words,
+            autocomplete_words,
             entries,
             exact_skeleton,
             deletion_skeleton,
@@ -354,7 +378,7 @@ impl TypoDetector {
         let mut matches: Vec<_> = self
             .entries
             .iter()
-            .filter(|(word, _)| word.starts_with(prefix))
+            .filter(|(word, _)| word.starts_with(prefix) && self.autocomplete_words.contains(word))
             .map(|(word, lexical_cost)| SpellingSuggestion {
                 text: word.clone(),
                 edit_cost: 0.0,

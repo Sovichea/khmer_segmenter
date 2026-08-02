@@ -4,6 +4,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from .data import DataFiles, DataNotFoundError
 from .hyphenation import KhmerHyphenator
+from .kdict import KDict, KDictWord, compile_klex
 from .models import (
     EditOperation,
     SpellcheckConfig,
@@ -25,6 +26,9 @@ __all__ = [
     "DataNotFoundError",
     "KhmerHyphenator",
     "KhmerSegmenter",
+    "KDict",
+    "KDictWord",
+    "compile_klex",
     "EditOperation",
     "SpellcheckConfig",
     "SpellcheckProfile",

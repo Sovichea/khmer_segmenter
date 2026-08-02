@@ -11,9 +11,10 @@ by this repository. Obtain the dictionary from
 [Seanghay Hay's original Hugging Face publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k),
 review its terms, and follow [the data guide](../../docs/DATA.md) to generate
 the ignored files under `port/common/`.
-The crate embeds a synchronized copy of the curated spelling vocabulary for
-spellcheck and autocomplete. KDIC may therefore contain broader supplemental
-segmentation entries without accepting them as correct spellings.
+KDIC v2 contains segmentation costs, curated spelling and autocomplete flags,
+and approved typo corrections in the same binary file. Supplemental entries
+can therefore remain useful segmentation units without becoming accepted
+spellings. KDIC v1 remains readable through the embedded compatibility data.
 The complete conversion and embedded-deployment workflow is in
 [Prepare Dictionaries for Python, C, and Rust](../../docs/EMBEDDED_DICTIONARY.md).
 
@@ -68,6 +69,23 @@ use khmer_segmenter::{KhmerSegmenter, SpellcheckProfile};
 let diagnostics = segmenter.check_text(text, SpellcheckProfile::Typing)?;
 ```
 
+Load a custom unified pack without recompiling the library:
+
+```rust
+use khmer_segmenter::{KhmerSegmenter, SegmenterConfig};
+
+let segmenter = KhmerSegmenter::from_path(
+    "custom.kdict",
+    SegmenterConfig::default(),
+)?;
+```
+
+The precompiled CLI can create the pack directly from a KLEX JSON file:
+
+```bash
+khmer_segmenter data compile custom.klex.json --output custom.kdict
+```
+
 ## Usage
 
 Run the binary directly or via `cargo run`.
@@ -77,6 +95,7 @@ Run the binary directly or via `cargo run`.
 ```bash
 cargo run --release -- diagnose --profile typing "សម្បត្ត"
 cargo run --release -- diagnose --profile document --input manuscript.txt
+cargo run --release -- diagnose --dictionary custom.kdict --profile typing "ដេល"
 ```
 
 ### Segment Raw Text

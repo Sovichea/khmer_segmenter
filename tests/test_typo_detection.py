@@ -142,7 +142,7 @@ def test_typing_profile_recovers_reviewed_whole_word_typos(segmenter, typed, int
 
 def test_pending_typo_pairs_do_not_affect_runtime(segmenter):
     pairs = load_approved_typo_corrections(segmenter.data_files.typo_corrections)
-    assert len(pairs) == 166
+    assert len(pairs) == 167
     assert "អោយ" not in pairs
 
 

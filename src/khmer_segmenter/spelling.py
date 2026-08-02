@@ -302,8 +302,13 @@ class TypoDetector:
         words: Iterable[str],
         frequencies: dict[str, int | float] | None = None,
         reviewed_typos: dict[str, str] | None = None,
+        autocomplete_words: Iterable[str] | None = None,
     ):
         self.words = frozenset(word for word in words if _is_lexical_khmer(word))
+        completion_source = self.words if autocomplete_words is None else autocomplete_words
+        self.autocomplete_words = frozenset(
+            word for word in completion_source if word in self.words
+        )
         self.frequencies = frequencies or {}
         # Some Khmer signs are difficult to distinguish on small screens.
         # Derive one-character exact aliases from the lexicon, but never treat
@@ -394,7 +399,7 @@ class TypoDetector:
 
         if not prefix or limit <= 0:
             return ()
-        matches = (word for word in self.words if word.startswith(prefix))
+        matches = (word for word in self.autocomplete_words if word.startswith(prefix))
         ranked = sorted(
             matches,
             key=lambda word: (

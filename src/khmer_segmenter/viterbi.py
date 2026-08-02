@@ -16,6 +16,7 @@ from .models import (
     Token,
 )
 from .normalization import KhmerNormalizer
+from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
 from .rule_engine import RuleBasedEngine
 from .spelling import TypoDetector, load_approved_typo_corrections
 
@@ -35,13 +36,21 @@ class KhmerSegmenter:
         pos_path=None,
         *,
         data_dir=None,
+        kdict_path=None,
     ):
         """
         Initialize the segmenter by loading the dictionary and word frequencies.
         """
-        if dictionary_path is not None and data_dir is not None:
-            raise ValueError("pass either dictionary_path or data_dir, not both")
-        if dictionary_path is None:
+        supplied_sources = sum(
+            value is not None for value in (dictionary_path, data_dir, kdict_path)
+        )
+        if supplied_sources > 1:
+            raise ValueError("pass only one of dictionary_path, data_dir, or kdict_path")
+        pack = KDict.load(kdict_path) if kdict_path is not None else None
+        if pack is not None:
+            data_files = DataFiles(Path(kdict_path).resolve().parent)
+            dictionary_path = None
+        elif dictionary_path is None:
             data_files = resolve_data_files(data_dir)
             dictionary_path = data_files.dictionary
         else:
@@ -64,6 +73,8 @@ class KhmerSegmenter:
         self._official_words = None
         self._supplemental_words = None
         self._spellcheck_words = None
+        self._autocomplete_words = None
+        self._pack_typo_corrections = None
         self._curated_runtime_words = set()
         self._supplemental_runtime_words = set()
         self._typo_detector = None
@@ -77,9 +88,12 @@ class KhmerSegmenter:
             check_invalid_single_func=self._is_invalid_single, is_separator_func=self._is_separator
         )
 
-        self._load_dictionary(dictionary_path)
-        self._load_lexical_sources()
-        self._load_frequencies(frequency_path)
+        if pack is not None:
+            self._load_kdict(pack)
+        else:
+            self._load_dictionary(dictionary_path)
+            self._load_lexical_sources()
+            self._load_frequencies(frequency_path)
         self._load_data_manifest(data_files.model_manifest)
 
     @classmethod
@@ -87,6 +101,35 @@ class KhmerSegmenter:
         """Create a segmenter from a local data directory or configured default."""
 
         return cls(data_dir=data_dir)
+
+    @classmethod
+    def from_kdict(cls, path):
+        """Create a segmenter from one unified KDIC v2 language pack."""
+
+        return cls(kdict_path=path)
+
+    def _load_kdict(self, pack):
+        if pack.version < 2:
+            raise ValueError("Python unified loading requires KDIC version 2")
+        self.default_cost = pack.default_cost
+        self.unknown_cost = pack.unknown_cost
+        self._spellcheck_words = set()
+        self._autocomplete_words = set()
+        self._curated_runtime_words = set()
+        self._supplemental_runtime_words = set()
+        self._pack_typo_corrections = dict(pack.typo_corrections)
+        for record in pack.words.values():
+            if record.flags & SEGMENT:
+                self.words.add(record.word)
+                self.word_costs[record.word] = record.cost
+            if record.flags & SPELLCHECK:
+                self._spellcheck_words.add(record.word)
+                self._curated_runtime_words.add(record.word)
+            if record.flags & AUTOCOMPLETE:
+                self._autocomplete_words.add(record.word)
+            if record.flags & SUPPLEMENTAL:
+                self._supplemental_runtime_words.add(record.word)
+        self.max_word_length = max(map(len, self.words), default=0)
 
     def _load_word_set(self, path, destination):
         if not os.path.exists(path):
@@ -134,6 +177,12 @@ class KhmerSegmenter:
                 # Custom 0.1.x data directories remain usable without the new file.
                 self._spellcheck_words = set(self.words)
         return self._spellcheck_words
+
+    @property
+    def autocomplete_words(self):
+        if self._autocomplete_words is None:
+            self._autocomplete_words = set(self.spellcheck_words)
+        return self._autocomplete_words
 
     def _load_pos_tags(self, path):
         """Compatibility helper for callers that explicitly replace POS data."""
@@ -488,13 +537,17 @@ class KhmerSegmenter:
         """Lazily build the fuzzy index so normal segmentation startup stays fast."""
 
         if self._typo_detector is None:
-            correction_path = self.data_files.typo_corrections
-            if not correction_path.is_file():
-                correction_path = DataFiles(BUNDLED_DATA_DIR).typo_corrections
+            corrections = self._pack_typo_corrections
+            if corrections is None:
+                correction_path = self.data_files.typo_corrections
+                if not correction_path.is_file():
+                    correction_path = DataFiles(BUNDLED_DATA_DIR).typo_corrections
+                corrections = load_approved_typo_corrections(correction_path)
             self._typo_detector = TypoDetector(
                 self.spellcheck_words,
                 self.word_frequencies,
-                load_approved_typo_corrections(correction_path),
+                corrections,
+                autocomplete_words=self.autocomplete_words,
             )
         return self._typo_detector
 
