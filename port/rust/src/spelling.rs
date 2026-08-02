@@ -14,6 +14,7 @@ const RO: char = '\u{179a}';
 const CA: char = '\u{1785}';
 const CO: char = '\u{1787}';
 const TYPO_CORRECTIONS_TSV: &str = include_str!("../data/khmer_typo_corrections.tsv");
+const SPELLCHECK_WORDS: &str = include_str!("../data/khmer_spellcheck_words.txt");
 const REAHMUK: char = '\u{17c7}'; // ះ
 const YUUKALEAPINTU: char = '\u{17c8}'; // ៈ
 const COMMON_VISUAL_CONFUSIONS: &[(char, char)] = &[
@@ -158,10 +159,21 @@ pub struct TypoDetector {
 
 impl TypoDetector {
     pub fn from_kdict(dictionary: &KDict) -> Self {
-        let mut entries: Vec<_> = dictionary
-            .words_with_costs()
-            .into_iter()
-            .filter(|(word, _)| is_lexical_khmer(word))
+        // KDIC is the broad segmentation lexicon and may contain supplemental
+        // words or known typo surfaces. Spelling and completion intentionally
+        // use only the separately curated spelling vocabulary.
+        let mut entries: Vec<_> = SPELLCHECK_WORDS
+            .lines()
+            .map(str::trim)
+            .filter(|word| is_lexical_khmer(word))
+            .map(|word| {
+                (
+                    word.to_owned(),
+                    dictionary
+                        .cost(word)
+                        .unwrap_or_else(|| dictionary.default_cost()),
+                )
+            })
             .collect();
         if !entries.iter().any(|(word, _)| word == "ឲ្យ") {
             if let Some((_, cost)) = entries.iter().find(|(word, _)| word == "ឱ្យ") {

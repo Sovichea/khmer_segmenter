@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "khmer-viterbi-segmenter"
 version = "0.2.0rc1"
-description = "Deterministic RAC-curated Khmer segmentation and spellcheck"
+description = "Deterministic Khmer segmentation with curated spelling"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT AND LicenseRef-Khmer-Dictionary-NC"

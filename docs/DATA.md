@@ -14,6 +14,7 @@ dictionary or its runtime adaptations.
 | Resource | Original source | Credit | Terms to review |
 |:---|:---|:---|:---|
 | Khmer Dictionary 2022 extraction | [Seanghay Hay's `khmer-dictionary-44k`](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k) | National Council of Khmer Language, Royal Academy of Cambodia (authority); Seanghay Hay / `seanghay` (extraction and publication) | Noncommercial redistribution with attribution, confirmed by Seanghay Hay |
+| Legacy supplemental segmentation forms | Earlier attributed runtime dictionary in this project, conservatively decomposed during migration | Sovichea and project maintainers (runtime curation); retain the Khmer Dictionary 2022 credits above | Segmentation evidence only; distributed under the same noncommercial attribution notice |
 | khPOS | [`ye-kyaw-thu/khPOS`](https://github.com/ye-kyaw-thu/khPOS) | Vichet Chea and Ye Kyaw Thu; annotation assistance by Sorn Kea and Leng Greyhuy | CC BY-NC-SA 4.0 |
 | Khmer ALT | [Zenodo record 3937914](https://doi.org/10.5281/zenodo.3937914) | Chenchen Ding, Masao Utiyama, and Eiichiro Sumita; NICT and NIPTICT | Description and rights field differ; review the record |
 | Earlier folktale/dictionary inputs | [sovichet](https://github.com/sovichet) | Sovichet | Ask the original author and review the source terms |
@@ -24,8 +25,9 @@ files or terms; their current pages are authoritative.
 
 ## Bundled runtime data
 
-The installed package includes the strict RAC model plus the preserved
-experimental hyphenation asset:
+The installed package includes a layered segmentation model, a strictly
+RAC-curated spelling vocabulary, and the preserved experimental hyphenation
+asset:
 
 ```text
 src/khmer_segmenter/dictionary_data/
@@ -65,7 +67,7 @@ Invoke-WebRequest `
 ```
 
 This downloads directly from the credited publisher. Rebuild and validate the
-strict runtime model with:
+authoritative RAC base model with:
 
 ```bash
 python scripts/rebuild_rac_model.py \
@@ -137,9 +139,11 @@ ignored development directory for rebuilding and comparing local artifacts.
 
 ## Optional research frequencies and POS candidates
 
-The bundled 0.2 model does not use external corpora for lexical validity or
-frequency evidence. Researchers may still generate local experimental
-frequencies from a corpus they are authorized to use:
+The curated spelling vocabulary and frequency model do not use external
+corpora for lexical validity or frequency evidence. The supplemental file is
+segmentation-only and cannot make a spelling valid. Researchers may still
+generate local experimental frequencies from a corpus they are authorized to
+use:
 
 ```bash
 python scripts/prepare_data.py \

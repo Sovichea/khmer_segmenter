@@ -45,9 +45,12 @@ def test_spellcheck_lexicon_is_separate_from_segmentation_lexicon():
     assert all(segmenter.is_spelling_valid(word, normalize=False) for word in spellcheck_only)
 
 
-def test_supplemental_runtime_dictionary_is_empty():
-    supplemental = DATA_DIR / "khmer_dictionary_supplemental_words.txt"
-    assert supplemental.read_text(encoding="utf-8") == ""
+def test_supplemental_runtime_dictionary_is_segmentation_only():
+    segmenter = KhmerSegmenter(data_dir=DATA_DIR)
+    supplemental = segmenter.supplemental_words
+    assert supplemental
+    assert supplemental <= segmenter.words
+    assert all(not segmenter.is_spelling_valid(word) for word in supplemental)
 
 
 def test_spellcheck_cli_and_hyphenation_data(capsys):

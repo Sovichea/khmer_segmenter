@@ -44,6 +44,30 @@ def main() -> None:
         help="JSON object mapping words to occurrence counts",
     )
     parser.add_argument(
+        "--supplemental",
+        type=Path,
+        default=(
+            PROJECT_ROOT
+            / "src"
+            / "khmer_segmenter"
+            / "dictionary_data"
+            / "khmer_dictionary_supplemental_words.txt"
+        ),
+        help="optional segmentation-only words; these receive a cost penalty",
+    )
+    parser.add_argument(
+        "--spellcheck",
+        type=Path,
+        default=(
+            PROJECT_ROOT
+            / "src"
+            / "khmer_segmenter"
+            / "dictionary_data"
+            / "khmer_spellcheck_words.txt"
+        ),
+        help="curated forms that supplemental variants must not promote",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=PROJECT_ROOT / "port" / "common" / "khmer_dictionary.kdict",
@@ -56,7 +80,13 @@ def main() -> None:
             parser.error(f"{label} not found: {path}")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    step_compile_kdict(str(args.dict), str(args.freq), str(args.output))
+    step_compile_kdict(
+        str(args.dict),
+        str(args.freq),
+        str(args.output),
+        supplemental_path=str(args.supplemental),
+        spellcheck_path=str(args.spellcheck),
+    )
 
 
 if __name__ == "__main__":

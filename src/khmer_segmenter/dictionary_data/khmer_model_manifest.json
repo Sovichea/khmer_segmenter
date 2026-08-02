@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "model_id": "rac-2022-strict-v1",
+  "model_id": "rac-2022-layered-v1",
   "release": "0.2.0rc1",
   "source": {
     "name": "Khmer Dictionary 2022",
@@ -9,6 +9,12 @@
     "url": "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k/resolve/525c0171894465cba920a9181387a032c11610d3/RAC-Khmer-Dict-2022.csv",
     "revision": "525c0171894465cba920a9181387a032c11610d3",
     "sha256": "3c6e9908b7881d36c1e43ae66258554d5c1dc07cc75bc9ea660c985cd413ee76",
+    "license_notice": "Noncommercial redistribution with attribution; see DATA_LICENSE.md"
+  },
+  "supplemental_source": {
+    "name": "legacy project segmentation dictionary",
+    "policy": "decomposed into non-curated Khmer entries of 2 to 4 orthographic clusters; reviewed typo surfaces retained",
+    "spelling_authority": false,
     "license_notice": "Noncommercial redistribution with attribution; see DATA_LICENSE.md"
   },
   "generation": {
@@ -20,7 +26,9 @@
     "example_weight": 3.0,
     "self_headword_weight": 0.25,
     "final_raw_weighted_total": 838723.25,
-    "serialization": "round to nearest integer with minimum 1"
+    "serialization": "round to nearest integer with minimum 1",
+    "supplemental_penalty": 1.5,
+    "supplemental_frequency": "ignored; every supplemental edge uses default_cost plus penalty"
   },
   "counts": {
     "rac_rows": 44752,
@@ -34,6 +42,8 @@
     "derived_repetition_promoted": 339,
     "spellcheck_words": 38066,
     "segmentation_words": 37341,
+    "runtime_segmentation_words": 49969,
+    "supplemental_segmentation_words": 12628,
     "spellcheck_only_subword_forms": 725,
     "excluded_records": 961,
     "serialized_frequency_entries": 25401,
@@ -51,9 +61,9 @@
       "records": 37341
     },
     "khmer_dictionary_supplemental_words.txt": {
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "bytes": 0,
-      "records": 0
+      "sha256": "cad954258a3cf7876a315ece70b7fe4da4ecb54d5bd1e9c1ab02cf448f0ab4aa",
+      "bytes": 267227,
+      "records": 12628
     },
     "khmer_spellcheck_words.txt": {
       "sha256": "c97d667b67094186332ad948c11946b1732be8ad16d58a3927b938f7aceb9b15",

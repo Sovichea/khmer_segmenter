@@ -20,8 +20,9 @@ use:
 
 - `khmer_dictionary_words.txt`
 - `khmer_dictionary_official_2022_words.txt`
-- `khmer_dictionary_supplemental_words.txt` (intentionally empty in the strict model)
+- `khmer_dictionary_supplemental_words.txt` (segmentation-only legacy forms)
 - `khmer_spellcheck_words.txt`
+- `port/rust/data/khmer_spellcheck_words.txt` (synchronized Rust copy)
 - `khmer_typo_corrections.tsv` (review workflow and approved exact pairs)
 - `khmer_word_frequencies.json`
 - `khmer_word_pos.json`
@@ -30,9 +31,12 @@ use:
 
 The segmentation frequencies are generated only from RAC definitions and
 examples: definition occurrences have weight 1, examples weight 3, and a
-headword's occurrence in its own record has weight 0.25. No uncurated corpus is
-used to accept spellings. The model manifest records the source SHA-256,
-parameters, record counts, and generated-file hashes.
+headword's occurrence in its own record has weight 0.25. The supplemental file
+is a conservative decomposition of the project's earlier attributed runtime
+dictionary. It is segmentation evidence only: it cannot make a spelling valid
+or enter correction and autocomplete results. No uncurated corpus is used to
+accept spellings. The model manifest records the source SHA-256, parameters,
+record counts, and generated-file hashes.
 
 The typo-correction table is separate from dictionary and frequency data.
 Its pending observations retain source identifiers documented in

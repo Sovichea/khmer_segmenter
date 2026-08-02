@@ -340,6 +340,31 @@ class TypoDetector:
                 signature = skeleton[:index] + skeleton[index + 1 :]
                 self._deletion_skeleton[signature].append(word)
 
+    def complete_prefix(self, prefix: str, *, limit: int) -> tuple[SpellingSuggestion, ...]:
+        """Return curated words beginning with *prefix*, with an exact match first."""
+
+        if not prefix or limit <= 0:
+            return ()
+        matches = (word for word in self.words if word.startswith(prefix))
+        ranked = sorted(
+            matches,
+            key=lambda word: (
+                word != prefix,
+                -self.frequencies.get(word, 0),
+                len(word),
+                word,
+            ),
+        )
+        return tuple(
+            SpellingSuggestion(
+                text=word,
+                edit_cost=0.0,
+                edits=(),
+                frequency=self.frequencies.get(word),
+            )
+            for word in ranked[:limit]
+        )
+
     def _candidate_words(self, text: str, max_edit_cost: float) -> set[str]:
         skeleton = _base_skeleton(text)
         candidates = set(self._exact_skeleton.get(skeleton, ()))

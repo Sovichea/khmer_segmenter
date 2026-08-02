@@ -1,5 +1,9 @@
 # RAC-only rebuild design
 
+This process creates the authoritative base model. The distributed runtime may
+layer conservative supplemental segmentation chunks on top afterward; those
+chunks are never used as spelling or autocomplete authority.
+
 ## Authority and evidence are separate
 
 RAC headwords and subentries determine lexical validity. RAC definitions and
@@ -51,3 +55,24 @@ python scripts/validate_findings.py \
 `khmer_model_manifest.json` records the source hash, generator parameters,
 counts, and SHA-256 of every generated runtime file. Source CSVs, audit tables,
 and intermediate iteration files are deliberately excluded from packages.
+
+## Supplemental segmentation layer
+
+Legacy dictionaries often contain useful vocabulary mixed with long phrases
+and compounds. Prepare them separately with:
+
+```bash
+python scripts/prepare_supplemental_lexicon.py path/to/legacy_words.txt \
+  --audit build/supplemental_audit.tsv
+```
+
+The migration preserves longest curated matches, accepts non-curated complete
+entries only when they contain 2–4 Khmer orthographic clusters, retains reviewed
+typo surfaces, and rejects unresolved long spans and one-cluster fragments.
+Supplemental entries receive an additional Viterbi cost of `1.5`. Spellcheck,
+correction suggestions, and autocomplete continue to use only
+`khmer_spellcheck_words.txt`.
+
+Supplemental corpus frequency is deliberately ignored: every supplemental edge
+costs `default_cost + 1.5`. Consequently, an exact curated word always beats a
+path assembled from two or more supplemental chunks.

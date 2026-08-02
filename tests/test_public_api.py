@@ -22,7 +22,7 @@ class PublicApiTests(unittest.TestCase):
         self.assertGreater(len(segmenter.words), 1_000)
         self.assertGreater(len(segmenter.word_frequencies), 1_000)
         self.assertGreater(len(segmenter.pos_tags), 100)
-        self.assertEqual(segmenter.data_manifest["model_id"], "rac-2022-strict-v1")
+        self.assertEqual(segmenter.data_manifest["model_id"], "rac-2022-layered-v1")
         self.assertGreater(len(hyphenator._pairs), 1_000)
 
     def make_data(self, directory: str) -> Path:

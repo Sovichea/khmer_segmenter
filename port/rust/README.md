@@ -11,6 +11,9 @@ by this repository. Obtain the dictionary from
 [Seanghay Hay's original Hugging Face publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k),
 review its terms, and follow [the data guide](../../docs/DATA.md) to generate
 the ignored files under `port/common/`.
+The crate embeds a synchronized copy of the curated spelling vocabulary for
+spellcheck and autocomplete. KDIC may therefore contain broader supplemental
+segmentation entries without accepting them as correct spellings.
 The complete conversion and embedded-deployment workflow is in
 [Prepare Dictionaries for Python, C, and Rust](../../docs/EMBEDDED_DICTIONARY.md).
 

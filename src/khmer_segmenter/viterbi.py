@@ -22,6 +22,9 @@ from .spelling import TypoDetector, load_approved_typo_corrections
 logger = logging.getLogger(__name__)
 
 
+SUPPLEMENTAL_WORD_PENALTY = 1.5
+
+
 class KhmerSegmenter:
     """Deterministic Khmer segmenter backed by bundled or user-supplied data."""
 
@@ -61,6 +64,8 @@ class KhmerSegmenter:
         self._official_words = None
         self._supplemental_words = None
         self._spellcheck_words = None
+        self._curated_runtime_words = set()
+        self._supplemental_runtime_words = set()
         self._typo_detector = None
         self._pos_path = pos_path
         self.data_manifest = {}
@@ -73,6 +78,7 @@ class KhmerSegmenter:
         )
 
         self._load_dictionary(dictionary_path)
+        self._load_lexical_sources()
         self._load_frequencies(frequency_path)
         self._load_data_manifest(data_files.model_manifest)
 
@@ -215,6 +221,36 @@ class KhmerSegmenter:
                 self.max_word_length = len(word)
 
         logger.info("Loaded %d words; maximum length is %d", len(self.words), self.max_word_length)
+
+    def _runtime_forms(self, words):
+        """Return source words plus deterministic encoding variants."""
+
+        forms = set(words)
+        for word in words:
+            forms.update(self._generate_variants(word))
+        return forms
+
+    def _load_lexical_sources(self):
+        """Load source policy independently from the flat segmentation lexicon.
+
+        Curated and supplemental entries may both participate in segmentation.
+        Only ``spellcheck_words`` determines spelling validity and suggestions.
+        Older custom data directories without source files treat their primary
+        dictionary as curated for backward compatibility.
+        """
+
+        if self.data_files.official_words.is_file():
+            self._curated_runtime_words = self._runtime_forms(self.official_words)
+        else:
+            self._curated_runtime_words = set(self.words)
+
+        if self.data_files.supplemental_words.is_file():
+            self._supplemental_runtime_words = self._runtime_forms(self.supplemental_words)
+            self._supplemental_runtime_words -= self._curated_runtime_words
+            if self.data_files.spellcheck_words.is_file():
+                self._supplemental_runtime_words -= self.spellcheck_words
+            self.words.update(self._supplemental_runtime_words)
+            self.max_word_length = max(map(len, self.words), default=0)
 
     def _is_valid_single_base_char(self, char):
         """
@@ -396,11 +432,11 @@ class KhmerSegmenter:
         )
 
     def get_word_cost(self, word):
-        if word in self.word_costs:
-            return self.word_costs[word]
-        if word in self.words:
-            return self.default_cost
-        return self.unknown_cost
+        if word not in self.words:
+            return self.unknown_cost
+        if word in self._supplemental_runtime_words:
+            return self.default_cost + SUPPLEMENTAL_WORD_PENALTY
+        return self.word_costs.get(word, self.default_cost)
 
     def is_spelling_valid(self, word, *, normalize=True):
         """Return whether *word* is an accepted RAC spellcheck form."""
@@ -440,6 +476,12 @@ class KhmerSegmenter:
             max_edit_cost=max_edit_cost,
             limit=max_suggestions,
         )
+
+    def complete_word(self, prefix, *, normalize=True, max_suggestions=10):
+        """Return frequency-ranked completions from the curated spelling lexicon."""
+
+        candidate = self.normalizer.normalize(prefix) if normalize else prefix
+        return self.typo_detector.complete_prefix(candidate, limit=max_suggestions)
 
     @property
     def typo_detector(self):
@@ -573,10 +615,10 @@ class KhmerSegmenter:
             else:
                 token_type = "unknown"
 
-            if known and token in self.official_words:
+            if known and token in self._curated_runtime_words:
                 source = "rac_2022"
-            elif known and token in self.supplemental_words:
-                source = "community"
+            elif known and token in self._supplemental_runtime_words:
+                source = "supplemental"
             elif known:
                 source = "dictionary"
             elif token_type in {"number", "separator"}:

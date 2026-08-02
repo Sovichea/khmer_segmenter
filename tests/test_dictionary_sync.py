@@ -19,6 +19,18 @@ class DictionarySyncTests(unittest.TestCase):
         })
         self.assertEqual(DEFAULT_SOURCE.read_bytes(), DEFAULT_RUST_DESTINATION.read_bytes())
 
+    def test_curated_spellcheck_vocabulary_is_synchronized_with_rust(self):
+        root = Path(__file__).resolve().parents[1]
+        python_words = (
+            root
+            / "src"
+            / "khmer_segmenter"
+            / "dictionary_data"
+            / "khmer_spellcheck_words.txt"
+        )
+        rust_words = root / "port" / "rust" / "data" / "khmer_spellcheck_words.txt"
+        self.assertEqual(python_words.read_bytes(), rust_words.read_bytes())
+
     def test_reads_first_tsv_column_and_normalizes(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "words.tsv"

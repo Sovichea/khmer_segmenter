@@ -26,7 +26,8 @@ unknown-word recovery without a runtime machine-learning model.
 - Deterministic segmentation for the same code and local data
 - Khmer Unicode normalization
 - Frequency-weighted dictionary decisions
-- Separate RAC-curated segmentation and spelling lexicons
+- Layered curated and supplemental segmentation lexicons
+- RAC-curated spelling correction and autocomplete vocabulary
 - Word spelling checks through Python and the CLI
 - Whole-span typo diagnostics with Khmer-aware ranked suggestions
 - Unknown-span preservation
@@ -81,9 +82,8 @@ of Khmer Language, Royal Academy of Cambodia:
 <https://huggingface.co/datasets/seanghay/khmer-dictionary-44k>
 
 The dataset may be redistributed for noncommercial use with attribution. The
-bundled normalized segmentation/spellcheck lexicons, RAC-only frequencies,
-lexical POS candidates, and experimental hyphenation pairs retain that credit
-and restriction. See
+bundled normalized lexicons, RAC-only frequencies, lexical POS candidates, and
+experimental hyphenation pairs retain that credit and restriction. See
 [the linguistic data notice](DATA_LICENSE.md).
 
 For an exact model rebuild, download the structured RAC CSV directly from the
@@ -105,7 +105,7 @@ Invoke-WebRequest `
   -OutFile "dataset/RAC-Khmer-Dict-2022.csv"
 ```
 
-Rebuild all RAC runtime artifacts deterministically:
+Rebuild the authoritative RAC runtime artifacts deterministically:
 
 ```bash
 python scripts/rebuild_rac_model.py \
@@ -115,6 +115,20 @@ python scripts/rebuild_rac_model.py \
 
 `khmer-segment data prepare --rac-tsv PATH` remains available for simple custom
 0.1-style dictionary overrides; it does not reproduce the strict RAC model.
+
+The installed layered model additionally contains conservative supplemental
+segmentation chunks. Supplemental entries can preserve names, newer vocabulary,
+and known typo spans as single tokens, but they never become valid spellings or
+autocomplete candidates. Curated words keep their normal costs; supplemental
+words receive a cost penalty. Recreate that layer from a reviewed legacy list:
+
+```bash
+python scripts/prepare_supplemental_lexicon.py path/to/legacy_words.txt \
+  --audit build/supplemental_audit.tsv
+python scripts/build_dictionary_kdict.py
+```
+
+The audit records every curated match, retained chunk, and rejected fragment.
 
 ```bash
 python scripts/validate_findings.py \
