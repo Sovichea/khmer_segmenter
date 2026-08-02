@@ -81,7 +81,7 @@ PyPI environment: pypi
 
 After committing and pushing the workflow, open **GitHub Actions → Publish
 Python package → Run workflow**. A manual run builds, validates, and publishes
-version `0.2.0rc1` to TestPyPI.
+version `0.2.0rc2` to TestPyPI.
 
 Test installation from TestPyPI before publishing a production release:
 
@@ -89,7 +89,7 @@ Test installation from TestPyPI before publishing a production release:
 python -m pip install \
   --index-url https://test.pypi.org/simple/ \
   --no-deps \
-  khmer-viterbi-segmenter==0.2.0rc1
+  khmer-viterbi-segmenter==0.2.0rc2
 ```
 
 Do not publish the release candidate to production PyPI until the 300-sentence

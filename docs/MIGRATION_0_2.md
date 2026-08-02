@@ -8,7 +8,7 @@ coverage, accepted lexical forms ending in `ៗ`, and a provenance manifest.
 
 ## Recommended adoption
 
-1. Install `0.2.0rc1` in a test environment.
+1. Install `0.2.0rc2` in a test environment.
 2. Compare application samples and the curated development benchmark with
    `0.1.1`; treat khPOS and Khmer ALT only as compatibility diagnostics.
 3. Review category regressions larger than two percentage points.

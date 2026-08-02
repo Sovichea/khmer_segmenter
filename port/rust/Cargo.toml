@@ -1,6 +1,6 @@
 [package]
 name = "khmer_segmenter"
-version = "0.2.0-rc.1"
+version = "0.2.0-rc.2"
 edition = "2021"
 description = "Khmer Viterbi segmentation and deterministic spelling suggestions"
 license-file = "../../LICENSE"

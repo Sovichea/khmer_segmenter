@@ -156,7 +156,13 @@ impl KDict {
         }
         let pool_end = if header.version >= 2 {
             let extension_offset = header.padding as usize;
-            if extension_offset < pool_offset || extension_offset + 16 > source.len() {
+            let extension_header_end = extension_offset.checked_add(16).ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "KDIC v2 extension offset overflow",
+                )
+            })?;
+            if extension_offset < pool_offset || extension_header_end > source.len() {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     "Invalid KDIC v2 extension offset",
@@ -257,7 +263,12 @@ impl KDict {
                     .try_into()
                     .unwrap(),
             ) as usize;
-            let mut cursor = extension_offset + 16;
+            let mut cursor = extension_offset.checked_add(16).ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "KDIC v2 extension offset overflow",
+                )
+            })?;
             let mut flags_by_offset = std::collections::HashMap::with_capacity(word_count);
             for _ in 0..word_count {
                 let name_offset =
