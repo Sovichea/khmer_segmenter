@@ -227,6 +227,64 @@ impl TypoDetector {
                     }
                 }
             }
+            let ro_positions: Vec<usize> = characters
+                .iter()
+                .enumerate()
+                .filter_map(|(index, character)| {
+                    (*character == RO && (index == 0 || characters[index - 1] != COENG))
+                        .then_some(index)
+                })
+                .collect();
+            for (position, first) in ro_positions.iter().enumerate() {
+                let alias: String = characters
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, character)| (index != *first).then_some(*character))
+                    .collect();
+                if !alias.is_empty() && !words.contains(&alias) {
+                    generated_candidates
+                        .entry(alias)
+                        .or_default()
+                        .insert(word.clone());
+                }
+                for second in ro_positions.iter().skip(position + 1) {
+                    let alias: String = characters
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(index, character)| {
+                            (index != *first && index != *second).then_some(*character)
+                        })
+                        .collect();
+                    if !alias.is_empty() && !words.contains(&alias) {
+                        generated_candidates
+                            .entry(alias)
+                            .or_default()
+                            .insert(word.clone());
+                    }
+                }
+            }
+            if *lexical_cost <= common_ending_cost_limit {
+                for (index, character) in characters.iter().enumerate() {
+                    if index > 0
+                        && is_base(*character)
+                        && characters[index - 1] != COENG
+                        && characters[index - 1] != RO
+                    {
+                        let alias: String = characters[..index]
+                            .iter()
+                            .copied()
+                            .chain(std::iter::once(RO))
+                            .chain(characters[index..].iter().copied())
+                            .collect();
+                        if !words.contains(&alias) {
+                            generated_candidates
+                                .entry(alias)
+                                .or_default()
+                                .insert(word.clone());
+                        }
+                    }
+                }
+            }
             if characters
                 .last()
                 .is_some_and(|character| is_dependent_vowel(*character))
@@ -616,7 +674,9 @@ fn base_skeleton(text: &str) -> String {
 }
 
 fn edit_weight(character: char) -> f32 {
-    if is_dependent_vowel(character) {
+    if character == RO {
+        0.25
+    } else if is_dependent_vowel(character) {
         0.25
     } else if is_register_or_sign(character) {
         0.35
@@ -743,5 +803,7 @@ mod tests {
         assert!((weighted_edit_cost("សុម", "សូម") - 0.25).abs() < f32::EPSILON);
         assert!((weighted_edit_cost("ជម្រុញ", "ជំរុញ") - 0.35).abs() < f32::EPSILON);
         assert!((weighted_edit_cost("សសេរ", "សរសេរ") - 0.25).abs() < f32::EPSILON);
+        assert!((weighted_edit_cost("សសើ", "សរសើរ") - 0.50).abs() < f32::EPSILON);
+        assert!((weighted_edit_cost("ច្រអ", "ច្រអរ") - 0.25).abs() < f32::EPSILON);
     }
 }

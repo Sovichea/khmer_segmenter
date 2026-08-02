@@ -211,6 +211,26 @@ def test_dictionary_derived_extra_final_ro(segmenter, typed, intended):
     assert diagnostics[0].suggestions[0].text == intended
 
 
+@pytest.mark.parametrize(("typed", "intended"), [
+    ("សសើរ", "សរសើរ"),
+    ("សសើ", "សរសើរ"),
+    ("ច្រអ", "ច្រអរ"),
+    ("ឆ្អើ", "ឆ្អើរ"),
+])
+def test_dictionary_derived_missing_standalone_ro(segmenter, typed, intended):
+    suggestions = segmenter.suggest_spelling(typed)
+    assert suggestions[0].text == intended
+    diagnostics = segmenter.check_text(typed, profile="typing")
+    assert diagnostics[0].text == typed
+    assert diagnostics[0].suggestions[0].text == intended
+
+
+@pytest.mark.parametrize("word", ["សរសើរ", "ច្រអរ", "ឆ្អើរ"])
+def test_standalone_ro_rule_preserves_authoritative_words(segmenter, word):
+    assert segmenter.suggest_spelling(word) == ()
+    assert segmenter.check_text(word, profile="typing") == []
+
+
 @pytest.mark.parametrize("word", ["បញ្ជា", "បញ្ចា", "កា", "ការ"])
 def test_contextual_confusion_rules_preserve_valid_words(segmenter, word):
     assert segmenter.suggest_spelling(word) == ()

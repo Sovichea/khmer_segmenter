@@ -6,6 +6,7 @@ from collections import defaultdict
 import csv
 from dataclasses import dataclass
 from functools import lru_cache
+from itertools import combinations
 import math
 from typing import Iterable
 
@@ -96,6 +97,11 @@ def _orthographic_cluster_count(text: str) -> int:
 
 
 def _edit_weight(char: str) -> float:
+    # Standalone RO is frequently omitted or inserted while typing. Keep
+    # subscript RO separate: deleting its preceding COENG still has the normal
+    # COENG cost and therefore cannot masquerade as this rule.
+    if char == _RO:
+        return 0.25
     if _is_dependent_vowel(char):
         return 0.25
     if _is_register_or_sign(char):
@@ -304,6 +310,7 @@ class TypoDetector:
         # another valid dictionary word or an ambiguous alias as a typo.
         generated_candidates: dict[str, set[str]] = defaultdict(set)
         for word in self.words:
+            characters = tuple(word)
             for index, character in enumerate(word):
                 for typed, intended in _COMMON_VISUAL_CONFUSIONS:
                     if character != intended:
@@ -316,6 +323,48 @@ class TypoDetector:
                     alias = word[:index] + typed + word[index + 1 :]
                     if alias not in self.words:
                         generated_candidates[alias].add(word)
+
+            # Derive conservative standalone-RO aliases from authoritative
+            # words. One or two missing RO characters cover forms such as
+            # សសើរ/សសើ -> សរសើរ and final omissions such as ឆ្អើ -> ឆ្អើរ.
+            # Valid dictionary aliases and ambiguous corrections are rejected
+            # below, preserving legitimate short words.
+            ro_positions = [
+                index
+                for index, character in enumerate(characters)
+                if character == _RO
+                and (index == 0 or characters[index - 1] != _COENG)
+            ]
+            for removed_count in (1, 2):
+                for removed in combinations(ro_positions, removed_count):
+                    removed_set = set(removed)
+                    alias = "".join(
+                        character
+                        for index, character in enumerate(characters)
+                        if index not in removed_set
+                    )
+                    if alias and alias not in self.words:
+                        generated_candidates[alias].add(word)
+
+            # Also index one extra medial RO at a lexical cluster boundary.
+            # This lets an unknown span recover by deleting the accidental RO
+            # without opening the candidate search to arbitrary base edits.
+            # Restrict generated insertion aliases to common targets to avoid
+            # inflating editor startup time with rare hypothetical forms.
+            if (
+                float(self.frequencies.get(word, 0))
+                >= _COMMON_ENDING_FREQUENCY_MINIMUM
+            ):
+                for index, character in enumerate(characters):
+                    if (
+                        index > 0
+                        and _is_base(character)
+                        and characters[index - 1] != _COENG
+                        and characters[index - 1] != _RO
+                    ):
+                        alias = word[:index] + _RO + word[index:]
+                        if alias not in self.words:
+                            generated_candidates[alias].add(word)
             if (
                 _is_dependent_vowel(word[-1])
                 and float(self.frequencies.get(word, 0)) >= _COMMON_ENDING_FREQUENCY_MINIMUM
