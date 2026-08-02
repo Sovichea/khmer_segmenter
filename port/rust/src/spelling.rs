@@ -675,7 +675,7 @@ fn base_skeleton(text: &str) -> String {
 
 fn edit_weight(character: char) -> f32 {
     if character == RO {
-        0.25
+        0.45
     } else if is_dependent_vowel(character) {
         0.25
     } else if is_register_or_sign(character) {
@@ -803,7 +803,7 @@ mod tests {
         assert!((weighted_edit_cost("សុម", "សូម") - 0.25).abs() < f32::EPSILON);
         assert!((weighted_edit_cost("ជម្រុញ", "ជំរុញ") - 0.35).abs() < f32::EPSILON);
         assert!((weighted_edit_cost("សសេរ", "សរសេរ") - 0.25).abs() < f32::EPSILON);
-        assert!((weighted_edit_cost("សសើ", "សរសើរ") - 0.50).abs() < f32::EPSILON);
-        assert!((weighted_edit_cost("ច្រអ", "ច្រអរ") - 0.25).abs() < f32::EPSILON);
+        assert!((weighted_edit_cost("សសើ", "សរសើរ") - 0.70).abs() < f32::EPSILON);
+        assert!((weighted_edit_cost("ច្រអ", "ច្រអរ") - 0.45).abs() < f32::EPSILON);
     }
 }

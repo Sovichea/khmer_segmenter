@@ -101,7 +101,7 @@ def _edit_weight(char: str) -> float:
     # subscript RO separate: deleting its preceding COENG still has the normal
     # COENG cost and therefore cannot masquerade as this rule.
     if char == _RO:
-        return 0.25
+        return 0.45
     if _is_dependent_vowel(char):
         return 0.25
     if _is_register_or_sign(char):
