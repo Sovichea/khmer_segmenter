@@ -18,6 +18,23 @@ For example, `ដេល` may carry `SEGMENT | TYPO_SURFACE`, while `ដែល` c
 `SEGMENT | SPELLCHECK | AUTOCOMPLETE`. This preserves the typo as one useful
 diagnostic span without accepting it as correct spelling.
 
+## COENG DA/TA aliases and spelling accuracy
+
+When a source word contains COENG DA or COENG TA, the compiler writes its
+counterpart into the segmentation table with the same cost. Generated aliases
+have only `SEGMENT` (and, when applicable, `SUPPLEMENTAL`) metadata: they are
+never automatically assigned `SPELLCHECK` or `AUTOCOMPLETE`.
+
+This keeps segmentation tolerant of the two visual encodings without changing
+the curated word shown to users. Spellcheck integrations choose their policy
+at runtime: `lexical` (default) accepts only the exact curated spelling, while
+`visual` also accepts its COENG DA/TA counterpart. Completion remains
+canonical in both modes.
+
+For example, if a pack stores `ស្ដាប់`, segmentation recognizes both `ស្ដាប់`
+and `ស្តាប់`; lexical spellcheck accepts only the former, while visual
+spellcheck accepts both.
+
 ## Create a single editable source
 
 ```json
@@ -113,6 +130,11 @@ let analysis = segmenter.analyze_text(
     khmer_segmenter::SpellcheckProfile::Typing,
 )?;
 // Segments and diagnostics include normalized and original-source ranges.
+
+let visual_valid = segmenter.is_spelling_valid_with_accuracy(
+    "ស្តាប់",
+    khmer_segmenter::SpellingAccuracy::Visual,
+);
 ```
 
 CLI:

@@ -99,5 +99,10 @@ reruns the metadata and data audits, and publishes through trusted publishing.
 Configure required reviewers on the `pypi` GitHub environment for manual
 production approval.
 
+For the current RC3 release, push the immutable `v0.2.0rc3` tag, then create a
+GitHub **pre-release** from that tag and publish it. The `release: published`
+event—not the tag push—starts the trusted PyPI workflow. Confirm the workflow
+uses the RC3 commit and that PyPI shows `0.2.0rc3` before announcing it.
+
 Before the first public release, review old Git history separately. Clean wheel
 contents do not remove restricted artifacts from historical commits.

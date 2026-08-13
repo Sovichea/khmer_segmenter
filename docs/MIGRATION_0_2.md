@@ -6,6 +6,14 @@ when the Python call is unchanged. The new model has separate segmentation and
 spellcheck lexicons, RAC-only frequency evidence, much broader lexical POS
 coverage, accepted lexical forms ending in `ៗ`, and a provenance manifest.
 
+## COENG DA/TA alias policy
+
+RC3 separates segmentation tolerance from spelling authority. COENG DA/TA
+variants are available to segmentation so either visual form can remain one
+token. Spellcheck stays exact by default; applications can opt into
+`accuracy="visual"` when they want to accept the two forms as visually
+equivalent.
+
 ## Recommended adoption
 
 1. Install `0.2.0rc3` in a test environment.
@@ -14,7 +22,10 @@ coverage, accepted lexical forms ending in `ៗ`, and a provenance manifest.
 3. Review category regressions larger than two percentage points.
 4. Update integrations that consume token dictionaries to accept the new
    `spelling_valid` field.
-5. Promote 0.2 only after the 300-sentence human-curated benchmark is complete
+5. Use `lexical` spelling accuracy for formal dictionaries and published text,
+   or `visual` accuracy for an editor that should tolerate COENG DA/TA display
+   variants.
+6. Promote 0.2 only after the 300-sentence human-curated benchmark is complete
    and the frozen test gate passes.
 
 Applications that require unchanged behavior can pin:
