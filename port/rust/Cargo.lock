@@ -88,7 +88,7 @@ dependencies = [
 
 [[package]]
 name = "khmer_segmenter"
-version = "0.2.0-rc.2"
+version = "0.2.0-rc.3"
 dependencies = [
  "memmap2",
  "rayon",

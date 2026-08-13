@@ -1,7 +1,7 @@
 # 0.2 Release Checklist
 
 The Python package and Rust crate now identify the same 0.2 release-candidate
-line (`0.2.0rc2` in Python and SemVer-equivalent `0.2.0-rc.2` in Cargo).
+line (`0.2.0rc3` in Python and SemVer-equivalent `0.2.0-rc.3` in Cargo).
 
 Completed engineering gates:
 
