@@ -6,6 +6,7 @@ use std::ops::Range;
 use std::str::FromStr;
 
 use crate::kdict::{KDict, WORD_AUTOCOMPLETE, WORD_SPELLCHECK};
+use crate::kdict::coeng_da_ta_variants;
 use crate::khmer_segmenter::Segmentation;
 
 const COENG: char = '\u{17d2}';
@@ -31,6 +32,36 @@ pub enum SpellcheckProfile {
     Typing,
     Document,
     HighRecall,
+}
+
+/// Exact curated spelling, or a UI-oriented COENG DA/TA equivalence policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SpellingAccuracy {
+    Lexical,
+    Visual,
+}
+
+impl SpellingAccuracy {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Lexical => "lexical",
+            Self::Visual => "visual",
+        }
+    }
+}
+
+impl FromStr for SpellingAccuracy {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "lexical" => Ok(Self::Lexical),
+            "visual" => Ok(Self::Visual),
+            _ => Err(format!(
+                "unknown spelling accuracy {value:?}; expected lexical or visual"
+            )),
+        }
+    }
 }
 
 impl SpellcheckProfile {
@@ -176,6 +207,7 @@ impl Proposal {
 
 pub struct TypoDetector {
     words: HashSet<String>,
+    visual_words: HashSet<String>,
     autocomplete_words: HashSet<String>,
     entries: Vec<(String, f32)>,
     exact_skeleton: HashMap<String, Vec<usize>>,
@@ -380,8 +412,13 @@ impl TypoDetector {
             .map(|word| word.chars().count())
             .max()
             .unwrap_or(0);
+        let mut visual_words = words.clone();
+        for word in &words {
+            visual_words.extend(coeng_da_ta_variants(word));
+        }
         Self {
             words,
+            visual_words,
             autocomplete_words,
             entries,
             exact_skeleton,
@@ -393,6 +430,13 @@ impl TypoDetector {
 
     pub fn is_word(&self, word: &str) -> bool {
         self.words.contains(word)
+    }
+
+    pub fn is_word_with_accuracy(&self, word: &str, accuracy: SpellingAccuracy) -> bool {
+        match accuracy {
+            SpellingAccuracy::Lexical => self.words.contains(word),
+            SpellingAccuracy::Visual => self.visual_words.contains(word),
+        }
     }
 
     /// Return frequent dictionary words that begin with `prefix`.
@@ -478,6 +522,19 @@ impl TypoDetector {
         ranked
     }
 
+    pub fn suggest_word_with_accuracy(
+        &self,
+        text: &str,
+        max_edit_cost: f32,
+        limit: usize,
+        accuracy: SpellingAccuracy,
+    ) -> Vec<SpellingSuggestion> {
+        if self.is_word_with_accuracy(text, accuracy) {
+            return Vec::new();
+        }
+        self.suggest_word(text, max_edit_cost, limit)
+    }
+
     pub fn detect(
         &self,
         segmentation: &Segmentation,
@@ -485,6 +542,7 @@ impl TypoDetector {
         max_suggestions: usize,
         context_tokens: usize,
         include_valid_fragments: bool,
+        accuracy: SpellingAccuracy,
     ) -> Vec<SpellingDiagnostic> {
         let ranges = segmentation.ranges();
         let text = segmentation.normalized();
@@ -492,7 +550,8 @@ impl TypoDetector {
         let mut suspicious = Vec::new();
 
         for (index, token) in tokens.iter().enumerate() {
-            if is_lexical_khmer(token) && (!self.words.contains(*token) || include_valid_fragments)
+            if is_lexical_khmer(token)
+                && (!self.is_word_with_accuracy(token, accuracy) || include_valid_fragments)
             {
                 suspicious.push(index);
             }
@@ -516,6 +575,9 @@ impl TypoDetector {
                 }
                 let range = ranges[start_token].start..ranges[end_token].end;
                 let candidate_text = &text[range.clone()];
+                if self.is_word_with_accuracy(candidate_text, accuracy) {
+                    continue;
+                }
                 if candidate_text.chars().count() > self.max_exact_typo_chars {
                     break;
                 }
@@ -581,8 +643,8 @@ impl TypoDetector {
                     if suggestions.is_empty() {
                         continue;
                     }
-                    let contains_unknown =
-                        (start_token..=end_token).any(|index| !self.words.contains(tokens[index]));
+                    let contains_unknown = (start_token..=end_token)
+                        .any(|index| !self.is_word_with_accuracy(tokens[index], accuracy));
                     if !contains_unknown && suggestions[0].edit_cost > 0.75 {
                         // High-recall inspection of valid fragments must not
                         // erase a legitimate adjacent base-word merely because

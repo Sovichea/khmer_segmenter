@@ -2,7 +2,8 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    KhmerSegmenter, SegmenterConfig, SpellcheckProfile, SpellingDiagnostic, SpellingSuggestion,
+    KhmerSegmenter, SegmenterConfig, SpellcheckProfile, SpellingAccuracy, SpellingDiagnostic,
+    SpellingSuggestion,
 };
 
 #[derive(Serialize)]
@@ -66,7 +67,7 @@ impl WasmKhmerSegmenter {
         } else {
             SpellcheckProfile::Typing
         };
-        self.analysis(text, profile)
+        self.analysis(text, profile, SpellingAccuracy::Lexical)
     }
 
     /// Analyze text with the same named profile exposed by Python and Rust.
@@ -75,13 +76,35 @@ impl WasmKhmerSegmenter {
         let profile = profile
             .parse::<SpellcheckProfile>()
             .map_err(|error| JsValue::from_str(&error))?;
-        self.analysis(text, profile)
+        self.analysis(text, profile, SpellingAccuracy::Lexical)
     }
 
-    fn analysis(&self, text: &str, profile: SpellcheckProfile) -> Result<JsValue, JsValue> {
+    /// Analyze with an independent spelling-accuracy policy.
+    #[wasm_bindgen(js_name = analyzeWithOptions)]
+    pub fn analyze_with_options(
+        &self,
+        text: &str,
+        profile: &str,
+        accuracy: &str,
+    ) -> Result<JsValue, JsValue> {
+        let profile = profile
+            .parse::<SpellcheckProfile>()
+            .map_err(|error| JsValue::from_str(&error))?;
+        let accuracy = accuracy
+            .parse::<SpellingAccuracy>()
+            .map_err(|error| JsValue::from_str(&error))?;
+        self.analysis(text, profile, accuracy)
+    }
+
+    fn analysis(
+        &self,
+        text: &str,
+        profile: SpellcheckProfile,
+        accuracy: SpellingAccuracy,
+    ) -> Result<JsValue, JsValue> {
         let analysis = self
             .inner
-            .analyze_text(text, profile)
+            .analyze_text_with_accuracy(text, profile, accuracy)
             .map_err(|error| JsValue::from_str(&error.to_string()))?;
         let segmentation = &analysis.segmentation;
         let normalized = segmentation.normalized();
@@ -93,7 +116,8 @@ impl WasmKhmerSegmenter {
                 let word = normalized[range.clone()].to_owned();
                 BrowserSegment {
                     is_unknown: is_lexical_khmer(&word) && !self.inner.is_known_word(&word),
-                    spelling_valid: !is_lexical_khmer(&word) || self.inner.is_spelling_valid(&word),
+                    spelling_valid: !is_lexical_khmer(&word)
+                        || self.inner.is_spelling_valid_with_accuracy(&word, accuracy),
                     word,
                     start: utf16_offset(normalized, range.start),
                     end: utf16_offset(normalized, range.end),
@@ -119,6 +143,26 @@ impl WasmKhmerSegmenter {
         let suggestions: Vec<_> = self
             .inner
             .suggest_spelling(word, 1.5, max_suggestions)
+            .into_iter()
+            .map(browser_suggestion)
+            .collect();
+        serde_wasm_bindgen::to_value(&suggestions)
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
+
+    #[wasm_bindgen(js_name = suggestWithAccuracy)]
+    pub fn suggest_with_accuracy(
+        &self,
+        word: &str,
+        max_suggestions: usize,
+        accuracy: &str,
+    ) -> Result<JsValue, JsValue> {
+        let accuracy = accuracy
+            .parse::<SpellingAccuracy>()
+            .map_err(|error| JsValue::from_str(&error))?;
+        let suggestions: Vec<_> = self
+            .inner
+            .suggest_spelling_with_accuracy(word, 1.5, max_suggestions, accuracy)
             .into_iter()
             .map(browser_suggestion)
             .collect();

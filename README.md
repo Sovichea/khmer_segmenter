@@ -263,6 +263,19 @@ analysis = segmenter.analyze_text(text, profile=SpellcheckProfile.TYPING)
 diagnostics = segmenter.check_text(text, profile="document")
 ```
 
+Spelling accuracy is independent of the detection profile. The default,
+`lexical`, requires the exact curated spelling. Use `visual` when an editor
+should treat the legacy COENG DA/TA forms as equivalent. The forms `ស្ដាប់`
+and `ស្តាប់` then both pass validation, while completion and correction
+suggestions continue to show only the curated spelling.
+
+```python
+from khmer_segmenter import SpellingAccuracy
+
+segmenter.is_spelling_valid("ស្តាប់")  # False when RAC stores ស្ដាប់
+segmenter.is_spelling_valid("ស្តាប់", accuracy=SpellingAccuracy.VISUAL)  # True
+```
+
 The CLI exposes the same combined result without making applications run
 segmentation twice:
 

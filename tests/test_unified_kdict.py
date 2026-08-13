@@ -15,6 +15,40 @@ from khmer_segmenter.kdict import (
 )
 
 
+def test_coeng_da_ta_aliases_segment_but_visual_spelling_is_opt_in(tmp_path: Path):
+    lexicon = tmp_path / "coeng.klex.json"
+    output = tmp_path / "coeng.kdict"
+    canonical = "\u179f\u17d2\u178a\u17b6\u1794\u17cb"
+    visual_alias = "\u179f\u17d2\u178f\u17b6\u1794\u17cb"
+    lexicon.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "entries": [
+                    {
+                        "word": canonical,
+                        "uses": ["segmentation", "spelling", "autocomplete"],
+                        "frequency": 10,
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    compile_klex(lexicon, output)
+    pack = KDict.load(output)
+    assert pack.words[visual_alias].flags == SEGMENT
+
+    segmenter = KhmerSegmenter.from_kdict(output)
+    assert segmenter.segment(visual_alias) == [visual_alias]
+    assert segmenter.is_spelling_valid(canonical)
+    assert not segmenter.is_spelling_valid(visual_alias)
+    assert segmenter.is_spelling_valid(visual_alias, accuracy="visual")
+    assert segmenter.suggest_spelling(visual_alias, accuracy="visual") == ()
+    assert [item.text for item in segmenter.complete_word(visual_alias[:3])] == []
+
+
 def test_klex_overlay_preserves_base_and_adds_local_policy(tmp_path: Path):
     base_source = Path(__file__).parents[1] / "examples" / "custom.klex.json"
     base_output = tmp_path / "base.kdict"

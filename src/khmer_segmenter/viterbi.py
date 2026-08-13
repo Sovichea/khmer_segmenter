@@ -12,12 +12,14 @@ from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
 from .models import (
     SpellcheckConfig,
     SpellcheckProfile,
+    SpellingAccuracy,
     SpellingDiagnostic,
     SpellingSuggestion,
     Token,
     TextAnalysis,
 )
 from .normalization import KhmerNormalizer
+from .orthography import coeng_da_ta_variants
 from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
 from .rule_engine import RuleBasedEngine
 from .spelling import TypoDetector, load_approved_typo_corrections
@@ -124,6 +126,12 @@ class KhmerSegmenter:
             if record.flags & SEGMENT:
                 self.words.add(record.word)
                 self.word_costs[record.word] = record.cost
+                # KDIC v1/v2 packs may predate this alias policy.  Expand at
+                # load time as well as during text-dictionary loading so every
+                # pack offers the same segmentation behaviour.
+                for variant in coeng_da_ta_variants(record.word):
+                    self.words.add(variant)
+                    self.word_costs.setdefault(variant, record.cost)
             if record.flags & SPELLCHECK:
                 self._spellcheck_words.add(record.word)
                 self._curated_runtime_words.add(record.word)
@@ -358,19 +366,9 @@ class KhmerSegmenter:
         """
         variants = set()
 
-        # 1. Coeng Ta <-> Coeng Da
-        # We can simply replace all instances.
-        # Combinatorial: if a word has 2 instances, do we need all 4 permutations?
-        # Usually mixed usage is rare. Swapping ALL is the most robust simple approach.
-        # Or simply generate "All Ta" and "All Da" versions.
-
-        coeng_ta = "\u17d2\u178f"
-        coeng_da = "\u17d2\u178a"
-
-        if coeng_ta in word:
-            variants.add(word.replace(coeng_ta, coeng_da))
-        if coeng_da in word:
-            variants.add(word.replace(coeng_da, coeng_ta))
+        # 1. COENG TA <-> COENG DA.  Keep every combination for rare words
+        # with more than one occurrence, not merely the all-swapped form.
+        variants.update(coeng_da_ta_variants(word))
 
         # Add generated variants to set so we process THEM for Ro-swap too
         # But for simplicity, let's just add them to return set.
@@ -489,19 +487,36 @@ class KhmerSegmenter:
             return self.default_cost + SUPPLEMENTAL_WORD_PENALTY
         return self.word_costs.get(word, self.default_cost)
 
-    def is_spelling_valid(self, word, *, normalize=True):
-        """Return whether *word* is an accepted RAC spellcheck form."""
+    def is_spelling_valid(
+        self,
+        word,
+        *,
+        normalize=True,
+        accuracy=SpellingAccuracy.LEXICAL,
+    ):
+        """Return whether *word* is an accepted spelling.
+
+        ``lexical`` requires the curated spelling exactly. ``visual`` also
+        accepts a COENG DA/TA equivalent, while leaving curated completions and
+        correction targets unchanged.
+        """
 
         candidate = self.normalizer.normalize(word) if normalize else word
-        return candidate in self.spellcheck_words
+        accuracy = SpellingAccuracy.coerce(accuracy)
+        return candidate in self.spellcheck_words or (
+            accuracy is SpellingAccuracy.VISUAL
+            and any(variant in self.spellcheck_words for variant in coeng_da_ta_variants(candidate))
+        )
 
-    def check_spelling(self, words, *, normalize=True):
+    def check_spelling(self, words, *, normalize=True, accuracy=SpellingAccuracy.LEXICAL):
         """Return spelling validity for each word while preserving input order."""
 
         return [
             {
                 "word": word,
-                "valid": self.is_spelling_valid(word, normalize=normalize),
+                "valid": self.is_spelling_valid(
+                    word, normalize=normalize, accuracy=accuracy
+                ),
             }
             for word in words
         ]
@@ -511,6 +526,7 @@ class KhmerSegmenter:
         word,
         *,
         normalize=True,
+        accuracy=SpellingAccuracy.LEXICAL,
         max_edit_cost=1.5,
         max_suggestions=5,
     ) -> tuple[SpellingSuggestion, ...]:
@@ -522,6 +538,8 @@ class KhmerSegmenter:
         """
 
         candidate = self.normalizer.normalize(word) if normalize else word
+        if self.is_spelling_valid(candidate, normalize=False, accuracy=accuracy):
+            return ()
         return self.typo_detector.suggest_word(
             candidate,
             max_edit_cost=max_edit_cost,
@@ -558,6 +576,7 @@ class KhmerSegmenter:
         text,
         *,
         profile=SpellcheckProfile.TYPING,
+        accuracy=SpellingAccuracy.LEXICAL,
         normalize=True,
         max_edit_cost=None,
         max_suggestions=None,
@@ -580,6 +599,7 @@ class KhmerSegmenter:
             self.analyze_text(
                 text,
                 profile=profile,
+                accuracy=accuracy,
                 normalize=normalize,
                 max_edit_cost=max_edit_cost,
                 max_suggestions=max_suggestions,
@@ -595,6 +615,7 @@ class KhmerSegmenter:
         text,
         *,
         profile=SpellcheckProfile.TYPING,
+        accuracy=SpellingAccuracy.LEXICAL,
         normalize=True,
         max_edit_cost=None,
         max_suggestions=None,
@@ -638,11 +659,22 @@ class KhmerSegmenter:
         else:
             normalized_text = text
             source_mapping = tuple((index, index + 1) for index in range(len(text)))
+        accuracy = SpellingAccuracy.coerce(accuracy)
         tokens = self.analyze(
             normalized_text,
             normalize=False,
             disable_post_processing=disable_post_processing,
         )
+        if accuracy is SpellingAccuracy.VISUAL:
+            tokens = [
+                replace(
+                    token,
+                    spelling_valid=self.is_spelling_valid(
+                        token.text, normalize=False, accuracy=accuracy
+                    ),
+                )
+                for token in tokens
+            ]
         diagnostics = self.typo_detector.detect(
             normalized_text,
             tokens,
@@ -655,6 +687,9 @@ class KhmerSegmenter:
             self._map_diagnostic_to_source(diagnostic, source_mapping)
             for diagnostic in diagnostics
             if diagnostic.confidence >= min_confidence
+            and not self.is_spelling_valid(
+                diagnostic.text, normalize=False, accuracy=accuracy
+            )
         )
         mapped_tokens = tuple(
             replace(
@@ -689,6 +724,7 @@ class KhmerSegmenter:
         text,
         *,
         profile=SpellcheckProfile.TYPING,
+        accuracy=SpellingAccuracy.LEXICAL,
         normalize=True,
         disable_post_processing=False,
     ) -> list[SpellingDiagnostic]:
@@ -697,6 +733,7 @@ class KhmerSegmenter:
         return self.detect_typos(
             text,
             profile=profile,
+            accuracy=accuracy,
             normalize=normalize,
             disable_post_processing=disable_post_processing,
         )

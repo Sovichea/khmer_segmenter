@@ -7,10 +7,11 @@ use std::path::Path;
 use std::time::Instant;
 
 use khmer_segmenter::kdict::{
-    KDict, WORD_AUTOCOMPLETE, WORD_SEGMENT, WORD_SPELLCHECK, WORD_SUPPLEMENTAL, WORD_TYPO_SURFACE,
+    coeng_da_ta_variants, KDict, WORD_AUTOCOMPLETE, WORD_SEGMENT, WORD_SPELLCHECK,
+    WORD_SUPPLEMENTAL, WORD_TYPO_SURFACE,
 };
 use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmentationLength, SegmenterConfig};
-use khmer_segmenter::SpellcheckProfile;
+use khmer_segmenter::{SpellcheckProfile, SpellingAccuracy};
 
 fn invalid_data(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message.into())
@@ -171,7 +172,7 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
     }
 
     let floor = 5.0_f64;
-    let (default_cost, unknown_cost, costs) = if let Some(base) = base.as_ref() {
+    let (default_cost, unknown_cost, mut costs) = if let Some(base) = base.as_ref() {
         let default_cost = base.default_cost();
         let total = floor * 10_f64.powf(default_cost as f64);
         let mut costs = base_costs;
@@ -199,6 +200,22 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
             .collect();
         (default_cost, default_cost + 5.0, costs)
     };
+    // Match the Python KDIC compiler: aliases participate only in the compact
+    // segmentation table and never become canonical spelling/completion forms.
+    for (word, flags) in flags_by_word.clone() {
+        if flags & WORD_SEGMENT == 0 {
+            continue;
+        }
+        for alias in coeng_da_ta_variants(&word) {
+            let alias_flags = flags & (WORD_SEGMENT | WORD_SUPPLEMENTAL);
+            if let Some(existing) = flags_by_word.get_mut(&alias) {
+                *existing |= alias_flags;
+            } else {
+                flags_by_word.insert(alias.clone(), alias_flags);
+                costs.insert(alias, costs[&word]);
+            }
+        }
+    }
     let segmentation_words: Vec<_> = flags_by_word
         .iter()
         .filter_map(|(word, flags)| (flags & WORD_SEGMENT != 0).then_some(word.clone()))
@@ -324,6 +341,7 @@ fn default_dictionary_path() -> Option<&'static str> {
 
 fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
     let mut profile = SpellcheckProfile::Typing;
+    let mut accuracy = SpellingAccuracy::Lexical;
     let mut dictionary: Option<String> = None;
     let mut input: Option<String> = None;
     let mut format = "json";
@@ -337,6 +355,15 @@ fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
                     io::Error::new(io::ErrorKind::InvalidInput, "--profile requires a value")
                 })?;
                 profile = value
+                    .parse()
+                    .map_err(|error: String| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            }
+            "--accuracy" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "--accuracy requires a value")
+                })?;
+                accuracy = value
                     .parse()
                     .map_err(|error: String| io::Error::new(io::ErrorKind::InvalidInput, error))?;
             }
@@ -405,7 +432,7 @@ fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
     let segmenter = KhmerSegmenter::new(dictionary.as_deref(), SegmenterConfig::default())
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
     let analysis = segmenter
-        .analyze_text(&text, profile)
+        .analyze_text_with_accuracy(&text, profile, accuracy)
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
     let normalized = analysis.segmentation.normalized().to_owned();
     let segments: Vec<_> = analysis
@@ -422,7 +449,7 @@ fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
                 "source_start": mapped.source_range.start,
                 "source_end": mapped.source_range.end,
                 "known": segmenter.is_known_word(word),
-                "spelling_valid": segmenter.is_spelling_valid(word),
+                "spelling_valid": segmenter.is_spelling_valid_with_accuracy(word, accuracy),
             })
         })
         .collect();
@@ -982,9 +1009,9 @@ fn main() -> io::Result<()> {
         println!("  --short           Alias for --segmentation-length short");
         println!("  --test-hyphenation <word> Test lookup in khmer_hyphenation.kdict");
         println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
-        println!("  diagnose [--profile typing|document|high-recall] <text>");
+        println!("  diagnose [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>");
         println!("                    Return spellcheck diagnostics as JSON");
-        println!("  analyze [--profile typing|document|high-recall] <text>");
+        println!("  analyze [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>");
         println!("                    Return mapped segments and diagnostics in one pass");
         println!("  data compile <file.klex.json> --output <file.kdict> [--base <base.kdict>]");
         println!("                    Compile a unified KDIC v2 language pack");

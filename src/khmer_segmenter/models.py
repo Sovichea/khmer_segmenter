@@ -25,6 +25,25 @@ class SpellcheckProfile(str, Enum):
             raise ValueError(f"unknown spellcheck profile {value!r}; expected {choices}") from error
 
 
+class SpellingAccuracy(str, Enum):
+    """Whether spelling validity requires the curated encoding exactly."""
+
+    LEXICAL = "lexical"
+    VISUAL = "visual"
+
+    @classmethod
+    def coerce(cls, value: "SpellingAccuracy | str") -> "SpellingAccuracy":
+        if isinstance(value, cls):
+            return value
+        try:
+            return cls(value)
+        except ValueError as error:
+            choices = ", ".join(accuracy.value for accuracy in cls)
+            raise ValueError(
+                f"unknown spelling accuracy {value!r}; expected {choices}"
+            ) from error
+
+
 class DiagnosticKind(str, Enum):
     """Stable machine-readable spelling diagnostic categories."""
 

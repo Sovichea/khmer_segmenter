@@ -64,6 +64,34 @@ pub const WORD_AUTOCOMPLETE: u32 = 1 << 2;
 pub const WORD_TYPO_SURFACE: u32 = 1 << 3;
 pub const WORD_SUPPLEMENTAL: u32 = 1 << 4;
 
+pub fn coeng_da_ta_variants(word: &str) -> Vec<String> {
+    const COENG_DA: &str = "\u{17d2}\u{178a}";
+    const COENG_TA: &str = "\u{17d2}\u{178f}";
+    let mut variants = vec![word.to_owned()];
+    let mut offset = 0;
+    while offset < word.len() {
+        let remaining = &word[offset..];
+        let (pair_len, replacement) = if remaining.starts_with(COENG_DA) {
+            (COENG_DA.len(), COENG_TA)
+        } else if remaining.starts_with(COENG_TA) {
+            (COENG_TA.len(), COENG_DA)
+        } else {
+            let character_len = remaining.chars().next().map(char::len_utf8).unwrap_or(1);
+            offset += character_len;
+            continue;
+        };
+        let current = variants.clone();
+        for candidate in current {
+            let alias = format!("{}{}{}", &candidate[..offset], replacement, &candidate[offset + pair_len..]);
+            if !variants.contains(&alias) {
+                variants.push(alias);
+            }
+        }
+        offset += pair_len;
+    }
+    variants.into_iter().filter(|variant| variant != word).collect()
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct KDictWord {
     pub word: String,
@@ -353,6 +381,14 @@ impl KDict {
     }
 
     pub fn cost(&self, word: &str) -> Option<f32> {
+        self.exact_cost(word).or_else(|| {
+            coeng_da_ta_variants(word)
+                .into_iter()
+                .find_map(|variant| self.exact_cost(&variant))
+        })
+    }
+
+    fn exact_cost(&self, word: &str) -> Option<f32> {
         let hash = crate::utils::djb2_hash(word.as_bytes());
         let mut index = hash & self.table_mask;
         loop {
@@ -499,6 +535,13 @@ mod kdict_tests {
         let mut truncated = TEST_DICTIONARY.to_vec();
         truncated.pop();
         assert!(KDict::from_bytes(truncated).is_err());
+    }
+
+    #[test]
+    fn coeng_da_ta_alias_generation_preserves_each_combination() {
+        let word = "\u{179f}\u{17d2}\u{178a}\u{17b6}\u{1794}\u{17cb}";
+        let alias = "\u{179f}\u{17d2}\u{178f}\u{17b6}\u{1794}\u{17cb}";
+        assert_eq!(coeng_da_ta_variants(word), vec![alias.to_owned()]);
     }
 }
 

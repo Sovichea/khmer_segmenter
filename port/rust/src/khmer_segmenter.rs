@@ -4,7 +4,8 @@ use crate::normalization::{
 };
 use crate::rule_engine::RuleEngine;
 use crate::spelling::{
-    SpellcheckConfig, SpellcheckProfile, SpellingDiagnostic, SpellingSuggestion, TypoDetector,
+    SpellcheckConfig, SpellcheckProfile, SpellingAccuracy, SpellingDiagnostic, SpellingSuggestion,
+    TypoDetector,
 };
 use crate::utils;
 use std::fmt;
@@ -546,8 +547,16 @@ impl KhmerSegmenter {
     /// forms may be useful as coherent segmentation units without being
     /// authoritative spellings.
     pub fn is_spelling_valid(&self, word: &str) -> bool {
+        self.is_spelling_valid_with_accuracy(word, SpellingAccuracy::Lexical)
+    }
+
+    pub fn is_spelling_valid_with_accuracy(
+        &self,
+        word: &str,
+        accuracy: SpellingAccuracy,
+    ) -> bool {
         self.typo_detector()
-            .is_some_and(|detector| detector.is_word(word))
+            .is_some_and(|detector| detector.is_word_with_accuracy(word, accuracy))
     }
 
     pub fn suggest_spelling(
@@ -556,8 +565,23 @@ impl KhmerSegmenter {
         max_edit_cost: f32,
         max_suggestions: usize,
     ) -> Vec<SpellingSuggestion> {
+        self.suggest_spelling_with_accuracy(
+            word,
+            max_edit_cost,
+            max_suggestions,
+            SpellingAccuracy::Lexical,
+        )
+    }
+
+    pub fn suggest_spelling_with_accuracy(
+        &self,
+        word: &str,
+        max_edit_cost: f32,
+        max_suggestions: usize,
+        accuracy: SpellingAccuracy,
+    ) -> Vec<SpellingSuggestion> {
         self.typo_detector()
-            .map(|detector| detector.suggest_word(word, max_edit_cost, max_suggestions))
+            .map(|detector| detector.suggest_word_with_accuracy(word, max_edit_cost, max_suggestions, accuracy))
             .unwrap_or_default()
     }
 
@@ -596,13 +620,31 @@ impl KhmerSegmenter {
         self.check_text_with_config(raw_text, profile.config())
     }
 
+    pub fn check_text_with_accuracy(
+        &self,
+        raw_text: &str,
+        profile: SpellcheckProfile,
+        accuracy: SpellingAccuracy,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        self.check_text_with_config_and_accuracy(raw_text, profile.config(), accuracy)
+    }
+
     /// Segment and spellcheck once, retaining both normalized and source ranges.
     pub fn analyze_text(
         &self,
         raw_text: &str,
         profile: SpellcheckProfile,
     ) -> Result<TextAnalysis, SegmentationError> {
-        self.analyze_text_with_config(raw_text, profile.config())
+        self.analyze_text_with_accuracy(raw_text, profile, SpellingAccuracy::Lexical)
+    }
+
+    pub fn analyze_text_with_accuracy(
+        &self,
+        raw_text: &str,
+        profile: SpellcheckProfile,
+        accuracy: SpellingAccuracy,
+    ) -> Result<TextAnalysis, SegmentationError> {
+        self.analyze_text_with_config_and_accuracy(raw_text, profile.config(), accuracy)
     }
 
     pub fn analyze_text_with_config(
@@ -610,8 +652,17 @@ impl KhmerSegmenter {
         raw_text: &str,
         config: SpellcheckConfig,
     ) -> Result<TextAnalysis, SegmentationError> {
+        self.analyze_text_with_config_and_accuracy(raw_text, config, SpellingAccuracy::Lexical)
+    }
+
+    pub fn analyze_text_with_config_and_accuracy(
+        &self,
+        raw_text: &str,
+        config: SpellcheckConfig,
+        accuracy: SpellingAccuracy,
+    ) -> Result<TextAnalysis, SegmentationError> {
         let segmentation = self.segment_detailed(raw_text)?;
-        let diagnostics = self.diagnostics_for_segmentation(&segmentation, config);
+        let diagnostics = self.diagnostics_for_segmentation(&segmentation, config, accuracy);
         Ok(TextAnalysis {
             segmentation,
             diagnostics,
@@ -624,13 +675,25 @@ impl KhmerSegmenter {
         raw_text: &str,
         config: SpellcheckConfig,
     ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
-        Ok(self.analyze_text_with_config(raw_text, config)?.diagnostics)
+        self.check_text_with_config_and_accuracy(raw_text, config, SpellingAccuracy::Lexical)
+    }
+
+    pub fn check_text_with_config_and_accuracy(
+        &self,
+        raw_text: &str,
+        config: SpellcheckConfig,
+        accuracy: SpellingAccuracy,
+    ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
+        Ok(self
+            .analyze_text_with_config_and_accuracy(raw_text, config, accuracy)?
+            .diagnostics)
     }
 
     fn diagnostics_for_segmentation(
         &self,
         segmentation: &Segmentation,
         config: SpellcheckConfig,
+        accuracy: SpellingAccuracy,
     ) -> Vec<SpellingDiagnostic> {
         self.typo_detector()
             .map(|detector| {
@@ -640,11 +703,13 @@ impl KhmerSegmenter {
                     config.max_suggestions,
                     config.context_tokens,
                     config.include_valid_fragments,
+                    accuracy,
                 )
             })
             .unwrap_or_default()
             .into_iter()
             .filter(|diagnostic| diagnostic.confidence >= config.min_confidence)
+            .filter(|diagnostic| !self.is_spelling_valid_with_accuracy(&diagnostic.text, accuracy))
             .map(|mut diagnostic| {
                 if let Some(source_range) = segmentation.source_range_for(&diagnostic.range) {
                     diagnostic.source_range = source_range;

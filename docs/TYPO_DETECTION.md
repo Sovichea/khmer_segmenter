@@ -85,6 +85,23 @@ also flag legitimate adjacent words. It is best suited to interactive review,
 not unattended replacement. `suggest_spelling()` is the preferred API when
 the caller already knows the complete word span.
 
+## Lexical and visual spelling accuracy
+
+Profiles control how aggressively typo detection searches; they do not change
+which spelling is authoritative. `lexical` is the default and requires an
+exact curated dictionary form. `visual` additionally accepts the legacy
+COENG DA/TA equivalent of a curated word. For example, when the lexicon stores
+`ស្ដាប់`, visual mode also accepts `ស្តាប់` without making it a completion or a
+canonical correction target.
+
+```python
+segmenter.check_text(text, profile="typing", accuracy="visual")
+segmenter.is_spelling_valid("ស្តាប់", accuracy="visual")
+```
+
+The equivalent CLI option is `--accuracy lexical|visual` on `spellcheck`,
+`diagnose`, and `analyze`.
+
 ## Candidate generation and ranking
 
 ### Reviewed correction pairs

@@ -8,6 +8,8 @@ import json
 import math
 import struct
 
+from .orthography import coeng_da_ta_variants
+
 
 SEGMENT = 1 << 0
 SPELLCHECK = 1 << 1
@@ -245,6 +247,19 @@ def compile_klex(
             word: -math.log10(max(counts.get(word, 0), floor) / total)
             for word in flags_by_word
         }
+    # COENG DA/TA variants improve word-boundary recovery, but are not added
+    # to spelling or autocomplete metadata.  A visual spellcheck policy can
+    # accept them separately without presenting them as canonical words.
+    for word, flags in tuple(flags_by_word.items()):
+        if not flags & SEGMENT:
+            continue
+        for variant in coeng_da_ta_variants(word):
+            if variant not in flags_by_word:
+                flags_by_word[variant] = flags & (SEGMENT | SUPPLEMENTAL)
+                costs[variant] = costs[word]
+            else:
+                flags_by_word[variant] |= flags & (SEGMENT | SUPPLEMENTAL)
+
     segmentation_words = {
         word for word, flags in flags_by_word.items() if flags & SEGMENT
     }

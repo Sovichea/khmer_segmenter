@@ -21,7 +21,7 @@ from .data import (
 )
 from .hyphenation import KhmerHyphenator
 from .kdict import compile_klex
-from .models import SpellcheckProfile
+from .models import SpellcheckProfile, SpellingAccuracy
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
 
@@ -69,6 +69,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=tuple(profile.value for profile in SpellcheckProfile),
         help="also return spelling diagnostics from the same pass",
     )
+    analyze.add_argument(
+        "--accuracy",
+        choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
+        default=SpellingAccuracy.LEXICAL.value,
+        help="lexical (default) requires exact spelling; visual accepts COENG DA/TA equivalents",
+    )
 
     spellcheck = commands.add_parser(
         "spellcheck", help="check words against the curated RAC spelling lexicon"
@@ -76,6 +82,12 @@ def build_parser() -> argparse.ArgumentParser:
     _add_text_input(spellcheck)
     spellcheck.add_argument("--format", choices=("plain", "json", "jsonl"), default="plain")
     spellcheck.add_argument("--no-normalize", action="store_true")
+    spellcheck.add_argument(
+        "--accuracy",
+        choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
+        default=SpellingAccuracy.LEXICAL.value,
+        help="lexical (default) requires exact spelling; visual accepts COENG DA/TA equivalents",
+    )
 
     diagnose = commands.add_parser(
         "diagnose", help="find probable Khmer typos and return whole-span suggestions"
@@ -88,6 +100,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=tuple(profile.value for profile in SpellcheckProfile),
         default=SpellcheckProfile.TYPING.value,
         help="typing (default), document, or experimental high-recall checking",
+    )
+    diagnose.add_argument(
+        "--accuracy",
+        choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
+        default=SpellingAccuracy.LEXICAL.value,
+        help="lexical (default) requires exact spelling; visual accepts COENG DA/TA equivalents",
     )
     diagnose.add_argument("--max-edit-cost", type=float)
     diagnose.add_argument("--max-suggestions", type=int)
@@ -248,6 +266,7 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
                 analysis = segmenter.analyze_text(
                     text,
                     profile=args.profile,
+                    accuracy=args.accuracy,
                     normalize=not args.no_normalize,
                 )
                 records.append(
@@ -277,7 +296,9 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
 
     if args.command == "spellcheck":
         words = [word for text in texts for word in text.split()]
-        records = segmenter.check_spelling(words, normalize=not args.no_normalize)
+        records = segmenter.check_spelling(
+            words, normalize=not args.no_normalize, accuracy=args.accuracy
+        )
         if args.format == "plain":
             rendered = "\n".join(
                 f"{'valid' if record['valid'] else 'invalid'}\t{record['word']}"
@@ -298,6 +319,7 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
                     for diagnostic in segmenter.detect_typos(
                         text,
                         profile=args.profile,
+                        accuracy=args.accuracy,
                         normalize=not args.no_normalize,
                         max_edit_cost=args.max_edit_cost,
                         max_suggestions=args.max_suggestions,
