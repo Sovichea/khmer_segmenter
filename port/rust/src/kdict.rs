@@ -697,6 +697,12 @@ mod kdict_tests {
         assert!(sources
             .iter()
             .any(|source| source["id"] == "khmer-segmenter-author-curated"));
+        assert!(sources
+            .iter()
+            .any(|source| source["id"] == "rac-derived-component-review"));
+        assert!(sources
+            .iter()
+            .any(|source| source["id"] == "rac-definition-example-review"));
 
         let entries: std::collections::HashMap<_, _> = dictionary
             .lexical_entries()
@@ -721,5 +727,23 @@ mod kdict_tests {
                 WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE
             );
         }
+
+        let derived = entries.get("សាកល្បង").expect("RAC-derived entry");
+        assert_eq!(
+            derived.flags & (WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE),
+            WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE
+        );
+        for word in ["មេរៀន", "ញូតុន", "អេឡិចត្រូត"] {
+            let entry = entries.get(word).expect("RAC-usage entry");
+            assert_eq!(
+                entry.flags & (WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE),
+                WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE
+            );
+        }
+        let phrase = entries
+            .get("ប្រឡងសាកល្បង")
+            .expect("RAC phrase spelling entry");
+        assert_eq!(phrase.flags & WORD_SEGMENT, 0);
+        assert_ne!(phrase.flags & WORD_SPELLCHECK, 0);
     }
 }

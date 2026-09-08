@@ -1,0 +1,41 @@
+word	status	class	rac_evidence	review_note
+កូឡុំ	approved	science-unit	definition/example usage	Used as the name of the electrical-charge unit.
+គមន	approved	Pali-derived	definition gloss	RAC explicitly glosses គមន as going or a journey.
+គីន	approved	personal-name	example usage	Used in the name រីម គីន; this is separate from the rejected science-lexicon OCR extraction.
+គ្រីស្តូហ្វ	approved	personal-name	example usage	Used as a personal name in RAC examples.
+ជយ	approved	Pali-derived	definition gloss	Explicit learned form used and explained by RAC.
+ជ្រួច	approved	common-word	definition/example usage	Used independently with a stable lexical meaning.
+ឈឺន	approved	personal-name	example usage	Used as a personal name in RAC examples.
+ញូតុន	approved	personal-name/science-unit	definition/example usage	Used for Newton and the derived scientific unit.
+តង់ស៊ីតេ	approved	science-term	definition usage	Used independently as a scientific term.
+ទីរ៉ូអ៊ីត	approved	medical-term	definition usage	Used independently for the thyroid.
+ប៉ារីស	approved	place-name	example usage	Used independently as the city name Paris.
+ប៊ន	approved	place-name	example usage	Used independently as the city name Bonn.
+ប្រូតេស្តង់	approved	borrowed-word	definition usage	Used independently for Protestant.
+ភាវូបនីយកម្ម	approved	technical-term	definition usage	Used independently as an abstract technical term.
+មេឌីទែរ៉ាណេ	approved	place-name	definition/example usage	Used independently as the Mediterranean name.
+មេរៀន	approved	common-word	definition/example usage	Repeated independent use for a lesson.
+ម៉ាក្ស	approved	personal-name	example usage	Used independently in references to Marx.
+សក្ដានុពល	approved	technical-term	definition usage	Used independently for potential or capacity.
+សេសាន	approved	place-name	example usage	Used independently as the Sesan place or river name.
+ហូឡង់	approved	place-name/demonym	definition/example usage	Used independently for Holland or Dutch.
+ហ្វឹកហាត់	approved	common-word	definition usage	RAC explicitly uses អ្នកហ្វឹកហាត់ and explains it with អ្នកហាត់ការ.
+អចេតនា	approved	common-word	definition usage	Used independently for an unintentional state or act.
+អរូបជ្ឈាន	approved	Pali/Buddhist	definition usage	Used independently as a Buddhist technical term.
+អលោហៈ	approved	science-term	definition usage	Used independently for a non-metal.
+អសីលធម៌	approved	common-word	definition usage	Used independently for immoral conduct or quality.
+អហំ	approved	Pali/Sanskrit	definition gloss	Quoted and explained as a learned first-person form.
+អាត្មន	approved	Sanskrit-derived	definition gloss	Quoted and explained as a learned form.
+អារីស្តូត	approved	personal-name	definition/example usage	Used independently for Aristotle.
+អ៊ីតាលី	approved	place-name	definition/example usage	Used independently as the country name Italy.
+អ៊ិច	approved	letter-name/science	definition/example usage	Used independently as the letter name in scientific expressions such as X-rays.
+អេឡិចត្រូត	approved	science-term	definition usage	Used independently for electrode.
+អេឡិចត្រូលីត	approved	science-term	definition usage	Used independently for electrolyte.
+ទូរស័ព្ទ	rejected	source-variant	definition usage	RAC has the explicit headword ទូរសព្ទ; do not promote the conflicting form from prose.
+អរម៉ូន	rejected	source-variant	definition usage	RAC has the explicit headword អ័រម៉ូន; do not promote the conflicting form from prose.
+បញ្ជូល	rejected	misspelling	definition/example usage	Malformed form; the accepted spelling is បញ្ចូល.
+រចនាសម្ព័ន	rejected	truncated-form	definition/example usage	Final consonant is missing; use រចនាសម្ព័ន្ធ.
+ពន្យា	rejected	truncated-form	definition/example usage	Do not infer a headword from a truncated occurrence of ពន្យារ.
+វិចិ	rejected	metadata-fragment	part-of-speech notation	Dictionary grammatical abbreviation rather than standalone vocabulary.
+ឬន	rejected	metadata-fragment	part-of-speech notation	Concatenated abbreviation from dictionary markup such as កិ.ឬន.
+សន់	rejected	negative-example	example usage	Occurs in material discussing or illustrating an incorrect form.

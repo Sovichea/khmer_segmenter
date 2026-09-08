@@ -6,7 +6,6 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-
 DATA_DIR_ENV = "KHMER_SEGMENTER_DATA_DIR"
 DICTIONARY_SOURCE_URL = "https://huggingface.co/datasets/seanghay/khmer-dictionary-44k"
 DICTIONARY_SOURCE_CREDIT = "Seanghay Hay (Hugging Face user seanghay)"
@@ -44,6 +43,18 @@ class DataFiles:
         return self.root / "khmer_dictionary_author_curated_words.txt"
 
     @property
+    def rac_derived_words(self) -> Path:
+        return self.root / "khmer_dictionary_rac_derived_words.txt"
+
+    @property
+    def rac_usage_words(self) -> Path:
+        return self.root / "khmer_dictionary_rac_usage_words.txt"
+
+    @property
+    def rac_phrase_exclusions(self) -> Path:
+        return self.root / "khmer_dictionary_rac_phrase_exclusions.txt"
+
+    @property
     def supplemental_words(self) -> Path:
         return self.root / "khmer_dictionary_supplemental_words.txt"
 
@@ -66,6 +77,9 @@ class DataFiles:
             "lexical_pos": self.lexical_pos.is_file(),
             "official_words": self.official_words.is_file(),
             "author_curated_words": self.author_curated_words.is_file(),
+            "rac_derived_words": self.rac_derived_words.is_file(),
+            "rac_usage_words": self.rac_usage_words.is_file(),
+            "rac_phrase_exclusions": self.rac_phrase_exclusions.is_file(),
             "supplemental_words": self.supplemental_words.is_file(),
             "spellcheck_words": self.spellcheck_words.is_file(),
             "typo_corrections": self.typo_corrections.is_file(),

@@ -31,6 +31,22 @@
       "authority": "Sovichea Tep",
       "policy": "segmentation, spelling, and autocomplete",
       "spelling_authority": true
+    },
+    {
+      "id": "rac-derived-component-review",
+      "title": "Reviewed reusable components from RAC headword phrases",
+      "authority": "Khmer Segmenter project review",
+      "derived_from": "rac-khmer-dictionary-2022",
+      "policy": "curated component promotion and phrase segmentation",
+      "spelling_authority": true
+    },
+    {
+      "id": "rac-definition-example-review",
+      "title": "Reviewed standalone vocabulary used by RAC in definitions and examples",
+      "authority": "Khmer Segmenter project review",
+      "derived_from": "rac-khmer-dictionary-2022",
+      "policy": "segmentation, spelling, and autocomplete",
+      "spelling_authority": true
     }
   ],
   "cost_model": {
@@ -9193,9 +9209,17 @@
       "word": "កម្អែ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "កម្អែភ្នំភ្លើង",
@@ -17953,6 +17977,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "កូឡុំ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "កូឡុំបូ",
@@ -33755,9 +33795,17 @@
       "word": "ខុងជឺ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ខុងជឺនិយម",
@@ -39734,9 +39782,7 @@
     {
       "word": "ខ្សែអេក្វាទ័រ",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 4.869378566741943
     },
@@ -40829,9 +40875,17 @@
       "word": "គណិត",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "គណិតវិទ្យា",
@@ -41600,6 +41654,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "គមន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "គមនាការ",
@@ -43294,6 +43364,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "គីន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "គីនហ្សាសា",
@@ -48445,6 +48531,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "គ្រីស្តូហ្វ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "គ្រីស្ទាន",
@@ -63227,9 +63329,17 @@
       "word": "ចំណាត់",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ចំណាត់ថ្នាក់",
@@ -74207,6 +74317,22 @@
       "cost": 4.1423797607421875
     },
     {
+      "word": "ជយ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "ជយកុញ្ជរ",
       "uses": [
         "segmentation",
@@ -82950,6 +83076,22 @@
       "cost": 5.249589443206787
     },
     {
+      "word": "ជ្រួច",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "ជ្រួញ",
       "uses": [
         "segmentation",
@@ -83892,6 +84034,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "ឈឺន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "ឈឺផល់ស្មា",
@@ -86463,6 +86621,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "ញូតុន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "ញួញ",
@@ -96790,6 +96964,22 @@
       "cost": 6.749589443206787
     },
     {
+      "word": "តង់ស៊ីតេ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "តង់ស្យុង",
       "uses": [
         "segmentation",
@@ -103887,9 +104077,7 @@
     {
       "word": "តំបន់ប៉ូល",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -116367,9 +116555,17 @@
       "word": "ទស្សនា",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ទស្សនាការ",
@@ -120192,6 +120388,22 @@
         "autocomplete"
       ],
       "cost": 4.533586502075195
+    },
+    {
+      "word": "ទីរ៉ូអ៊ីត",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "ទីលាន",
@@ -126852,9 +127064,17 @@
       "word": "ទំពក់",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ទំពរ័",
@@ -128258,9 +128478,7 @@
     {
       "word": "ទ្រព្យសកម្មអចល័ត",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -153848,9 +154066,17 @@
       "word": "បន្សំ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "បន្សះ",
@@ -170825,6 +171051,22 @@
       "cost": 5.249589443206787
     },
     {
+      "word": "ប៉ារីស",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "ប៉ារីស៍",
       "uses": [
         "segmentation",
@@ -171789,9 +172031,17 @@
       "word": "ប៉ូល",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ប៉ូលខាងជើង",
@@ -173144,6 +173394,22 @@
       "cost": 5.249589443206787
     },
     {
+      "word": "ប៊ន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "ប៊ិក",
       "uses": [
         "segmentation",
@@ -173736,9 +174002,17 @@
       "word": "ប័ណ្ណ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ប័ណ្ណចូល",
@@ -176902,9 +177176,7 @@
     {
       "word": "ប្រតិកម្មបន្សំ",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -181709,9 +181981,7 @@
     {
       "word": "ប្រឡងសាកល្បង",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -183740,6 +184010,22 @@
       "cost": 5.250589847564697
     },
     {
+      "word": "ប្រូតេស្តង់",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "ប្រូតេស្តង់និយម",
       "uses": [
         "segmentation",
@@ -184097,9 +184383,7 @@
     {
       "word": "ប្រេងម៉ាស៊ូត",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -190796,9 +191080,7 @@
     {
       "word": "ផ្ទះស្នាក់",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -208645,9 +208927,7 @@
     {
       "word": "ព្រៃអេក្វាទ័រ",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -212828,6 +213108,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "ភាវូបនីយកម្ម",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "ភាវៈ",
@@ -220659,9 +220955,17 @@
       "word": "មត្តេយ្យ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "មត្តេយ្យកា",
@@ -220693,9 +220997,7 @@
     {
       "word": "មត្តេយ្យសិក្សា",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 5.249589443206787
     },
@@ -229334,9 +229636,17 @@
       "word": "មិញ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "មិញ្ជា",
@@ -234561,6 +234871,22 @@
       "cost": 6.749589443206787
     },
     {
+      "word": "មេឌីទែរ៉ាណេ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "មេឌៀ",
       "uses": [
         "segmentation",
@@ -235389,6 +235715,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "មេរៀន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "មេរៀម",
@@ -237272,6 +237614,22 @@
       "cost": 5.249589443206787
     },
     {
+      "word": "ម៉ាក្ស",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "ម៉ាក្សនិយម",
       "uses": [
         "segmentation",
@@ -237983,9 +238341,17 @@
       "word": "ម៉ាស៊ូត",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ម៉ាស់",
@@ -261715,9 +262081,17 @@
       "word": "រហួន",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "រហើង",
@@ -312348,9 +312722,17 @@
       "word": "វ៉ាត់",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "វ៉ាទៈ",
@@ -314746,6 +315128,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "សក្ដានុពល",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "សក្ដានុភាព",
@@ -338560,9 +338958,17 @@
       "word": "សាកល្បង",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "សាកវប្បកម្ម",
@@ -349860,9 +350266,17 @@
       "word": "សីហនុ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "សីហបញ្ជរ",
@@ -359182,9 +359596,7 @@
     {
       "word": "សៀគ្វីអគ្គិសនី",
       "uses": [
-        "segmentation",
-        "spelling",
-        "autocomplete"
+        "spelling"
       ],
       "cost": 4.994317054748535
     },
@@ -361306,6 +361718,22 @@
         "autocomplete"
       ],
       "cost": 5.103461742401123
+    },
+    {
+      "word": "សេសាន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "សេសាន្ដ",
@@ -375290,9 +375718,17 @@
       "word": "ស្ថេរ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ស្ទក់",
@@ -376199,9 +376635,17 @@
       "word": "ស្នាក់",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "ស្នាក់នៅ",
@@ -392948,6 +393392,22 @@
       "cost": 6.749589443206787
     },
     {
+      "word": "ហូឡង់",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "ហួង",
       "uses": [
         "segmentation",
@@ -397070,6 +397530,22 @@
         "autocomplete"
       ],
       "cost": 4.693287372589111
+    },
+    {
+      "word": "ហ្វឹកហាត់",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "ហ្វឹកហ្វឺន",
@@ -406102,9 +406578,17 @@
       "word": "អចល័ត",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "អចិត្ដ",
@@ -406533,6 +407017,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "អចេតនា",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "អចេលក",
@@ -432681,6 +433181,22 @@
       "cost": 5.249589443206787
     },
     {
+      "word": "អរូបជ្ឈាន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "អរូបទ្រព្យ",
       "uses": [
         "segmentation",
@@ -433196,6 +433712,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "អលោហៈ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "អលំក្ឫត",
@@ -435687,6 +436219,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "អសីលធម៌",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "អសុ",
@@ -439247,6 +439795,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "អហំ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "អហំការ",
@@ -444125,6 +444689,22 @@
       "cost": 5.249589443206787
     },
     {
+      "word": "អាត្មន",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "អាត្មន៑",
       "uses": [
         "segmentation",
@@ -448855,6 +449435,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "អារីស្តូត",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "អារីហ្សូណា",
@@ -454337,9 +454933,17 @@
       "word": "អេក្វាទ័រ",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "អេគីណូកុកកូស",
@@ -454843,6 +455447,22 @@
       "cost": 5.249589443206787
     },
     {
+      "word": "អេឡិចត្រូត",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "អេឡិចត្រូទស្សន៍",
       "uses": [
         "segmentation",
@@ -454868,6 +455488,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "អេឡិចត្រូលីត",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "អេឡិចត្រូវិជ្ជមាន",
@@ -457081,6 +457717,22 @@
       "cost": 6.749589443206787
     },
     {
+      "word": "អ៊ិច",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
+    },
+    {
       "word": "អ៊ិចត្រាណិត",
       "uses": [
         "segmentation",
@@ -457317,9 +457969,17 @@
       "word": "អ៊ីដ្រូសែន",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "rac-derived-component-review",
+          "review_status": "approved",
+          "note": "Reusable component reviewed from a RAC headword phrase"
+        }
+      ]
     },
     {
       "word": "អ៊ីដ្រូសែនកម្ម",
@@ -457362,6 +458022,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "អ៊ីតាលី",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "rac-definition-example-review",
+          "review_status": "approved",
+          "note": "Standalone word mined from RAC definitions or examples"
+        }
+      ]
     },
     {
       "word": "អ៊ីតើ",

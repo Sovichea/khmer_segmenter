@@ -9,10 +9,15 @@ import tarfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
-
 APPROVED_RUNTIME_NAMES = {
+    "khmer_dictionary_author_curated_words.txt",
     "khmer_dictionary_words.txt",
     "khmer_dictionary_official_2022_words.txt",
+    "khmer_dictionary_rac_derived_review.tsv",
+    "khmer_dictionary_rac_derived_words.txt",
+    "khmer_dictionary_rac_phrase_exclusions.txt",
+    "khmer_dictionary_rac_usage_review.tsv",
+    "khmer_dictionary_rac_usage_words.txt",
     "khmer_dictionary_supplemental_words.txt",
     "khmer_spellcheck_words.txt",
     "khmer_typo_corrections.tsv",

@@ -17,6 +17,24 @@
     "spelling_authority": false,
     "license_notice": "Noncommercial redistribution with attribution; see DATA_LICENSE.md"
   },
+  "reviewed_extensions": {
+    "rac_phrase_components": {
+      "source": "Khmer Dictionary 2022 headwords, definitions, and examples",
+      "policy": "manual review; accepted for segmentation, spelling, and autocomplete",
+      "approved": 21,
+      "rejected": 11,
+      "words_file": "khmer_dictionary_rac_derived_words.txt",
+      "review_file": "khmer_dictionary_rac_derived_review.tsv"
+    },
+    "rac_definition_example_vocabulary": {
+      "source": "Khmer Dictionary 2022 definitions and examples",
+      "policy": "manual semantic and spelling review; accepted for segmentation, spelling, and autocomplete",
+      "approved": 32,
+      "rejected": 8,
+      "words_file": "khmer_dictionary_rac_usage_words.txt",
+      "review_file": "khmer_dictionary_rac_usage_review.tsv"
+    }
+  },
   "generation": {
     "iterations": 3,
     "segmentation_forms": "clean t_main plus clean POS-supported t_subword",
@@ -64,6 +82,31 @@
       "sha256": "232a2a84ed664bb2b80ee9fdf422b281f9fd4951b7d4792b3ef012b1549b9111",
       "bytes": 254599,
       "records": 12628
+    },
+    "khmer_dictionary_rac_derived_words.txt": {
+      "sha256": "33798b04504a3a3d2b4ef24ffeb0d7bd5ce1c2fc66a8f212937c9eaaff42f7a9",
+      "bytes": 378,
+      "records": 21
+    },
+    "khmer_dictionary_rac_phrase_exclusions.txt": {
+      "sha256": "6507a4c758a326d782898509d1a45fb290a7d50edc03aaeb061387f1d7fbb890",
+      "bytes": 391,
+      "records": 10
+    },
+    "khmer_dictionary_rac_derived_review.tsv": {
+      "sha256": "8f6a951f1efc1e0c00fbf39f8574aae25e38df69706fff70f14f748ce44c44a9",
+      "bytes": 6775,
+      "records": 32
+    },
+    "khmer_dictionary_rac_usage_words.txt": {
+      "sha256": "6a971ce5cf038d639dd2f3a9884759b082a8faf9c228487c9d187453d20d1dc3",
+      "bytes": 674,
+      "records": 32
+    },
+    "khmer_dictionary_rac_usage_review.tsv": {
+      "sha256": "ed5f97d387984c16bbbf96b8b0a0b38a9c7019bc9e21e9adb51bd43418cb94d9",
+      "bytes": 4750,
+      "records": 40
     },
     "khmer_spellcheck_words.txt": {
       "sha256": "c97d667b67094186332ad948c11946b1732be8ad16d58a3927b938f7aceb9b15",

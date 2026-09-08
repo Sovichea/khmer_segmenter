@@ -1,27 +1,27 @@
 """Frequency-weighted Viterbi Khmer segmentation engine."""
 
-import os
-import math
 import json
 import logging
+import math
+import os
 import unicodedata
 from dataclasses import replace
 from pathlib import Path
 
 from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
+from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
 from .models import (
+    LexiconMode,
     SpellcheckConfig,
     SpellcheckProfile,
-    LexiconMode,
     SpellingAccuracy,
     SpellingDiagnostic,
     SpellingSuggestion,
-    Token,
     TextAnalysis,
+    Token,
 )
 from .normalization import KhmerNormalizer
 from .orthography import coeng_da_ta_variants
-from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
 from .rule_engine import RuleBasedEngine
 from .spelling import TypoDetector, load_approved_typo_corrections
 
@@ -88,6 +88,9 @@ class KhmerSegmenter:
         self._pos_tags = None
         self._official_words = None
         self._author_curated_words = None
+        self._rac_derived_words = None
+        self._rac_usage_words = None
+        self._rac_phrase_exclusions = None
         self._supplemental_words = None
         self._spellcheck_words = None
         self._autocomplete_words = None
@@ -331,6 +334,30 @@ class KhmerSegmenter:
         return self._author_curated_words
 
     @property
+    def rac_derived_words(self):
+        if self._rac_derived_words is None:
+            self._rac_derived_words = set()
+            self._load_word_set(self.data_files.rac_derived_words, self._rac_derived_words)
+        return self._rac_derived_words
+
+    @property
+    def rac_usage_words(self):
+        if self._rac_usage_words is None:
+            self._rac_usage_words = set()
+            self._load_word_set(self.data_files.rac_usage_words, self._rac_usage_words)
+        return self._rac_usage_words
+
+    @property
+    def rac_phrase_exclusions(self):
+        if self._rac_phrase_exclusions is None:
+            self._rac_phrase_exclusions = set()
+            self._load_word_set(
+                self.data_files.rac_phrase_exclusions,
+                self._rac_phrase_exclusions,
+            )
+        return self._rac_phrase_exclusions
+
+    @property
     def supplemental_words(self):
         if self._supplemental_words is None:
             self._supplemental_words = set()
@@ -343,6 +370,8 @@ class KhmerSegmenter:
             self._spellcheck_words = set()
             self._load_word_set(self.data_files.spellcheck_words, self._spellcheck_words)
             self._spellcheck_words.update(self.author_curated_words)
+            self._spellcheck_words.update(self.rac_derived_words)
+            self._spellcheck_words.update(self.rac_usage_words)
             if not self._spellcheck_words:
                 # Custom 0.1.x data directories remain usable without the new file.
                 self._spellcheck_words = set(self.words)
@@ -459,9 +488,21 @@ class KhmerSegmenter:
         """
 
         if self.data_files.official_words.is_file():
-            curated_words = self.official_words | self.author_curated_words
+            curated_words = (
+                self.official_words
+                | self.author_curated_words
+                | self.rac_derived_words
+                | self.rac_usage_words
+            )
             self._curated_runtime_words = self._runtime_forms(curated_words)
-            self.words.update(self._runtime_forms(self.author_curated_words))
+            self.words.update(
+                self._runtime_forms(
+                    self.author_curated_words
+                    | self.rac_derived_words
+                    | self.rac_usage_words
+                )
+            )
+            self.words.difference_update(self._runtime_forms(self.rac_phrase_exclusions))
             self.max_word_length = max(map(len, self.words), default=0)
         else:
             self._curated_runtime_words = set(self.words)

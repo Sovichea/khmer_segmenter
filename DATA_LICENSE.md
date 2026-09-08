@@ -20,6 +20,12 @@ use:
 
 - `khmer_dictionary_words.txt`
 - `khmer_dictionary_official_2022_words.txt`
+- `khmer_dictionary_author_curated_words.txt`
+- `khmer_dictionary_rac_derived_words.txt`
+- `khmer_dictionary_rac_phrase_exclusions.txt`
+- `khmer_dictionary_rac_derived_review.tsv`
+- `khmer_dictionary_rac_usage_words.txt`
+- `khmer_dictionary_rac_usage_review.tsv`
 - `khmer_dictionary_supplemental_words.txt` (segmentation-only legacy forms)
 - `khmer_spellcheck_words.txt`
 - `port/rust/data/khmer_spellcheck_words.txt` (synchronized Rust copy)
@@ -38,6 +44,12 @@ dictionary. It is segmentation evidence only: it cannot make a spelling valid
 or enter correction and autocomplete results. No uncurated corpus is used to
 accept spellings. The model manifest records the source SHA-256, parameters,
 record counts, and generated-file hashes.
+
+The RAC-derived and RAC-usage lists are manually reviewed adaptations. They
+promote reusable words found inside RAC headword phrases, definitions, or
+examples, while their review tables retain rejected source variants and
+fragments. They do not imply that every token occurring in dictionary prose is
+an authoritative RAC headword.
 
 The typo-correction table is separate from dictionary and frequency data.
 Its pending observations retain source identifiers documented in
