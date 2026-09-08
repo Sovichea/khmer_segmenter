@@ -87,6 +87,7 @@ class KhmerSegmenter:
         self.word_frequencies = {}
         self._pos_tags = None
         self._official_words = None
+        self._author_curated_words = None
         self._supplemental_words = None
         self._spellcheck_words = None
         self._autocomplete_words = None
@@ -320,6 +321,16 @@ class KhmerSegmenter:
         return self._official_words
 
     @property
+    def author_curated_words(self):
+        if self._author_curated_words is None:
+            self._author_curated_words = set()
+            self._load_word_set(
+                self.data_files.author_curated_words,
+                self._author_curated_words,
+            )
+        return self._author_curated_words
+
+    @property
     def supplemental_words(self):
         if self._supplemental_words is None:
             self._supplemental_words = set()
@@ -331,6 +342,7 @@ class KhmerSegmenter:
         if self._spellcheck_words is None:
             self._spellcheck_words = set()
             self._load_word_set(self.data_files.spellcheck_words, self._spellcheck_words)
+            self._spellcheck_words.update(self.author_curated_words)
             if not self._spellcheck_words:
                 # Custom 0.1.x data directories remain usable without the new file.
                 self._spellcheck_words = set(self.words)
@@ -447,7 +459,10 @@ class KhmerSegmenter:
         """
 
         if self.data_files.official_words.is_file():
-            self._curated_runtime_words = self._runtime_forms(self.official_words)
+            curated_words = self.official_words | self.author_curated_words
+            self._curated_runtime_words = self._runtime_forms(curated_words)
+            self.words.update(self._runtime_forms(self.author_curated_words))
+            self.max_word_length = max(map(len, self.words), default=0)
         else:
             self._curated_runtime_words = set(self.words)
 

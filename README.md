@@ -22,6 +22,7 @@ unknown-word recovery without a runtime machine-learning model.
 - Khmer Unicode normalization
 - Frequency-weighted dictionary decisions
 - Layered curated and supplemental segmentation lexicons
+- A small, explicitly identified author-curated vocabulary for signature terms and names
 - RAC-curated spelling correction and autocomplete vocabulary
 - Word spelling checks through Python and the CLI
 - Whole-span typo diagnostics with Khmer-aware ranked suggestions

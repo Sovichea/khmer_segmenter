@@ -40,6 +40,10 @@ class DataFiles:
         return self.root / "khmer_dictionary_official_2022_words.txt"
 
     @property
+    def author_curated_words(self) -> Path:
+        return self.root / "khmer_dictionary_author_curated_words.txt"
+
+    @property
     def supplemental_words(self) -> Path:
         return self.root / "khmer_dictionary_supplemental_words.txt"
 
@@ -61,6 +65,7 @@ class DataFiles:
             "frequencies": self.frequencies.is_file(),
             "lexical_pos": self.lexical_pos.is_file(),
             "official_words": self.official_words.is_file(),
+            "author_curated_words": self.author_curated_words.is_file(),
             "supplemental_words": self.supplemental_words.is_file(),
             "spellcheck_words": self.spellcheck_words.is_file(),
             "typo_corrections": self.typo_corrections.is_file(),

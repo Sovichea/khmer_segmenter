@@ -24,6 +24,13 @@
       "policy": "decomposed into non-curated Khmer entries of 2 to 4 orthographic clusters; reviewed typo surfaces retained",
       "spelling_authority": false,
       "license_notice": "Noncommercial redistribution with attribution; see DATA_LICENSE.md"
+    },
+    {
+      "id": "khmer-segmenter-author-curated",
+      "title": "Khmer Segmenter author-curated signature vocabulary",
+      "authority": "Sovichea Tep",
+      "policy": "segmentation, spelling, and autocomplete",
+      "spelling_authority": true
     }
   ],
   "cost_model": {
@@ -94395,7 +94402,14 @@
         "spelling",
         "autocomplete"
       ],
-      "cost": 5.249589443206787
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "ឋ",
@@ -124533,7 +124547,14 @@
         "spelling",
         "autocomplete"
       ],
-      "cost": 4.4300456047058105
+      "cost": 4.4300456047058105,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "ទេពកញ្ញា",
@@ -275785,9 +275806,17 @@
       "word": "រ៉ុក្កែត",
       "uses": [
         "segmentation",
-        "supplemental"
+        "spelling",
+        "autocomplete"
       ],
-      "cost": 6.749589443206787
+      "cost": 6.749589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "រ៉ុញ",
@@ -275908,6 +275937,54 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "រ៉ូបូត",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
+    },
+    {
+      "word": "រ៉ូបូតយ៉ាំង",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
+    },
+    {
+      "word": "រ៉ូបូទិក",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "រ៉ូប៊ីណេ",
@@ -356715,7 +356792,14 @@
         "spelling",
         "autocomplete"
       ],
-      "cost": 5.249589443206787
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "សុវិទ្យា",
@@ -375873,6 +375957,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "ស្ទែម",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "ស្ទែរ",
@@ -396863,6 +396963,22 @@
         "supplemental"
       ],
       "cost": 6.749589443206787
+    },
+    {
+      "word": "ហ្វាម",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "ហ្វារ",
@@ -454786,6 +454902,22 @@
         "autocomplete"
       ],
       "cost": 5.249589443206787
+    },
+    {
+      "word": "អេអាយ",
+      "uses": [
+        "segmentation",
+        "spelling",
+        "autocomplete"
+      ],
+      "cost": 5.249589443206787,
+      "provenance": [
+        {
+          "source": "khmer-segmenter-author-curated",
+          "review_status": "approved",
+          "note": "Signature term or name selected by the project author"
+        }
+      ]
     },
     {
       "word": "អេអូសែន",

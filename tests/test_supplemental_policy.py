@@ -5,6 +5,31 @@ from khmer_segmenter import KhmerSegmenter
 from khmer_segmenter.preparation import decompose_supplemental_words
 
 
+AUTHOR_CURATED_WORDS = {
+    "អេអាយ",
+    "ហ្វាម",
+    "ដ្រូន",
+    "រ៉ូបូត",
+    "រ៉ូបូតយ៉ាំង",
+    "រ៉ូបូទិក",
+    "រ៉ុក្កែត",
+    "ទេព",
+    "សុវិជ្ជា",
+    "ស្ទែម",
+}
+
+
+def test_author_curated_signature_words_are_embedded_and_spelling_valid():
+    segmenter = KhmerSegmenter()
+
+    for word in AUTHOR_CURATED_WORDS:
+        assert segmenter.segment(word, disable_post_processing=True) == [word]
+        assert segmenter.is_spelling_valid(word)
+
+    completions = {item.text for item in segmenter.complete_word("រ៉ូបូ")}
+    assert {"រ៉ូបូត", "រ៉ូបូតយ៉ាំង", "រ៉ូបូទិក"} <= completions
+
+
 def test_phrase_like_supplemental_entries_are_reduced_to_unknown_chunks():
     curated = {"កម្ពុជា", "សាលា"}
     supplemental, decisions = decompose_supplemental_words(

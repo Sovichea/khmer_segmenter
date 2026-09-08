@@ -50,7 +50,9 @@ def test_supplemental_runtime_dictionary_is_segmentation_only():
     supplemental = segmenter.supplemental_words
     assert supplemental
     assert supplemental <= segmenter.words
-    assert all(not segmenter.is_spelling_valid(word) for word in supplemental)
+    segmentation_only = supplemental - segmenter.author_curated_words
+    assert all(not segmenter.is_spelling_valid(word) for word in segmentation_only)
+    assert supplemental & segmenter.author_curated_words == {"រ៉ុក្កែត"}
 
 
 def test_spellcheck_cli(capsys):

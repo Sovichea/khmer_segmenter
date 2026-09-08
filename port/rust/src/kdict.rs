@@ -693,6 +693,33 @@ mod kdict_tests {
         let dictionary = KDict::from_bytes(TEST_DICTIONARY.to_vec()).unwrap();
         let provenance = dictionary.provenance().unwrap();
         assert_eq!(provenance["packs"][0]["id"], "rac-2022-layered-v1");
-        assert_eq!(provenance["sources"].as_array().unwrap().len(), 2);
+        let sources = provenance["sources"].as_array().unwrap();
+        assert!(sources
+            .iter()
+            .any(|source| source["id"] == "khmer-segmenter-author-curated"));
+
+        let entries: std::collections::HashMap<_, _> = dictionary
+            .lexical_entries()
+            .into_iter()
+            .map(|entry| (entry.word.clone(), entry))
+            .collect();
+        for word in [
+            "អេអាយ",
+            "ហ្វាម",
+            "ដ្រូន",
+            "រ៉ូបូត",
+            "រ៉ូបូតយ៉ាំង",
+            "រ៉ូបូទិក",
+            "រ៉ុក្កែត",
+            "ទេព",
+            "សុវិជ្ជា",
+            "ស្ទែម",
+        ] {
+            let entry = entries.get(word).expect("author-curated entry");
+            assert_eq!(
+                entry.flags & (WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE),
+                WORD_SEGMENT | WORD_SPELLCHECK | WORD_AUTOCOMPLETE
+            );
+        }
     }
 }

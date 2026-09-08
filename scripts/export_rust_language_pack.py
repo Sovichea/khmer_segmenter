@@ -27,11 +27,14 @@ DEFAULT_INPUT = PROJECT_ROOT / "port" / "common" / "khmer_dictionary.kdict"
 DEFAULT_KLEX = PROJECT_ROOT / "port" / "rust" / "data" / "khmer_dictionary.klex.json"
 DEFAULT_KDICT = PROJECT_ROOT / "port" / "rust" / "data" / "khmer_dictionary.kdict"
 DEFAULT_MANIFEST = (
+    PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data" / "khmer_model_manifest.json"
+)
+DEFAULT_AUTHOR_CURATED = (
     PROJECT_ROOT
     / "src"
     / "khmer_segmenter"
     / "dictionary_data"
-    / "khmer_model_manifest.json"
+    / "khmer_dictionary_author_curated_words.txt"
 )
 
 
@@ -49,26 +52,46 @@ def _uses(flags: int) -> list[str]:
     return names or ["correction_target"]
 
 
-def export_klex(pack: KDict, manifest: dict, output: Path) -> None:
+def export_klex(
+    pack: KDict,
+    manifest: dict,
+    output: Path,
+    author_curated_words: set[str] | None = None,
+) -> None:
     source = manifest["source"]
     supplemental = manifest.get("supplemental_source", {})
+    author_curated_words = author_curated_words or set()
     entries = []
     correction_targets = set(pack.typo_corrections.values())
-    for word, record in sorted(pack.words.items()):
-        uses = _uses(record.flags)
-        if word in correction_targets and not record.flags & SPELLCHECK:
+    for word in sorted(set(pack.words) | author_curated_words):
+        record = pack.words.get(word)
+        is_author_curated = word in author_curated_words
+        uses = (
+            ["segmentation", "spelling", "autocomplete"]
+            if is_author_curated
+            else _uses(record.flags)
+        )
+        if word in correction_targets and (record is None or not record.flags & SPELLCHECK):
             if "correction_target" not in uses:
                 uses.append("correction_target")
         entry: dict[str, object] = {
             "word": word,
             "uses": uses,
-            "cost": record.cost,
+            "cost": record.cost if record is not None else pack.default_cost,
         }
         correction = pack.typo_corrections.get(word)
         if correction is not None:
             entry["correction"] = correction
             entry["status"] = "approved"
-        evidence = pack.word_provenance.get(word)
+        evidence = list(pack.word_provenance.get(word, []))
+        if is_author_curated:
+            evidence.append(
+                {
+                    "source": "khmer-segmenter-author-curated",
+                    "review_status": "approved",
+                    "note": "Signature term or name selected by the project author",
+                }
+            )
         if evidence:
             entry["provenance"] = evidence
         entries.append(entry)
@@ -98,9 +121,14 @@ def export_klex(pack: KDict, manifest: dict, output: Path) -> None:
                 "title": supplemental.get("name", "Supplemental segmentation vocabulary"),
                 "policy": supplemental.get("policy", "segmentation only"),
                 "spelling_authority": False,
-                "license_notice": supplemental.get(
-                    "license_notice", source["license_notice"]
-                ),
+                "license_notice": supplemental.get("license_notice", source["license_notice"]),
+            },
+            {
+                "id": "khmer-segmenter-author-curated",
+                "title": "Khmer Segmenter author-curated signature vocabulary",
+                "authority": "Sovichea Tep",
+                "policy": "segmentation, spelling, and autocomplete",
+                "spelling_authority": True,
             },
         ],
         "cost_model": {
@@ -124,13 +152,19 @@ def main() -> None:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--output-klex", type=Path, default=DEFAULT_KLEX)
     parser.add_argument("--output-kdict", type=Path, default=DEFAULT_KDICT)
+    parser.add_argument("--author-curated", type=Path, default=DEFAULT_AUTHOR_CURATED)
     args = parser.parse_args()
 
     pack = KDict.load(args.input)
     if pack.version != 2:
         parser.error("the canonical Rust language pack must use KDIC v2")
     manifest = json.loads(args.manifest.read_text(encoding="utf-8-sig"))
-    export_klex(pack, manifest, args.output_klex)
+    author_curated_words = {
+        line.strip()
+        for line in args.author_curated.read_text(encoding="utf-8-sig").splitlines()
+        if line.strip()
+    }
+    export_klex(pack, manifest, args.output_klex, author_curated_words)
     compile_klex(args.output_klex, args.output_kdict)
     print(f"Exported {len(pack.words)} entries to {args.output_klex}")
     print(f"Compiled Rust runtime pack to {args.output_kdict}")

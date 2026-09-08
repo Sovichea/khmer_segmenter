@@ -15,6 +15,7 @@ dictionary or its runtime adaptations.
 |:---|:---|:---|:---|
 | Khmer Dictionary 2022 extraction | [Seanghay Hay's `khmer-dictionary-44k`](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k) | National Council of Khmer Language, Royal Academy of Cambodia (authority); Seanghay Hay / `seanghay` (extraction and publication) | Noncommercial redistribution with attribution, confirmed by Seanghay Hay |
 | Legacy supplemental segmentation forms | Earlier attributed runtime dictionary in this project, conservatively decomposed during migration | Sovichea and project maintainers (runtime curation); retain the Khmer Dictionary 2022 credits above | Segmentation evidence only; distributed under the same noncommercial attribution notice |
+| Author-curated signature vocabulary | Project-maintained list of important terms and names | Sovichea Tep | Explicitly identified project vocabulary; accepted for segmentation, spelling, and autocomplete without claiming RAC authority |
 | khPOS | [`ye-kyaw-thu/khPOS`](https://github.com/ye-kyaw-thu/khPOS) | Vichet Chea and Ye Kyaw Thu; annotation assistance by Sorn Kea and Leng Greyhuy | CC BY-NC-SA 4.0 |
 | Khmer ALT | [Zenodo record 3937914](https://doi.org/10.5281/zenodo.3937914) | Chenchen Ding, Masao Utiyama, and Eiichiro Sumita; NICT and NIPTICT | Description and rights field differ; review the record |
 | Earlier folktale/dictionary inputs | [sovichet](https://github.com/sovichet) | Sovichet | Ask the original author and review the source terms |
@@ -32,6 +33,7 @@ RAC-curated spelling vocabulary:
 src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
 |-- khmer_dictionary_official_2022_words.txt
+|-- khmer_dictionary_author_curated_words.txt
 |-- khmer_dictionary_supplemental_words.txt
 |-- khmer_spellcheck_words.txt
 |-- khmer_typo_corrections.tsv
@@ -43,6 +45,11 @@ src/khmer_segmenter/dictionary_data/
 These are the only linguistic assets approved for inclusion in Python release
 archives. Users may override them with `--data-dir`, `data_dir=`, or
 `KHMER_SEGMENTER_DATA_DIR`.
+
+`khmer_dictionary_author_curated_words.txt` is intentionally separate from the
+RAC list. Its entries are built into the default Python and Rust language packs
+as valid segmentation, spelling, and autocomplete forms, while KDIC provenance
+identifies them as author-curated project vocabulary.
 
 ## Download and rebuild the dictionary
 
