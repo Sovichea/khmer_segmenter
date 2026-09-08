@@ -6,17 +6,28 @@ This is an experimental port of the Khmer Segmenter to Rust. It aims to replicat
 
 Ensure you have Rust installed.
 
-The Rust port requires local dictionary artifacts that are not redistributed
-by this repository. Obtain the dictionary from
-[Seanghay Hay's original Hugging Face publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k),
-review its terms, and follow [the data guide](../../docs/DATA.md) to generate
-the ignored files under `port/common/`.
+The Rust port includes a ready-to-load language pack under `data/`:
+
+- `khmer_dictionary.kdict` is the optimized runtime file.
+- `khmer_dictionary.klex.json` is its editable, reproducible source.
+
+The linguistic data is derived from
+[Seanghay Hay's attributed Khmer Dictionary 2022 publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k)
+and is redistributed for noncommercial use with attribution. The Rust code is
+MIT licensed, but the bundled language pack is governed by
+[the linguistic data notice](../../DATA_LICENSE.md).
 KDIC v2 contains segmentation costs, curated spelling and autocomplete flags,
 and approved typo corrections in the same binary file. Supplemental entries
 can therefore remain useful segmentation units without becoming accepted
 spellings. KDIC v1 remains readable through the embedded compatibility data.
 The complete conversion and embedded-deployment workflow is in
 [Prepare Dictionaries for Python, C, and Rust](../../docs/EMBEDDED_DICTIONARY.md).
+
+Regenerate the Rust pair after updating the canonical model:
+
+```bash
+python ../../scripts/export_rust_language_pack.py
+```
 
 ```bash
 cd port/rust
@@ -122,9 +133,10 @@ cargo run --release -- --kdict custom.kdict analyze --profile typing "ដេល"
 
 For installed binaries, `--dictionary` and `--kdict` can appear before or
 after `diagnose`, `analyze`, or `word-breaks`. If neither is supplied, the CLI
-checks `KHMER_SEGMENTER_KDICT`, the working directory, and then the executable
-directory (including its `data` subdirectory). A missing or invalid configured
-dictionary is an error; the CLI never silently runs without lexical data.
+checks `KHMER_SEGMENTER_KDICT`, the working directory (including `data/`), and
+then the executable directory (including its `data` subdirectory). A missing
+or invalid configured dictionary is an error; the CLI never silently runs
+without lexical data.
 
 ### Segment Raw Text
 ```bash

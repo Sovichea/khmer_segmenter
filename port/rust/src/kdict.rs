@@ -668,7 +668,7 @@ unsafe impl Sync for KDict {}
 mod kdict_tests {
     use super::*;
 
-    const TEST_DICTIONARY: &[u8] = include_bytes!("../../common/khmer_dictionary.kdict");
+    const TEST_DICTIONARY: &[u8] = include_bytes!("../data/khmer_dictionary.kdict");
 
     #[test]
     fn rejects_malformed_table_size_and_truncated_metadata() {
@@ -689,14 +689,10 @@ mod kdict_tests {
     }
 
     #[test]
-    fn reads_optional_provenance_trailer() {
-        let mut bytes = TEST_DICTIONARY.to_vec();
-        let payload = br#"{"packs":[{"id":"test"}],"sources":[],"words":{}}"#;
-        bytes.extend_from_slice(b"KPRV");
-        bytes.extend_from_slice(&1_u32.to_le_bytes());
-        bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-        bytes.extend_from_slice(payload);
-        let dictionary = KDict::from_bytes(bytes).unwrap();
-        assert_eq!(dictionary.provenance().unwrap()["packs"][0]["id"], "test");
+    fn reads_bundled_provenance_trailer() {
+        let dictionary = KDict::from_bytes(TEST_DICTIONARY.to_vec()).unwrap();
+        let provenance = dictionary.provenance().unwrap();
+        assert_eq!(provenance["packs"][0]["id"], "rac-2022-layered-v1");
+        assert_eq!(provenance["sources"].as_array().unwrap().len(), 2);
     }
 }

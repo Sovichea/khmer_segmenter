@@ -1,7 +1,7 @@
 use khmer_segmenter::kdict::KDict;
 
 fn main() {
-    let kdict = KDict::load("port/common/khmer_dictionary.kdict").unwrap();
+    let kdict = KDict::load("data/khmer_dictionary.kdict").unwrap();
     let header = unsafe { &*kdict.header };
     let magic = std::str::from_utf8(&header.magic).unwrap_or("INVALID");
     let num_entries = header.num_entries;

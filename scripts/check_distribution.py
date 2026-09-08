@@ -21,6 +21,12 @@ APPROVED_RUNTIME_NAMES = {
     "khmer_word_pos.json",
 }
 
+APPROVED_RUST_DATA_NAMES = {
+    "README.md",
+    "khmer_dictionary.kdict",
+    "khmer_dictionary.klex.json",
+}
+
 PROHIBITED_NAMES = {
     "khmer_word_frequencies.backup.json",
     "khmer_word_frequencies_corpus.json",
@@ -56,6 +62,14 @@ def prohibited_reason(member: str) -> str | None:
         "khmer_segmenter",
         "dictionary_data",
     )
+    approved_rust_data_path = (
+        len(path.parts) >= 3
+        and path.parts[-2] == "data"
+        and path.parts[-3].startswith("khmer_segmenter-")
+        and path.name in APPROVED_RUST_DATA_NAMES
+    )
+    if approved_rust_data_path:
+        return None
     if "dataset" in parts:
         return "local data directory"
     if "dictionary_data" in parts and not approved_runtime_path and not approved_runtime_directory:

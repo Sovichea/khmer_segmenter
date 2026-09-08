@@ -86,6 +86,18 @@ that policy change. Python and Rust produce byte-identical packs from the same
 base and KLEX input.
 
 A copyable source is available at [`examples/custom.klex.json`](../examples/custom.klex.json).
+The complete Rust runtime source and generated binary are stored as
+`port/rust/data/khmer_dictionary.klex.json` and
+`port/rust/data/khmer_dictionary.kdict`.
+
+Generated full-model KLEX files may include a top-level `cost_model` with
+`default_cost` and `unknown_cost`, plus an explicit `cost` on every entry. This
+preserves the exact trained ranking when a KDIC is exported and rebuilt. The
+exporter sets `generate_aliases` to `false` because all generated aliases are
+already materialized in the full-model source. Ordinary KLEX files omit this
+setting and continue generating COENG DA/TA segmentation aliases. The
+source-only `correction_target` use represents valid multiword replacement text
+without promoting that text to a dictionary headword.
 
 ## Source provenance
 

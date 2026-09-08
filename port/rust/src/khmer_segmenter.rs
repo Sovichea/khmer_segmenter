@@ -849,7 +849,7 @@ fn is_lexical_khmer(text: &str) -> bool {
 mod tests {
     use super::*;
 
-    const TEST_DICTIONARY: &[u8] = include_bytes!("../../common/khmer_dictionary.kdict");
+    const TEST_DICTIONARY: &[u8] = include_bytes!("../data/khmer_dictionary.kdict");
 
     fn segmenter(length: SegmentationLength) -> KhmerSegmenter {
         let mut config = SegmenterConfig::default();

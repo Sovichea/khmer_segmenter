@@ -64,6 +64,49 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
         .map(|pack| pack.typo_corrections().into_iter().collect())
         .unwrap_or_default();
     let mut overlay_corrections: BTreeMap<String, String> = BTreeMap::new();
+    let mut correction_targets: std::collections::BTreeSet<_> = flags_by_word
+        .iter()
+        .filter_map(|(word, flags)| (*flags == 0).then_some(word.clone()))
+        .collect();
+    let explicit_cost_model =
+        source
+            .get("cost_model")
+            .map(|value| {
+                if base.is_some() {
+                    return Err(invalid_data(
+                        "KLEX cost_model cannot be used with a base pack",
+                    ));
+                }
+                let model = value
+                    .as_object()
+                    .ok_or_else(|| invalid_data("KLEX cost_model must be an object"))?;
+                let parse_cost =
+                    |name: &str| -> io::Result<f32> {
+                        let value = model.get(name).and_then(|value| value.as_f64()).ok_or_else(|| {
+                    invalid_data("KLEX cost_model requires numeric default_cost and unknown_cost")
+                })?;
+                        let cost = value as f32;
+                        if !value.is_finite() || value < 0.0 || !cost.is_finite() {
+                            return Err(invalid_data(
+                                "KLEX cost_model costs must be finite and non-negative",
+                            ));
+                        }
+                        Ok(cost)
+                    };
+                let generate_aliases = match model.get("generate_aliases") {
+                    Some(value) => value.as_bool().ok_or_else(|| {
+                        invalid_data("KLEX cost_model generate_aliases must be boolean")
+                    })?,
+                    None => true,
+                };
+                Ok((
+                    parse_cost("default_cost")?,
+                    parse_cost("unknown_cost")?,
+                    generate_aliases,
+                ))
+            })
+            .transpose()?;
+    let mut explicit_costs: BTreeMap<String, f32> = BTreeMap::new();
     for (position, record) in records.iter().enumerate() {
         let number = position + 1;
         let record = record
@@ -86,6 +129,7 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
         }
         overlay_words.insert(word.clone());
         let mut flags = 0_u32;
+        let mut correction_target = false;
         for usage in uses {
             flags |= match usage.as_str() {
                 Some("segmentation") => WORD_SEGMENT,
@@ -93,6 +137,10 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
                 Some("autocomplete") => WORD_AUTOCOMPLETE,
                 Some("typo") => WORD_TYPO_SURFACE,
                 Some("supplemental") => WORD_SUPPLEMENTAL,
+                Some("correction_target") => {
+                    correction_target = true;
+                    0
+                }
                 Some(value) => {
                     return Err(invalid_data(format!(
                         "KLEX entry {number} has unknown use {value:?}"
@@ -104,6 +152,9 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
                     )))
                 }
             };
+        }
+        if correction_target {
+            correction_targets.insert(word.clone());
         }
         if flags & WORD_SUPPLEMENTAL != 0 {
             flags |= WORD_SEGMENT;
@@ -126,6 +177,24 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
             return Err(invalid_data(format!(
                 "KLEX entry {number}: frequency must be finite and non-negative"
             )));
+        }
+        if explicit_cost_model.is_some() {
+            let value = record
+                .get("cost")
+                .and_then(|value| value.as_f64())
+                .ok_or_else(|| {
+                    invalid_data(format!("KLEX entry {number}: cost_model requires cost"))
+                })?;
+            let cost = value as f32;
+            if !value.is_finite() || value < 0.0 || !cost.is_finite() {
+                return Err(invalid_data(format!(
+                    "KLEX entry {number}: cost must be finite and non-negative"
+                )));
+            }
+            explicit_costs
+                .entry(word.clone())
+                .and_modify(|current| *current = current.min(cost))
+                .or_insert(cost);
         }
         if flags & WORD_TYPO_SURFACE != 0 {
             let status = record
@@ -165,55 +234,65 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
     }
 
     for (typed, correction) in &corrections {
-        if flags_by_word.get(correction).copied().unwrap_or(0) & WORD_SPELLCHECK == 0 {
+        if flags_by_word.get(correction).copied().unwrap_or(0) & WORD_SPELLCHECK == 0
+            && !correction_targets.contains(correction)
+        {
             return Err(invalid_data(format!(
-                "KLEX correction {typed:?} -> {correction:?} must target a spelling entry"
+                "KLEX correction {typed:?} -> {correction:?} must target a spelling entry or correction_target"
             )));
         }
     }
 
     let floor = 5.0_f64;
-    let (default_cost, unknown_cost, mut costs) = if let Some(base) = base.as_ref() {
-        let default_cost = base.default_cost();
-        let total = floor * 10_f64.powf(default_cost as f64);
-        let mut costs = base_costs;
-        for word in overlay_words {
-            if costs.contains_key(&word) {
-                continue;
+    let generate_aliases = explicit_cost_model
+        .map(|(_, _, generate_aliases)| generate_aliases)
+        .unwrap_or(true);
+    let (default_cost, unknown_cost, mut costs) =
+        if let Some((default_cost, unknown_cost, _)) = explicit_cost_model {
+            (default_cost, unknown_cost, explicit_costs)
+        } else if let Some(base) = base.as_ref() {
+            let default_cost = base.default_cost();
+            let total = floor * 10_f64.powf(default_cost as f64);
+            let mut costs = base_costs;
+            for word in overlay_words {
+                if costs.contains_key(&word) {
+                    continue;
+                }
+                let count = counts.get(&word).copied().unwrap_or(0.0).max(floor);
+                costs.insert(word, -(count / total).log10() as f32);
             }
-            let count = counts.get(&word).copied().unwrap_or(0.0).max(floor);
-            costs.insert(word, -(count / total).log10() as f32);
-        }
-        (default_cost, base.unknown_cost(), costs)
-    } else {
-        let total = counts
-            .values()
-            .map(|count| count.max(floor))
-            .sum::<f64>()
-            .max(floor);
-        let default_cost = -(floor / total).log10() as f32;
-        let costs = flags_by_word
-            .keys()
-            .map(|word| {
-                let count = counts.get(word).copied().unwrap_or(0.0).max(floor);
-                (word.clone(), -(count / total).log10() as f32)
-            })
-            .collect();
-        (default_cost, default_cost + 5.0, costs)
-    };
+            (default_cost, base.unknown_cost(), costs)
+        } else {
+            let total = counts
+                .values()
+                .map(|count| count.max(floor))
+                .sum::<f64>()
+                .max(floor);
+            let default_cost = -(floor / total).log10() as f32;
+            let costs = flags_by_word
+                .keys()
+                .map(|word| {
+                    let count = counts.get(word).copied().unwrap_or(0.0).max(floor);
+                    (word.clone(), -(count / total).log10() as f32)
+                })
+                .collect();
+            (default_cost, default_cost + 5.0, costs)
+        };
     // Match the Python KDIC compiler: aliases participate only in the compact
     // segmentation table and never become canonical spelling/completion forms.
-    for (word, flags) in flags_by_word.clone() {
-        if flags & WORD_SEGMENT == 0 {
-            continue;
-        }
-        for alias in coeng_da_ta_variants(&word) {
-            let alias_flags = flags & (WORD_SEGMENT | WORD_SUPPLEMENTAL);
-            if let Some(existing) = flags_by_word.get_mut(&alias) {
-                *existing |= alias_flags;
-            } else {
-                flags_by_word.insert(alias.clone(), alias_flags);
-                costs.insert(alias, costs[&word]);
+    if generate_aliases {
+        for (word, flags) in flags_by_word.clone() {
+            if flags & WORD_SEGMENT == 0 {
+                continue;
+            }
+            for alias in coeng_da_ta_variants(&word) {
+                let alias_flags = flags & (WORD_SEGMENT | WORD_SUPPLEMENTAL);
+                if let Some(existing) = flags_by_word.get_mut(&alias) {
+                    *existing |= alias_flags;
+                } else {
+                    flags_by_word.insert(alias.clone(), alias_flags);
+                    costs.insert(alias, costs[&word]);
+                }
             }
         }
     }
@@ -451,9 +530,16 @@ fn resolve_dictionary_path(
         return Ok(path);
     }
 
-    let working_directory = working_directory.join("khmer_dictionary.kdict");
-    if working_directory.is_file() {
-        return Ok(working_directory);
+    let working_dictionary = working_directory.join("khmer_dictionary.kdict");
+    if working_dictionary.is_file() {
+        return Ok(working_dictionary);
+    }
+
+    let working_data = working_directory
+        .join("data")
+        .join("khmer_dictionary.kdict");
+    if working_data.is_file() {
+        return Ok(working_data);
     }
 
     executable_directory
@@ -1227,6 +1313,15 @@ mod cli_tests {
         );
         std::fs::remove_file(&working_dictionary).unwrap();
 
+        let working_data = working.join("data").join("khmer_dictionary.kdict");
+        std::fs::create_dir_all(working_data.parent().unwrap()).unwrap();
+        std::fs::write(&working_data, b"test").unwrap();
+        assert_eq!(
+            resolve_dictionary_path(None, None, &working, Some(&executable)).unwrap(),
+            working_data
+        );
+        std::fs::remove_file(&working_data).unwrap();
+
         let sidecar = executable.join("data").join("khmer_dictionary.kdict");
         std::fs::create_dir_all(sidecar.parent().unwrap()).unwrap();
         std::fs::write(&sidecar, b"test").unwrap();
@@ -1260,6 +1355,43 @@ mod cli_tests {
         let error = dispatch_structured_command(&args).unwrap().unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
         assert!(error.to_string().contains("data compile"));
+    }
+
+    #[test]
+    fn native_cli_compiler_preserves_explicit_costs_and_phrase_corrections() {
+        let stem = format!("khmer-explicit-cost-test-{}", std::process::id());
+        let source = std::env::temp_dir().join(format!("{stem}.json"));
+        let output = std::env::temp_dir().join(format!("{stem}.kdict"));
+        std::fs::write(
+            &source,
+            r#"{
+                "version": 1,
+                "cost_model": {"default_cost": 4.25, "unknown_cost": 9.25},
+                "entries": [
+                    {"word":"រយះពេល","uses":["segmentation","typo"],"cost":3.5,"correction":"រយៈពេល"},
+                    {"word":"រយៈពេល","uses":["correction_target"],"cost":4.25}
+                ]
+            }"#,
+        )
+        .unwrap();
+
+        compile_klex(source.to_str().unwrap(), output.to_str().unwrap(), None).unwrap();
+        let dictionary = KDict::load(&output).unwrap();
+        let entries: BTreeMap<_, _> = dictionary
+            .lexical_entries()
+            .into_iter()
+            .map(|entry| (entry.word.clone(), entry))
+            .collect();
+        assert_eq!(dictionary.default_cost(), 4.25);
+        assert_eq!(dictionary.unknown_cost(), 9.25);
+        assert_eq!(entries["រយះពេល"].cost, 3.5);
+        assert_eq!(entries["រយៈពេល"].flags, 0);
+        assert!(dictionary
+            .typo_corrections()
+            .contains(&("រយះពេល".to_owned(), "រយៈពេល".to_owned())));
+
+        let _ = std::fs::remove_file(source);
+        let _ = std::fs::remove_file(output);
     }
 
     #[test]

@@ -45,6 +45,7 @@ fn context(text: &str, start: usize, end: usize, needle: &str) -> String {
 fn default_dictionary() -> Option<&'static str> {
     [
         "khmer_dictionary.kdict",
+        "data/khmer_dictionary.kdict",
         "../../port/common/khmer_dictionary.kdict",
         "../common/khmer_dictionary.kdict",
     ]

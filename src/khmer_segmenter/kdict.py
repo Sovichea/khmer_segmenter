@@ -225,6 +225,7 @@ def compile_klex(
         "autocomplete": AUTOCOMPLETE,
         "typo": TYPO_SURFACE,
         "supplemental": SUPPLEMENTAL,
+        "correction_target": 0,
     }
     base = KDict.load(base_path) if base_path is not None else None
     if base is not None and base.version < 2:
@@ -239,6 +240,9 @@ def compile_klex(
     overlay_words: set[str] = set()
     corrections: dict[str, str] = dict(base.typo_corrections) if base else {}
     overlay_corrections: dict[str, str] = {}
+    correction_targets: set[str] = {
+        word for word, flags in flags_by_word.items() if flags == 0
+    }
     packs: list[dict] = list(base.packs) if base else []
     sources: list[dict] = list(base.sources) if base else []
     word_provenance: dict[str, list[dict]] = (
@@ -268,6 +272,33 @@ def compile_klex(
         if previous is None:
             sources.append(record)
             sources_by_id[record["id"]] = record
+    cost_model = source.get("cost_model")
+    explicit_default_cost: float | None = None
+    explicit_unknown_cost: float | None = None
+    generate_aliases = True
+    if cost_model is not None:
+        if base is not None:
+            raise ValueError("KLEX cost_model cannot be used with a base pack")
+        if not isinstance(cost_model, dict):
+            raise ValueError("KLEX cost_model must be an object")
+        try:
+            explicit_default_cost = float(cost_model["default_cost"])
+            explicit_unknown_cost = float(cost_model["unknown_cost"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(
+                "KLEX cost_model requires numeric default_cost and unknown_cost"
+            ) from error
+        if (
+            not math.isfinite(explicit_default_cost)
+            or not math.isfinite(explicit_unknown_cost)
+            or explicit_default_cost < 0
+            or explicit_unknown_cost < 0
+        ):
+            raise ValueError("KLEX cost_model costs must be finite and non-negative")
+        generate_aliases = cost_model.get("generate_aliases", True)
+        if not isinstance(generate_aliases, bool):
+            raise ValueError("KLEX cost_model generate_aliases must be boolean")
+    explicit_costs: dict[str, float] = {}
     for index, record in enumerate(source["entries"], start=1):
         if not isinstance(record, dict):
             raise ValueError(f"KLEX entry {index} must be an object")
@@ -278,6 +309,8 @@ def compile_klex(
         unknown_uses = set(uses) - set(use_flags)
         if unknown_uses:
             raise ValueError(f"KLEX entry {index} has unknown uses: {sorted(unknown_uses)}")
+        if "correction_target" in uses:
+            correction_targets.add(word)
         flags = sum(use_flags[use] for use in set(uses))
         overlay_words.add(word)
         if flags & SUPPLEMENTAL:
@@ -288,6 +321,18 @@ def compile_klex(
         if not math.isfinite(frequency) or frequency < 0:
             raise ValueError(f"KLEX entry {index}: frequency must be finite and non-negative")
         counts[word] = max(counts.get(word, 0), frequency)
+        if cost_model is not None:
+            if "cost" not in record:
+                raise ValueError(f"KLEX entry {index}: cost_model requires cost")
+            try:
+                cost = float(record["cost"])
+            except (TypeError, ValueError) as error:
+                raise ValueError(f"KLEX entry {index}: cost must be a number") from error
+            if not math.isfinite(cost) or cost < 0:
+                raise ValueError(
+                    f"KLEX entry {index}: cost must be finite and non-negative"
+                )
+            explicit_costs[word] = min(explicit_costs.get(word, cost), cost)
         if flags & TYPO_SURFACE:
             if record.get("status", "approved") == "approved":
                 correction = _clean_word(record.get("correction"))
@@ -311,13 +356,20 @@ def compile_klex(
                 word_provenance[word].append(evidence)
 
     for typed, correction in corrections.items():
-        if not flags_by_word.get(correction, 0) & SPELLCHECK:
+        if (
+            not flags_by_word.get(correction, 0) & SPELLCHECK
+            and correction not in correction_targets
+        ):
             raise ValueError(
-                f"KLEX correction {typed!r} -> {correction!r} must target a spelling entry"
+                f"KLEX correction {typed!r} -> {correction!r} must target a spelling entry or correction_target"
             )
 
     floor = 5.0
-    if base is not None:
+    if cost_model is not None:
+        default_cost = explicit_default_cost
+        unknown_cost = explicit_unknown_cost
+        costs = dict(explicit_costs)
+    elif base is not None:
         default_cost = base.default_cost
         unknown_cost = base.unknown_cost
         total = floor * (10**default_cost)
@@ -340,15 +392,16 @@ def compile_klex(
     # COENG DA/TA variants improve word-boundary recovery, but are not added
     # to spelling or autocomplete metadata.  A visual spellcheck policy can
     # accept them separately without presenting them as canonical words.
-    for word, flags in tuple(flags_by_word.items()):
-        if not flags & SEGMENT:
-            continue
-        for variant in coeng_da_ta_variants(word):
-            if variant not in flags_by_word:
-                flags_by_word[variant] = flags & (SEGMENT | SUPPLEMENTAL)
-                costs[variant] = costs[word]
-            else:
-                flags_by_word[variant] |= flags & (SEGMENT | SUPPLEMENTAL)
+    if generate_aliases:
+        for word, flags in tuple(flags_by_word.items()):
+            if not flags & SEGMENT:
+                continue
+            for variant in coeng_da_ta_variants(word):
+                if variant not in flags_by_word:
+                    flags_by_word[variant] = flags & (SEGMENT | SUPPLEMENTAL)
+                    costs[variant] = costs[word]
+                else:
+                    flags_by_word[variant] |= flags & (SEGMENT | SUPPLEMENTAL)
 
     segmentation_words = {
         word for word, flags in flags_by_word.items() if flags & SEGMENT

@@ -126,11 +126,18 @@ khmer_segmenter/dictionary_data/
 port/common/
 |-- khmer_dictionary.kdict
 `-- khmer_frequencies.bin
+
+port/rust/data/
+|-- khmer_dictionary.klex.json
+`-- khmer_dictionary.kdict
 ```
 
 Only approved files under `src/khmer_segmenter/dictionary_data/` are tracked
-and packaged. The old `khmer_segmenter/dictionary_data/` location remains an
-ignored development directory for rebuilding and comparing local artifacts.
+and packaged with Python. The generated KLEX/KDICT pair under `port/rust/data/`
+is tracked with the Rust port so native and WASM developers receive the same
+reviewed lexical model. The old `khmer_segmenter/dictionary_data/` location
+remains an ignored development directory for rebuilding and comparing local
+artifacts.
 
 ## Optional research frequencies and POS candidates
 

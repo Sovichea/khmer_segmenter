@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
 try:
     from khmer_segmenter.normalization import KhmerNormalizer
     from khmer_segmenter import KhmerSegmenter
+    from khmer_segmenter.kdict import compile_klex
 except ImportError:
     print("Error: Could not import khmer_segmenter package. Run from project root.")
     sys.exit(1)
@@ -399,73 +400,7 @@ def _write_kdict_v2(
 
 def step_compile_klex(klex_path, output_kdict):
     """Compile one human-editable KLEX JSON file into KDIC v2."""
-
-    with open(klex_path, 'r', encoding='utf-8') as handle:
-        source = json.load(handle)
-    if source.get('version') != 1 or not isinstance(source.get('entries'), list):
-        raise ValueError('KLEX requires version 1 and an entries array')
-
-    use_flags = {
-        'segmentation': 1 << 0,
-        'spelling': 1 << 1,
-        'autocomplete': 1 << 2,
-        'typo': 1 << 3,
-        'supplemental': 1 << 4,
-    }
-    flags_by_word = {}
-    counts = {}
-    corrections = {}
-    for index, record in enumerate(source['entries'], start=1):
-        if not isinstance(record, dict):
-            raise ValueError(f'KLEX entry {index} must be an object')
-        word = strip_control_chars(str(record.get('word', '')).strip())
-        uses = record.get('uses', [])
-        if not word or not isinstance(uses, list) or not uses:
-            raise ValueError(f'KLEX entry {index} requires word and uses')
-        unknown_uses = set(uses) - set(use_flags)
-        if unknown_uses:
-            raise ValueError(f'KLEX entry {index} has unknown uses: {sorted(unknown_uses)}')
-        flags = sum(use_flags[use] for use in set(uses))
-        if flags & use_flags['supplemental']:
-            flags |= use_flags['segmentation']
-        if flags & use_flags['autocomplete'] and not flags & use_flags['spelling']:
-            raise ValueError(f'KLEX entry {index}: autocomplete requires spelling')
-        frequency = float(record.get('frequency', 0) or 0)
-        if frequency < 0:
-            raise ValueError(f'KLEX entry {index}: frequency cannot be negative')
-        counts[word] = max(counts.get(word, 0), frequency)
-        correction = strip_control_chars(str(record.get('correction', '')).strip())
-        if flags & use_flags['typo']:
-            if record.get('status', 'approved') == 'approved':
-                if not correction or correction == word:
-                    raise ValueError(f'KLEX entry {index}: typo requires a different correction')
-                corrections[word] = correction
-            else:
-                flags &= ~use_flags['typo']
-        flags_by_word[word] = flags_by_word.get(word, 0) | flags
-
-    for typed, correction in corrections.items():
-        if not flags_by_word.get(correction, 0) & use_flags['spelling']:
-            raise ValueError(
-                f'KLEX correction {typed!r} -> {correction!r} must target a spelling entry'
-            )
-
-    floor = 5.0
-    total = sum(max(count, floor) for count in counts.values()) or floor
-    default_cost = -math.log10(floor / total)
-    unknown_cost = default_cost + 5.0
-    word_costs = {
-        word: -math.log10(max(counts.get(word, 0), floor) / total)
-        for word in flags_by_word
-    }
-    _write_kdict_v2(
-        output_kdict,
-        word_costs,
-        flags_by_word,
-        corrections,
-        default_cost,
-        unknown_cost,
-    )
+    compile_klex(klex_path, output_kdict)
     print(f"  > Compiled KLEX to {output_kdict} ({os.path.getsize(output_kdict)/1024:.2f} KB)")
 
 

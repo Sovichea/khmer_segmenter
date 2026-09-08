@@ -3,6 +3,9 @@ src/khmer_segmenter/dictionary_data/*.json text eol=lf
 src/khmer_segmenter/dictionary_data/*.tsv text eol=lf
 port/rust/data/*.txt text eol=lf
 port/rust/data/*.tsv text eol=lf
+port/rust/data/*.json text eol=lf
+port/rust/data/*.kdict binary
+*.jsonl text eol=lf
 *.py text eol=lf
 *.md text eol=lf
 *.toml text eol=lf

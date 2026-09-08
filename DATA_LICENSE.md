@@ -23,6 +23,8 @@ use:
 - `khmer_dictionary_supplemental_words.txt` (segmentation-only legacy forms)
 - `khmer_spellcheck_words.txt`
 - `port/rust/data/khmer_spellcheck_words.txt` (synchronized Rust copy)
+- `port/rust/data/khmer_dictionary.klex.json` (editable Rust language-pack source)
+- `port/rust/data/khmer_dictionary.kdict` (compiled Rust runtime pack)
 - `khmer_typo_corrections.tsv` (review workflow and approved exact pairs)
 - `khmer_word_frequencies.json`
 - `khmer_word_pos.json`

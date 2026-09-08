@@ -81,6 +81,44 @@ def test_klex_overlay_preserves_base_and_adds_local_policy(tmp_path: Path):
     assert overlay.words[first_base_word].cost == base.words[first_base_word].cost
 
 
+def test_klex_explicit_cost_model_preserves_ranking_and_phrase_corrections(
+    tmp_path: Path,
+):
+    source = tmp_path / "explicit.klex.json"
+    output = tmp_path / "explicit.kdict"
+    source.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "cost_model": {"default_cost": 4.25, "unknown_cost": 9.25},
+                "entries": [
+                    {
+                        "word": "រយះពេល",
+                        "uses": ["segmentation", "typo"],
+                        "cost": 3.5,
+                        "correction": "រយៈពេល",
+                    },
+                    {
+                        "word": "រយៈពេល",
+                        "uses": ["correction_target"],
+                        "cost": 4.25,
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    compile_klex(source, output)
+    pack = KDict.load(output)
+    assert pack.default_cost == pytest.approx(4.25)
+    assert pack.unknown_cost == pytest.approx(9.25)
+    assert pack.words["រយះពេល"].cost == pytest.approx(3.5)
+    assert pack.words["រយៈពេល"].flags == 0
+    assert pack.typo_corrections["រយះពេល"] == "រយៈពេល"
+
+
 def test_kdict_embeds_and_preserves_word_provenance(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):
