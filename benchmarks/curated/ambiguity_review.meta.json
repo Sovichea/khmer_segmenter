@@ -1,0 +1,13 @@
+{
+  "segmenter_version": "0.2.0rc3",
+  "model_id": "rac-2022-layered-v1",
+  "model_manifest_sha256": "207535fb639b3402665a323930757456d1f80826bd61328a52df77d2aa05fcf3",
+  "input": "benchmarks\\curated\\review_300.model.tsv",
+  "sentences": 300,
+  "ambiguity_cases": 249,
+  "unresolved_cases": 19,
+  "max_cost_delta": 3.5,
+  "max_alternatives": 3,
+  "max_merge_tokens": 4,
+  "single_codepoint_alternatives_excluded": true
+}

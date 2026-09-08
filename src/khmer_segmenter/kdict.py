@@ -22,6 +22,7 @@ _TABLE_ENTRY = struct.Struct("<If")
 _EXTENSION_HEADER = struct.Struct("<4sIII")
 _WORD_RECORD = struct.Struct("<IIf")
 _TYPO_RECORD = struct.Struct("<II")
+_PROVENANCE_HEADER = struct.Struct("<4sII")
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,9 @@ class KDict:
         self._pool_end = pool_end
         self.words: dict[str, KDictWord] = {}
         self.typo_corrections: dict[str, str] = {}
+        self.packs: list[dict] = []
+        self.sources: list[dict] = []
+        self.word_provenance: dict[str, list[dict]] = {}
 
         if self.version >= 2:
             if not extension_offset:
@@ -133,6 +137,55 @@ class KDict:
             if typed in self.typo_corrections:
                 raise ValueError(f"duplicate KDIC typo correction: {typed!r}")
             self.typo_corrections[typed] = correction
+        self._read_provenance(cursor)
+
+    def _read_provenance(self, offset: int) -> None:
+        """Read the optional, backwards-compatible KPRV JSON trailer."""
+
+        if offset == len(self._data):
+            return
+        header_end = offset + _PROVENANCE_HEADER.size
+        if header_end > len(self._data):
+            raise ValueError("KDIC provenance trailer is truncated")
+        magic, version, payload_size = _PROVENANCE_HEADER.unpack_from(self._data, offset)
+        if magic != b"KPRV" or version != 1:
+            raise ValueError("unsupported KDIC provenance trailer")
+        payload_end = header_end + payload_size
+        if payload_end != len(self._data):
+            raise ValueError("invalid KDIC provenance payload size")
+        try:
+            payload = json.loads(self._data[header_end:payload_end].decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ValueError("invalid KDIC provenance JSON") from error
+        if not isinstance(payload, dict):
+            raise ValueError("KDIC provenance payload must be an object")
+        packs = payload.get("packs", [])
+        sources = payload.get("sources", [])
+        words = payload.get("words", {})
+        if (
+            not isinstance(packs, list)
+            or not isinstance(sources, list)
+            or not isinstance(words, dict)
+        ):
+            raise ValueError("invalid KDIC provenance payload structure")
+        source_ids = {
+            source.get("id")
+            for source in sources
+            if isinstance(source, dict) and isinstance(source.get("id"), str)
+        }
+        if len(source_ids) != len(sources):
+            raise ValueError("KDIC provenance sources require unique string ids")
+        parsed_words: dict[str, list[dict]] = {}
+        for word, records in words.items():
+            if word not in self.words or not isinstance(records, list):
+                raise ValueError("KDIC provenance references an invalid lexical record")
+            for record in records:
+                if not isinstance(record, dict) or record.get("source") not in source_ids:
+                    raise ValueError("KDIC provenance references an unknown source")
+            parsed_words[word] = records
+        self.packs = packs
+        self.sources = sources
+        self.word_provenance = parsed_words
 
 
 def _djb2_hash(word: str) -> int:
@@ -186,6 +239,35 @@ def compile_klex(
     overlay_words: set[str] = set()
     corrections: dict[str, str] = dict(base.typo_corrections) if base else {}
     overlay_corrections: dict[str, str] = {}
+    packs: list[dict] = list(base.packs) if base else []
+    sources: list[dict] = list(base.sources) if base else []
+    word_provenance: dict[str, list[dict]] = (
+        {word: list(records) for word, records in base.word_provenance.items()}
+        if base
+        else {}
+    )
+    pack_metadata = source.get("pack")
+    if pack_metadata is not None:
+        if not isinstance(pack_metadata, dict):
+            raise ValueError("KLEX pack metadata must be an object")
+        packs.append(pack_metadata)
+    source_records = source.get("sources", [])
+    if not isinstance(source_records, list):
+        raise ValueError("KLEX sources must be an array")
+    sources_by_id = {
+        record.get("id"): record
+        for record in sources
+        if isinstance(record, dict) and isinstance(record.get("id"), str)
+    }
+    for record in source_records:
+        if not isinstance(record, dict) or not isinstance(record.get("id"), str):
+            raise ValueError("KLEX sources require a string id")
+        previous = sources_by_id.get(record["id"])
+        if previous is not None and previous != record:
+            raise ValueError(f"conflicting KLEX source metadata for {record['id']!r}")
+        if previous is None:
+            sources.append(record)
+            sources_by_id[record["id"]] = record
     for index, record in enumerate(source["entries"], start=1):
         if not isinstance(record, dict):
             raise ValueError(f"KLEX entry {index} must be an object")
@@ -219,6 +301,14 @@ def compile_klex(
             else:
                 flags &= ~TYPO_SURFACE
         flags_by_word[word] = flags_by_word.get(word, 0) | flags
+        provenance = record.get("provenance", [])
+        if not isinstance(provenance, list):
+            raise ValueError(f"KLEX entry {index}: provenance must be an array")
+        for evidence in provenance:
+            if not isinstance(evidence, dict) or evidence.get("source") not in sources_by_id:
+                raise ValueError(f"KLEX entry {index}: provenance references an unknown source")
+            if evidence not in word_provenance.setdefault(word, []):
+                word_provenance[word].append(evidence)
 
     for typed, correction in corrections.items():
         if not flags_by_word.get(correction, 0) & SPELLCHECK:
@@ -303,6 +393,24 @@ def compile_klex(
         output.extend(_WORD_RECORD.pack(offsets[word], flags_by_word[word], costs[word]))
     for typed, correction in sorted(corrections.items()):
         output.extend(_TYPO_RECORD.pack(offsets[typed], offsets[correction]))
+
+    if packs or sources or word_provenance:
+        payload = json.dumps(
+            {
+                "packs": packs,
+                "sources": sources,
+                "words": {
+                    word: word_provenance[word]
+                    for word in sorted(word_provenance)
+                    if word in flags_by_word
+                },
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        output.extend(_PROVENANCE_HEADER.pack(b"KPRV", 1, len(payload)))
+        output.extend(payload)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(output)

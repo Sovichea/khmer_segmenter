@@ -550,11 +550,7 @@ impl KhmerSegmenter {
         self.is_spelling_valid_with_accuracy(word, SpellingAccuracy::Lexical)
     }
 
-    pub fn is_spelling_valid_with_accuracy(
-        &self,
-        word: &str,
-        accuracy: SpellingAccuracy,
-    ) -> bool {
+    pub fn is_spelling_valid_with_accuracy(&self, word: &str, accuracy: SpellingAccuracy) -> bool {
         self.typo_detector()
             .is_some_and(|detector| detector.is_word_with_accuracy(word, accuracy))
     }
@@ -581,7 +577,9 @@ impl KhmerSegmenter {
         accuracy: SpellingAccuracy,
     ) -> Vec<SpellingSuggestion> {
         self.typo_detector()
-            .map(|detector| detector.suggest_word_with_accuracy(word, max_edit_cost, max_suggestions, accuracy))
+            .map(|detector| {
+                detector.suggest_word_with_accuracy(word, max_edit_cost, max_suggestions, accuracy)
+            })
             .unwrap_or_default()
     }
 

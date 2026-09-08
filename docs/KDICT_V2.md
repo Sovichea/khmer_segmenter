@@ -87,6 +87,46 @@ base and KLEX input.
 
 A copyable source is available at [`examples/custom.klex.json`](../examples/custom.klex.json).
 
+## Source provenance
+
+KLEX may identify the pack and its source documents, then attach evidence to
+individual words:
+
+```json
+{
+  "version": 1,
+  "pack": {"id": "science-2014-v1", "kind": "official_lexicon"},
+  "sources": [
+    {
+      "id": "science-book",
+      "title": "Lexicon of Science and Technology",
+      "authority": "National Council of Khmer Language",
+      "year": 2014,
+      "document": "source.pdf",
+      "sha256": "..."
+    }
+  ],
+  "entries": [
+    {
+      "word": "កាដម្យូម",
+      "uses": ["segmentation", "spelling", "autocomplete"],
+      "provenance": [
+        {"source": "science-book", "page": 12, "region": 32}
+      ]
+    }
+  ]
+}
+```
+
+The compiler stores this information in an optional `KPRV` trailer. Older KDIC
+v2 files without the trailer remain valid. Python exposes `packs`, `sources`,
+and `word_provenance` on `KDict`; Rust exposes the parsed JSON through
+`KDict::provenance()`. Use `khmer-segment data inspect PACK` for a readable
+summary.
+
+Provenance records attribution; it does not grant a license. Applications must
+still comply with each source document's terms.
+
 ## Compile the repository's existing data
 
 The maintainer workflow can still combine the existing reviewed source files:

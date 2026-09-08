@@ -1,0 +1,301 @@
+id	split	category	segmented_text	review_status	reviewer_notes
+nfp-001	dev	News and formal prose	ក្រសួង បាន ប្រកាស ផែនការ ថ្មី សម្រាប់ អភិវឌ្ឍ សេដ្ឋកិច្ច ជាតិ ។	draft	approved
+nfp-002	dev	News and formal prose	កិច្ច ប្រជុំ បាន ចាប់ផ្តើម នៅ ព្រឹក ថ្ងៃ ចន្ទ ។	draft	approved
+nfp-003	dev	News and formal prose	អាជ្ញាធរ កំពុង ពិនិត្យ មូលហេតុ នៃ គ្រោះថ្នាក់ នេះ ។	draft	approved
+nfp-004	dev	News and formal prose	ភ្លៀង ធ្លាក់ ខ្លាំង បាន បណ្តាល ឱ្យ ផ្លូវ មួយ ចំនួន លិច ទឹក ។	draft	approved
+nfp-005	dev	News and formal prose	តម្លៃ ស្រូវ បាន កើនឡើង បន្តិច ក្នុង សប្តាហ៍ នេះ ។	draft	approved
+nfp-006	dev	News and formal prose	ក្រុម គ្រូពេទ្យ បាន ចុះ ពិនិត្យ សុខភាព ប្រជាពលរដ្ឋ ដោយ ឥត គិត ថ្លៃ ។	draft	Pending review.
+nfp-007	dev	News and formal prose	រដ្ឋាភិបាល បាន អនុម័ត គម្រោង សាងសង់ ស្ពាន ថ្មី ។	draft	Pending review.
+nfp-008	dev	News and formal prose	ប្រជាពលរដ្ឋ បាន ចូលរួម ដាំ កូនឈើ នៅ តាម ដង ផ្លូវ ។	draft	Pending review.
+nfp-009	dev	News and formal prose	ក្រុមហ៊ុន បាន បង្កើត ការងារ ថ្មី ជូន យុវជន ក្នុង តំបន់ ។	draft	Pending review.
+nfp-010	dev	News and formal prose	សាលារៀន ជាច្រើន បាន បើក ទ្វារ ទទួល សិស្ស ឡើងវិញ ។	draft	Pending review.
+nfp-011	dev	News and formal prose	អ្នក ជំនាញ ព្យាករ ថា អាកាសធាតុ នឹង ត្រជាក់ ជាង មុន ។	draft	Pending review.
+nfp-012	dev	News and formal prose	ទិន្នផល កសិកម្ម ឆ្នាំ នេះ មាន កំណើន គួរ ឱ្យ កត់សម្គាល់ ។	draft	Pending review.
+nfp-013	dev	News and formal prose	មន្ទីរពេទ្យ ថ្មី អាច ទទួល អ្នក ជំងឺ បាន ច្រើន ជាង មុន ។	draft	Pending review.
+nfp-014	dev	News and formal prose	ពិធី បុណ្យ បាន ប្រព្រឹត្ត ទៅ ក្រោម បរិយាកាស រីករាយ ។	draft	Pending review.
+nfp-015	dev	News and formal prose	ក្រុម កីឡាករ កម្ពុជា បាន ឈ្នះ មេដាយ មាស ពីរ គ្រឿង ។	draft	Pending review.
+nfp-016	dev	News and formal prose	មន្ត្រី ជំនាញ បាន ណែនាំ ឱ្យ ប្រជាជន ប្រុងប្រយ័ត្ន ចំពោះ ខ្យល់ កន្ត្រាក់ ។	draft	Pending review.
+nfp-017	dev	News and formal prose	ផ្សារ ថ្មី នឹង បើក ដំណើរការ នៅ ខែ ក្រោយ ។	draft	Pending review.
+nfp-018	dev	News and formal prose	ការនាំចេញ ផលិតផល ក្នុង ស្រុក កំពុង កើនឡើង ជា លំដាប់ ។	draft	Pending review.
+nfp-019	dev	News and formal prose	អង្គការ សង្គម ស៊ីវិល បាន ស្នើ ឱ្យ មាន កិច្ច ពិភាក្សា បន្ថែម ។	draft	Pending review.
+nfp-020	dev	News and formal prose	ក្រុម អ្នក ស្រាវជ្រាវ បាន រកឃើញ ប្រភេទ រុក្ខជាតិ ដ៏ កម្រ ។	draft	Pending review.
+nfp-021	dev	News and formal prose	ទឹក ទន្លេ បាន ស្រក ចុះ បន្ទាប់ពី ភ្លៀង ឈប់ ធ្លាក់ ។	draft	Pending review.
+nfp-022	dev	News and formal prose	សហគមន៍ បាន រៀបចំ កន្លែង ស្នាក់នៅ បណ្តោះអាសន្ន សម្រាប់ គ្រួសារ រងគ្រោះ ។	draft	Pending review.
+nfp-023	dev	News and formal prose	ក្រសួង អប់រំ នឹង បន្ថែម បន្ទប់ រៀន នៅ តំបន់ ជនបទ ។	draft	Pending review.
+nfp-024	dev	News and formal prose	ការប្រកួត បាល់ទាត់ ត្រូវ បាន ពន្យារពេល ដោយសារ ភ្លៀង ខ្លាំង ។	draft	Pending review.
+nfp-025	dev	News and formal prose	រថយន្ត ដឹក ទំនិញ ត្រូវ បាន ហាម ឃាត់ មិន ឱ្យ ឆ្លងកាត់ ស្ពាន ចាស់ ។	draft	Pending review.
+nfp-026	dev	News and formal prose	កសិករ កំពុង ប្រមូល ផល ស្រូវ នៅ តាម វាល ស្រែ ។	draft	Pending review.
+nfp-027	dev	News and formal prose	មជ្ឈមណ្ឌល ថ្មី ផ្តល់ ការបណ្តុះបណ្តាល ជំនាញ ដល់ អ្នក ស្វែងរក ការងារ ។	draft	Pending review.
+nfp-028	dev	News and formal prose	អាជ្ញាធរ បាន ជួសជុល ប្រព័ន្ធ លូ នៅ កណ្តាល ទីក្រុង ។	draft	Pending review.
+nfp-029	dev	News and formal prose	អ្នក ទេសចរ បាន មក ទស្សនា តំបន់ ប្រាសាទ កាន់តែ ច្រើន ។	draft	Pending review.
+nfp-030	dev	News and formal prose	គណៈកម្មការ នឹង បង្ហាញ លទ្ធផល ជា ផ្លូវការ នៅ ថ្ងៃ ស្អែក ។	draft	Pending review.
+nfp-031	dev	News and formal prose	កំពង់ផែ បាន ទទួល នាវា ដឹក ទំនិញ ចំនួន បី គ្រឿង ។	draft	Pending review.
+nfp-032	dev	News and formal prose	ប្រទេស ទាំងពីរ បាន ព្រមព្រៀង ពង្រឹង កិច្ច សហប្រតិបត្តិការ ។	draft	Pending review.
+nfp-033	dev	News and formal prose	វិស័យ ទេសចរណ៍ បាន រួមចំណែក ដល់ កំណើន សេដ្ឋកិច្ច ។	draft	Pending review.
+nfp-034	dev	News and formal prose	ក្រុម អ្នក សង្គ្រោះ បាន ជម្លៀស ប្រជាជន ចេញពី តំបន់ គ្រោះថ្នាក់ ។	draft	Pending review.
+nfp-035	dev	News and formal prose	អត្រា អ្នក ចូលរៀន បាន កើនឡើង ក្នុង រយៈពេល ប្រាំ ឆ្នាំ ចុងក្រោយ ។	draft	Pending review.
+nfp-036	dev	News and formal prose	ស្ថានីយ អាកាសធាតុ បាន កត់ត្រា សីតុណ្ហភាព ខ្ពស់ បំផុត ប្រចាំ ខែ ។	draft	Pending review.
+nfp-037	dev	News and formal prose	សមាគម បាន អំពាវនាវ ឱ្យ សាធារណជន ចូលរួម បរិច្ចាគ ឈាម ។	draft	Pending review.
+nfp-038	dev	News and formal prose	ផ្លូវ ជាតិ មួយ ខ្សែ កំពុង ត្រូវ បាន ពង្រីក ដើម្បី កាត់បន្ថយ ការកកស្ទះ ។	draft	Pending review.
+nfp-039	dev	News and formal prose	ក្រុមប្រឹក្សា ឃុំ បាន អនុម័ត ថវិកា សម្រាប់ សាងសង់ អណ្តូង ទឹក ។	draft	Pending review.
+nfp-040	dev	News and formal prose	របាយការណ៍ បង្ហាញ ថា គុណភាព ខ្យល់ មាន ភាព ប្រសើរ ឡើង ។	draft	Pending review.
+nfp-041	test	News and formal prose	សន្និសីទ អន្តរជាតិ បាន ទាក់ទាញ អ្នក ចូលរួម មកពី ប្រទេស ជាច្រើន ។	draft	Pending review.
+nfp-042	test	News and formal prose	អ្នក នាំពាក្យ បាន បដិសេធ ព័ត៌មាន ដែល ផ្សព្វផ្សាយ តាម បណ្តាញ សង្គម ។	draft	Pending review.
+nfp-043	test	News and formal prose	គម្រោង អភិរក្ស នេះ មាន គោលបំណង ការពារ សត្វព្រៃ ជិត ផុតពូជ ។	draft	Pending review.
+nfp-044	test	News and formal prose	សភា បាន បើក កិច្ច ប្រជុំ ពេញអង្គ ដើម្បី ពិភាក្សា សេចក្តី ព្រាង ច្បាប់ ។	draft	Pending review.
+nfp-045	test	News and formal prose	ក្រុម អាជីវករ បាន ស្នើសុំ ឱ្យ កែលម្អ ផ្លូវ ចូល ផ្សារ ។	draft	Pending review.
+nfp-046	test	News and formal prose	បណ្តាញ ផ្គត់ផ្គង់ ទឹកស្អាត នឹង ត្រូវ ពង្រីក ទៅ ដល់ ភូមិ ដាច់ស្រយាល ។	draft	Pending review.
+nfp-047	test	News and formal prose	ក្រសួង បាន ចេញ សេចក្តី ជូនដំណឹង ស្តីពី កាលបរិច្ឆេទ ប្រឡង ។	draft	Pending review.
+nfp-048	test	News and formal prose	ការសាងសង់ អគារ ថ្មី សម្រេច បាន ជាង ពាក់កណ្តាល ហើយ ។	draft	Pending review.
+nfp-049	test	News and formal prose	អាជ្ញាធរ កំពុង ស៊ើបអង្កេត ករណី បាត់បង់ ឯកសារ សំខាន់ ។	draft	Pending review.
+nfp-050	test	News and formal prose	ប្រព័ន្ធ ដឹកជញ្ជូន សាធារណៈ នឹង បន្ថែម រថយន្តក្រុង ដប់ គ្រឿង ។	draft	Pending review.
+nfp-051	test	News and formal prose	គណៈប្រតិភូ បាន ចូល ជួប ពិភាក្សា ជាមួយ ថ្នាក់ ដឹកនាំ ខេត្ត ។	draft	Pending review.
+nfp-052	test	News and formal prose	អគ្គិភ័យ ត្រូវ បាន គ្រប់គ្រង ដោយ មិន មាន អ្នក រងរបួស ។	draft	Pending review.
+nfp-053	test	News and formal prose	តំបន់ ការពារ ធម្មជាតិ នេះ មាន ជីវចម្រុះ ដ៏ សម្បូរបែប ។	draft	Pending review.
+nfp-054	test	News and formal prose	យុទ្ធនាការ អប់រំ សាធារណៈ នឹង ចាប់ផ្តើម នៅ ដើម ឆ្នាំ ក្រោយ ។	draft	Pending review.
+nfp-055	test	News and formal prose	ក្រុម អ្នក ជំនាញ កំពុង វាយតម្លៃ ផលប៉ះពាល់ លើ បរិស្ថាន ។	draft	Pending review.
+nfp-056	test	News and formal prose	ពាណិជ្ជកម្ម តាម ព្រំដែន បាន វិលត្រឡប់ មក សភាព ធម្មតា វិញ ។	draft	Pending review.
+nfp-057	test	News and formal prose	មូលនិធិ បាន ផ្តល់ អាហារូបករណ៍ ដល់ និស្សិត ក្រីក្រ មួយ រយ នាក់ ។	draft	Pending review.
+nfp-058	test	News and formal prose	រដ្ឋបាល ខេត្ត បាន រៀបចំ វេទិកា សាធារណៈ សម្រាប់ ប្រជាពលរដ្ឋ ។	draft	Pending review.
+nfp-059	test	News and formal prose	ទំនប់ ទឹក ត្រូវ បាន ត្រួតពិនិត្យ ជា ប្រចាំ ក្នុង រដូវ វស្សា ។	draft	Pending review.
+nfp-060	test	News and formal prose	លទ្ធផល បឋម នឹង ត្រូវ ប្រកាស បន្ទាប់ពី ការ រាប់ សន្លឹក ឆ្នោត ។	draft	Pending review.
+con-001	dev	Conversational text	សួស្តី អ្នក សុខសប្បាយ ទេ ?	draft	Pending review.
+con-002	dev	Conversational text	ខ្ញុំ សុខសប្បាយ ទេ អរគុណ ចុះ អ្នក វិញ ?	draft	Pending review.
+con-003	dev	Conversational text	ថ្ងៃ នេះ អ្នក ចង់ ញ៉ាំ អ្វី ?	draft	Pending review.
+con-004	dev	Conversational text	ខ្ញុំ ចង់ ទៅ ផ្សារ ជាមួយ ម្តាយ ។	draft	Pending review.
+con-005	dev	Conversational text	កុំ ភ្លេច យក ឆ័ត្រ ទៅ ផង ។	draft	Pending review.
+con-006	dev	Conversational text	តើ អ្នក មកដល់ ផ្ទះ ហើយ ឬ នៅ ?	draft	Pending review.
+con-007	dev	Conversational text	បន្តិច ទៀត ខ្ញុំ នឹង ទៅ ដល់ ហើយ ។	draft	Pending review.
+con-008	dev	Conversational text	សូម ជួយ បិទ ទ្វារ ឱ្យ ខ្ញុំ ផង ។	draft	Pending review.
+con-009	dev	Conversational text	យើង ជួប គ្នា នៅ ម៉ោង ប្រាំ ល្ងាច ។	draft	Pending review.
+con-010	dev	Conversational text	ម្សិលមិញ អ្នក បាន មើល រឿង នោះ ទេ ?	draft	Pending review.
+con-011	dev	Conversational text	ខ្ញុំ មិនទាន់ ធ្វើ កិច្ចការ នោះ ចប់ ទេ ។	draft	Pending review.
+con-012	dev	Conversational text	បើ មាន ពេល សូម ទូរស័ព្ទ មក ខ្ញុំ ។	draft	Pending review.
+con-013	dev	Conversational text	ហេតុអ្វី អ្នក មក យឺត ម្ល៉េះ ?	draft	Pending review.
+con-014	dev	Conversational text	ផ្លូវ ស្ទះ ខ្លាំង ទើប ខ្ញុំ មក យឺត ។	draft	Pending review.
+con-015	dev	Conversational text	តោះ យើង ទៅ ផឹក កាហ្វេ ជាមួយ គ្នា ។	draft	Pending review.
+con-016	dev	Conversational text	អ្នក អាច ខ្ចី សៀវភៅ នេះ បាន ។	draft	Pending review.
+con-017	dev	Conversational text	ខ្ញុំ នឹង យក វា មក សង ថ្ងៃ ស្អែក ។	draft	Pending review.
+con-018	dev	Conversational text	សូម និយាយ ម្តង ទៀត ខ្ញុំ ស្តាប់ មិន ច្បាស់ ។	draft	Pending review.
+con-019	dev	Conversational text	កូនៗ កំពុង លេង នៅ មុខ ផ្ទះ ។	draft	Pending review.
+con-020	dev	Conversational text	ម្ហូប នេះ ឆ្ងាញ់ ប៉ុន្តែ រាង ហឹរ បន្តិច ។	draft	Pending review.
+con-021	dev	Conversational text	អ្នក ចូលចិត្ត ស្តាប់ តន្ត្រី ប្រភេទ ណា ?	draft	Pending review.
+con-022	dev	Conversational text	ខ្ញុំ ចូលចិត្ត បទចម្រៀង ខ្មែរ បុរាណ ។	draft	Pending review.
+con-023	dev	Conversational text	កុំ បារម្ភ អី ខ្ញុំ អាច ដោះស្រាយ បាន ។	draft	Pending review.
+con-024	dev	Conversational text	អរគុណ ដែល បាន ជួយ ខ្ញុំ កាលពី ម្សិលមិញ ។	draft	Pending review.
+con-025	dev	Conversational text	មិន អី ទេ យើង ជា មិត្ត នឹង គ្នា ។	draft	Pending review.
+con-026	dev	Conversational text	ចាំ ខ្ញុំ នៅ ទី នេះ មួយ ភ្លែត ។	draft	Pending review.
+con-027	dev	Conversational text	តើ ឡានក្រុង ខ្សែ នេះ ទៅ ផ្សារ ថ្មី ទេ ?	draft	Pending review.
+con-028	test	Conversational text	បង អាច ប្រាប់ ផ្លូវ ទៅ មន្ទីរពេទ្យ បាន ទេ ?	draft	Pending review.
+con-029	test	Conversational text	ដើរ ត្រង់ ទៅ រួច បត់ ឆ្វេង នៅ ស្តុប ។	draft	Pending review.
+con-030	test	Conversational text	អ្នក ណា ជា អ្នក ផ្ញើ សារ នេះ មក ?	draft	Pending review.
+con-031	test	Conversational text	ខ្ញុំ មិន ស្គាល់ លេខ ទូរស័ព្ទ នេះ ទេ ។	draft	Pending review.
+con-032	test	Conversational text	ចុង សប្តាហ៍ នេះ យើង ទៅ លេង ស្រុក បាន ទេ ?	draft	Pending review.
+con-033	test	Conversational text	ប្រហែល ជា ខ្ញុំ ត្រូវ ធ្វើការ នៅ ថ្ងៃ សៅរ៍ ។	draft	Pending review.
+con-034	test	Conversational text	បើ អ្នក ទំនេរ យើង អាច ជួប គ្នា ថ្ងៃ អាទិត្យ ។	draft	Pending review.
+con-035	test	Conversational text	សូម ដាក់ ស្ករ តិច បាន ហើយ ។	draft	Pending review.
+con-036	test	Conversational text	ខ្ញុំ ភ្លេច កាបូប នៅ លើ តុ ។	draft	Pending review.
+con-037	test	Conversational text	តើ អ្នក ឃើញ កូនសោ របស់ ខ្ញុំ ទេ ?	draft	Pending review.
+con-038	test	Conversational text	វា នៅ ក្បែរ កុំព្យូទ័រ ក្នុង បន្ទប់ ។	draft	Pending review.
+con-039	test	Conversational text	មេឃ ជិត ភ្លៀង ហើយ យើង ត្រឡប់ ទៅ ផ្ទះ វិញ ។	draft	Pending review.
+con-040	test	Conversational text	ជួប គ្នា ថ្ងៃ ក្រោយ សូម ធ្វើ ដំណើរ ដោយ សុវត្ថិភាព ។	draft	Pending review.
+pad-001	dev	Public administration	សូម ភ្ជាប់ ច្បាប់ ចម្លង អត្តសញ្ញាណប័ណ្ណ ជាមួយ ពាក្យ ស្នើសុំ ។	draft	Pending review.
+pad-002	dev	Public administration	ប្រជាពលរដ្ឋ អាច ដាក់ ពាក្យ តាម ប្រព័ន្ធ អនឡាញ ។	draft	Pending review.
+pad-003	dev	Public administration	ការិយាល័យ បើក បម្រើ ពី ម៉ោង ប្រាំបី ព្រឹក ដល់ ម៉ោង ប្រាំ ល្ងាច ។	draft	Pending review.
+pad-004	dev	Public administration	អ្នក ដាក់ ពាក្យ ត្រូវ បំពេញ ព័ត៌មាន ឱ្យ បាន ត្រឹមត្រូវ ។	draft	Pending review.
+pad-005	dev	Public administration	សេវា នេះ មិន តម្រូវ ឱ្យ បង់ កម្រៃ ទេ ។	draft	Pending review.
+pad-006	dev	Public administration	មន្ត្រី ទទួល បន្ទុក នឹង ទាក់ទង អ្នក ក្នុង រយៈពេល បី ថ្ងៃ ។	draft	Pending review.
+pad-007	dev	Public administration	សូម យក ឯកសារ ដើម មក ផ្ទៀងផ្ទាត់ នៅ ថ្ងៃ ណាត់ ។	draft	Pending review.
+pad-008	dev	Public administration	ពាក្យ ស្នើសុំ ដែល ខ្វះ ឯកសារ នឹង មិន ត្រូវ បាន ទទួល ។	draft	Pending review.
+pad-009	dev	Public administration	រដ្ឋបាល ឃុំ ចេញ លិខិត បញ្ជាក់ ទីលំនៅ ជូន ប្រជាពលរដ្ឋ ។	draft	Pending review.
+pad-010	dev	Public administration	ម្ចាស់ អាជីវកម្ម ត្រូវ ស្នើសុំ អាជ្ញាបណ្ណ មុន បើក ដំណើរការ ។	draft	Pending review.
+pad-011	dev	Public administration	បណ្ណ បើកបរ នឹង ផុត សុពលភាព នៅ ចុង ខែ នេះ ។	draft	Pending review.
+pad-012	dev	Public administration	សេចក្តី សម្រេច នេះ ចូល ជា ធរមាន ចាប់ពី ថ្ងៃ ចុះ ហត្ថលេខា ។	draft	Pending review.
+pad-013	dev	Public administration	អង្គភាព បាន បង្កើត ក្រុម ការងារ ដើម្បី ពិនិត្យ បណ្តឹង ។	draft	Pending review.
+pad-014	dev	Public administration	សាធារណជន អាច ស្នើសុំ ព័ត៌មាន តាម រយៈ លិខិត ផ្លូវការ ។	draft	Pending review.
+pad-015	dev	Public administration	មន្ទីរ នឹង រៀបចំ កិច្ច ប្រជុំ ជាមួយ តំណាង សហគមន៍ ។	draft	Pending review.
+pad-016	dev	Public administration	អ្នក ទទួល ផល ត្រូវ ចុះ ឈ្មោះ ក្នុង បញ្ជី គ្រួសារ ក្រីក្រ ។	draft	Pending review.
+pad-017	dev	Public administration	ថវិកា គម្រោង ត្រូវ បាន អនុម័ត សម្រាប់ ឆ្នាំ សារពើពន្ធ ថ្មី ។	draft	Pending review.
+pad-018	dev	Public administration	មន្ត្រី រាជការ ត្រូវ គោរព ក្រម សីលធម៌ វិជ្ជាជីវៈ ។	draft	Pending review.
+pad-019	dev	Public administration	សូម អញ្ជើញ ម្ចាស់ ដី ចូលរួម វាស់វែង ព្រំ ប្រទល់ ។	draft	Pending review.
+pad-020	dev	Public administration	គណៈកម្មការ នឹង ទទួល មតិយោបល់ រហូត ដល់ ចុង ខែ ។	draft	Pending review.
+pad-021	dev	Public administration	ពន្ធ លើ អចលនទ្រព្យ អាច បង់ តាម ធនាគារ ដៃគូ ។	draft	Pending review.
+pad-022	dev	Public administration	អ្នក បាត់ អត្តសញ្ញាណប័ណ្ណ ត្រូវ ដាក់ ពាក្យ ស្នើសុំ ធ្វើ ថ្មី ។	draft	Pending review.
+pad-023	dev	Public administration	លិខិត អនុញ្ញាត សាងសង់ មាន សុពលភាព មួយ ឆ្នាំ ។	draft	Pending review.
+pad-024	dev	Public administration	សេវា ច្រក ចេញ ចូល តែ មួយ ជួយ កាត់បន្ថយ ពេលវេលា រង់ចាំ ។	draft	Pending review.
+pad-025	dev	Public administration	កំណត់ហេតុ ប្រជុំ ត្រូវ ផ្ញើ ជូន សមាជិក ទាំងអស់ ។	draft	Pending review.
+pad-026	dev	Public administration	ក្រសួង បាន ចាត់តាំង មន្ត្រី ឱ្យ ចុះ ត្រួតពិនិត្យ ទីតាំង ។	draft	Pending review.
+pad-027	dev	Public administration	សំណើ នេះ ត្រូវ បាន បញ្ជូន ទៅ អង្គភាព ជំនាញ រួច ហើយ ។	draft	Pending review.
+pad-028	test	Public administration	ប្រជាពលរដ្ឋ ត្រូវ រាយការណ៍ កំណើត កូន ក្នុង រយៈពេល កំណត់ ។	draft	Pending review.
+pad-029	test	Public administration	ការចុះបញ្ជី អាពាហ៍ពិពាហ៍ ធ្វើ ឡើង នៅ សាលា ឃុំ ។	draft	Pending review.
+pad-030	test	Public administration	អ្នក ស្នើសុំ ត្រូវ ចុះ ហត្ថលេខា នៅ គ្រប់ ទំព័រ ។	draft	Pending review.
+pad-031	test	Public administration	ពាក្យ បណ្តឹង អាច ដាក់ ដោយ ផ្ទាល់ ឬ តាម ប្រៃសណីយ៍ ។	draft	Pending review.
+pad-032	test	Public administration	មន្ត្រី បាន កត់ត្រា សំណើ របស់ ប្រជាពលរដ្ឋ ក្នុង ប្រព័ន្ធ ។	draft	Pending review.
+pad-033	test	Public administration	អាជ្ញាធរ មូលដ្ឋាន ត្រូវ ផ្សព្វផ្សាយ ព័ត៌មាន ឱ្យ បាន ទូលំទូលាយ ។	draft	Pending review.
+pad-034	test	Public administration	ក្រុមប្រឹក្សា បាន ពិភាក្សា និង អនុម័ត ផែនការ អភិវឌ្ឍ ប្រាំ ឆ្នាំ ។	draft	Pending review.
+pad-035	test	Public administration	សេចក្តី ជូនដំណឹង ត្រូវ បាន បិទ ផ្សាយ នៅ មុខ ការិយាល័យ ។	draft	Pending review.
+pad-036	test	Public administration	អ្នក ដែល មាន ពិការភាព ទទួល បាន អាទិភាព ក្នុង ការ ប្រើ សេវា ។	draft	Pending review.
+pad-037	test	Public administration	ទិន្នន័យ ផ្ទាល់ខ្លួន ត្រូវ រក្សា ទុក ដោយ សុវត្ថិភាព ។	draft	Pending review.
+pad-038	test	Public administration	បេក្ខជន ត្រូវ ដាក់ ឯកសារ មុន កាលបរិច្ឆេទ ផុត កំណត់ ។	draft	Pending review.
+pad-039	test	Public administration	បណ្ណ កម្មសិទ្ធិ ត្រូវ បាន ប្រគល់ ជូន ម្ចាស់ ដី ដោយ ផ្ទាល់ ។	draft	Pending review.
+pad-040	test	Public administration	អង្គភាព សាធារណៈ ត្រូវ ឆ្លើយតប ចំពោះ សំណើ ស្រប តាម ច្បាប់ ។	draft	Pending review.
+edu-001	dev	Education	សិស្ស កំពុង អាន សៀវភៅ នៅ ក្នុង បណ្ណាល័យ ។	draft	Pending review.
+edu-002	dev	Education	គ្រូ បាន ពន្យល់ មេរៀន ដោយ ប្រើ ឧទាហរណ៍ ងាយៗ ។	draft	Pending review.
+edu-003	dev	Education	ការអាន ជា ប្រចាំ ជួយ បង្កើន ចំណេះដឹង និង វាក្យសព្ទ ។	draft	Pending review.
+edu-004	dev	Education	កុមារ គួរ លាង ដៃ មុន ពេល ញ៉ាំ អាហារ ។	draft	Pending review.
+edu-005	dev	Education	ផែនដី វិល ជុំវិញ ព្រះអាទិត្យ ក្នុង រយៈពេល មួយ ឆ្នាំ ។	draft	Pending review.
+edu-006	dev	Education	ទឹក អាច ផ្លាស់ប្តូរ ពី រាវ ទៅ ជា ចំហាយ ។	draft	Pending review.
+edu-007	dev	Education	សិស្ស បាន ធ្វើ ពិសោធន៍ សាមញ្ញ នៅ ក្នុង មន្ទីរពិសោធន៍ ។	draft	Pending review.
+edu-008	dev	Education	គ្រូ បាន សរសេរ សំណួរ ចំនួន ប្រាំ នៅ លើ ក្តារខៀន ។	draft	Pending review.
+edu-009	dev	Education	ថ្នាក់ រៀន នេះ មាន សិស្ស ប្រុស និង សិស្ស ស្រី ស្មើ គ្នា ។	draft	Pending review.
+edu-010	dev	Education	និស្សិត ត្រូវ ដាក់ របាយការណ៍ មុន ថ្ងៃ សុក្រ ។	draft	Pending review.
+edu-011	dev	Education	មាតាបិតា គួរ លើកទឹកចិត្ត កូន ឱ្យ សួរ សំណួរ ។	draft	Pending review.
+edu-012	dev	Education	ភាសាខ្មែរ មាន ព្យញ្ជនៈ ស្រៈ និង សញ្ញា ជាច្រើន ។	draft	Pending review.
+edu-013	dev	Education	លំហាត់ នេះ បង្រៀន សិស្ស ឱ្យ ចេះ ដោះស្រាយ បញ្ហា ។	draft	Pending review.
+edu-014	dev	Education	អ្នក រៀន អាច ស្វែងរក ឯកសារ បន្ថែម តាម អ៊ីនធឺណិត ។	draft	Pending review.
+edu-015	dev	Education	ការងារ ជា ក្រុម ជួយ ឱ្យ សិស្ស ចេះ សហការ គ្នា ។	draft	Pending review.
+edu-016	dev	Education	គ្រូ បាន កែ កំហុស អក្ខរាវិរុទ្ធ ក្នុង អត្ថបទ របស់ សិស្ស ។	draft	Pending review.
+edu-017	dev	Education	សាលា បាន រៀបចំ កម្មវិធី អាន សៀវភៅ ក្នុង ថ្ងៃ ឈប់ សម្រាក ។	draft	Pending review.
+edu-018	dev	Education	សិស្ស ត្រូវ គោរព ពេលវេលា និង វិន័យ ក្នុង ថ្នាក់ ។	draft	Pending review.
+edu-019	dev	Education	ចំនួន គត់ អាច ជា ចំនួន វិជ្ជមាន អវិជ្ជមាន ឬ សូន្យ ។	draft	Pending review.
+edu-020	dev	Education	រុក្ខជាតិ ត្រូវការ ទឹក ពន្លឺ និង ខ្យល់ ដើម្បី លូតលាស់ ។	draft	Pending review.
+edu-021	dev	Education	ផែនទី ជួយ ឱ្យ យើង ស្គាល់ ទីតាំង និង ទិសដៅ ។	draft	Pending review.
+edu-022	dev	Education	ប្រវត្តិសាស្ត្រ ជួយ ឱ្យ យើង យល់ ពី អតីតកាល ។	draft	Pending review.
+edu-023	dev	Education	សិស្ស ម្នាក់ៗ ត្រូវ រៀបចំ កាលវិភាគ សិក្សា ផ្ទាល់ខ្លួន ។	draft	Pending review.
+edu-024	test	Education	ការស្តាប់ ដោយ យកចិត្តទុកដាក់ ជួយ ឱ្យ យល់ មេរៀន បាន ល្អ ។	draft	Pending review.
+edu-025	test	Education	សាកលវិទ្យាល័យ ផ្តល់ អាហារូបករណ៍ ដល់ និស្សិត ឆ្នើម ។	draft	Pending review.
+edu-026	test	Education	អ្នក ស្រាវជ្រាវ ត្រូវ បញ្ជាក់ ប្រភព ឯកសារ ដែល បាន ប្រើ ។	draft	Pending review.
+edu-027	test	Education	កុមារ បាន រៀន អំពី ការ បែងចែក សំរាម តាម ប្រភេទ ។	draft	Pending review.
+edu-028	test	Education	វិទ្យាសាស្ត្រ ជួយ ពន្យល់ បាតុភូត ដែល កើតឡើង ក្នុង ធម្មជាតិ ។	draft	Pending review.
+edu-029	test	Education	លទ្ធផល ប្រឡង មិនមែន ជា រង្វាស់ តែ មួយ នៃ សមត្ថភាព ទេ ។	draft	Pending review.
+edu-030	test	Education	សិស្ស បាន ប្រៀបធៀប ទំហំ វត្ថុ ដោយ ប្រើ បន្ទាត់ ។	draft	Pending review.
+edu-031	test	Education	គ្រូ ស្នើ ឱ្យ សិស្ស សង្ខេប អត្ថបទ ដោយ ពាក្យ ផ្ទាល់ខ្លួន ។	draft	Pending review.
+edu-032	test	Education	ការអប់រំ បណ្តុះ ឱ្យ មនុស្ស មាន ចំណេះដឹង និង សីលធម៌ ។	draft	Pending review.
+edu-033	test	Education	មេរៀន អនឡាញ អាច ជួយ សិស្ស នៅ តំបន់ ឆ្ងាយ ។	draft	Pending review.
+edu-034	test	Education	ក្រុម សិស្ស បាន បង្ហាញ គម្រោង ស្រាវជ្រាវ នៅ មុខ ថ្នាក់ ។	draft	Pending review.
+edu-035	test	Education	ការហាត់ សរសេរ ជា រៀងរាល់ ថ្ងៃ ជួយ បង្កើន ភាព ស្ទាត់ជំនាញ ។	draft	Pending review.
+lit-001	dev	Literary and religious text	ព្រះអាទិត្យ រះ ពី ក្រោយ ភ្នំ បំភ្លឺ វាល ស្រែ ពណ៌ បៃតង ។	draft	Pending review.
+lit-002	dev	Literary and religious text	ក្មេង ប្រុស ម្នាក់ បាន ដើរ តាម ផ្លូវ តូច ចូល ទៅ ក្នុង ព្រៃ ។	draft	Pending review.
+lit-003	dev	Literary and religious text	នៅ មាត់ ទន្លេ មាន ដើម ឈើ ធំ មួយ ឈរ ផ្តល់ ម្លប់ ។	draft	Pending review.
+lit-004	dev	Literary and religious text	យាយ បាន និទាន រឿង ព្រេង ឱ្យ ចៅៗ ស្តាប់ មុន ចូល គេង ។	draft	Pending review.
+lit-005	dev	Literary and religious text	សត្វ ក្អែក បាន ពាំ ចំណី ទៅ ឱ្យ កូន នៅ ក្នុង សំបុក ។	draft	Pending review.
+lit-006	dev	Literary and religious text	ខ្យល់ រាត្រី បក់ ត្រជាក់ កាត់ តាម ស្លឹក ឈើ ។	draft	Pending review.
+lit-007	dev	Literary and religious text	បុរស ក្រីក្រ បាន ចែក អាហារ តិចតួច របស់ ខ្លួន ដល់ អ្នក ដំណើរ ។	draft	Pending review.
+lit-008	dev	Literary and religious text	សេចក្តី មេត្តា ធ្វើ ឱ្យ មនុស្ស ចេះ ជួយ គ្នា ក្នុង គ្រា លំបាក ។	draft	Pending review.
+lit-009	dev	Literary and religious text	អ្នក ដែល ប្រព្រឹត្ត អំពើ ល្អ តែង ទទួល បាន ការ គោរព ។	draft	Pending review.
+lit-010	dev	Literary and religious text	ព្រះសង្ឃ បាន សម្តែង ព្រះធម៌ អំពី ការ រស់នៅ ដោយ សន្តិភាព ។	draft	Pending review.
+lit-011	dev	Literary and religious text	ពុទ្ធបរិស័ទ បាន នាំគ្នា ធ្វើ បុណ្យ និង ប្រគេន ចង្ហាន់ ។	draft	Pending review.
+lit-012	dev	Literary and religious text	ការ ចេះ អត់ធ្មត់ ជួយ ឱ្យ ចិត្ត ស្ងប់ នៅ ពេល ជួប បញ្ហា ។	draft	Pending review.
+lit-013	dev	Literary and religious text	មនុស្ស គ្រប់ រូប ត្រូវ ទទួល ខុសត្រូវ ចំពោះ ទង្វើ របស់ ខ្លួន ។	draft	Pending review.
+lit-014	dev	Literary and religious text	ស្តេច បាន កោះហៅ មន្ត្រី មក ប្រជុំ នៅ ព្រះបរមរាជវាំង ។	draft	Pending review.
+lit-015	dev	Literary and religious text	ព្រះរាជបុត្រ បាន យាង ទៅ សួរសុខទុក្ខ ប្រជារាស្ត្រ នៅ ជនបទ ។	draft	Pending review.
+lit-016	dev	Literary and religious text	ទន្សាយ ប្រើ ប្រាជ្ញា ដើម្បី គេច ផុត ពី សត្វ តោ ។	draft	Pending review.
+lit-017	dev	Literary and religious text	ត្រី តូច បាន ហែល តាម ខ្សែ ទឹក ទៅ កាន់ បឹង ធំ ។	draft	Pending review.
+lit-018	dev	Literary and religious text	នាង បាន រង់ចាំ បងប្រុស នៅ ក្រោម ដើម ពោធិ៍ ។	draft	Pending review.
+lit-019	dev	Literary and religious text	ពន្លឺ ព្រះចន្ទ ចាំង លើ ផ្ទៃ ទឹក ដូច កញ្ចក់ ។	draft	Pending review.
+lit-020	dev	Literary and religious text	សំឡេង ចាប យំ លាន់ ឮ ពេញ ព្រៃ នៅ ពេល ព្រឹក ។	draft	Pending review.
+lit-021	dev	Literary and religious text	អ្នក ភូមិ បាន សាមគ្គី គ្នា សង់ ស្ពាន ឆ្លង អូរ ។	draft	Pending review.
+lit-022	dev	Literary and religious text	កុមារ តូច បាន រើស ផ្កា ដាក់ ក្នុង កន្ត្រក ឫស្សី ។	draft	Pending review.
+lit-023	dev	Literary and religious text	ភាព លោភលន់ អាច នាំ ឱ្យ មនុស្ស បាត់បង់ មិត្តភាព ។	draft	Pending review.
+lit-024	test	Literary and religious text	អ្នក ប្រាជ្ញ បាន ផ្តល់ ដំបូន្មាន ឱ្យ យុវជន ស្គាល់ ខុស ត្រូវ ។	draft	Pending review.
+lit-025	test	Literary and religious text	គោ ព្រៃ មួយ ហ្វូង បាន រត់ កាត់ វាល ស្មៅ ដ៏ ធំ ។	draft	Pending review.
+lit-026	test	Literary and religious text	ទឹក សន្សើម ធ្លាក់ លើ ស្លឹក ផ្កា នៅ មុន ថ្ងៃ រះ ។	draft	Pending review.
+lit-027	test	Literary and religious text	មាតា បាន បំពេ កូន ដោយ បទ ចម្រៀង ដ៏ ទន់ភ្លន់ ។	draft	Pending review.
+lit-028	test	Literary and religious text	មនុស្ស ចាស់ តែង រំលឹក រឿងរ៉ាវ ពី សម័យ ដើម ។	draft	Pending review.
+lit-029	test	Literary and religious text	ព្រះភិក្ខុ បាន ណែនាំ ឱ្យ សិស្ស រក្សា សីល និង ធ្វើ សមាធិ ។	draft	Pending review.
+lit-030	test	Literary and religious text	អំពើ ហិង្សា មិន អាច បង្កើត សន្តិភាព ដែល ឋិតថេរ បាន ទេ ។	draft	Pending review.
+lit-031	test	Literary and religious text	បុរស នោះ បាន សារភាព កំហុស និង សុំ ការ អភ័យទោស ។	draft	Pending review.
+lit-032	test	Literary and religious text	ដំណក់ ទឹក តូចៗ អាច បំពេញ ពាង ធំ ឱ្យ ពេញ បាន ។	draft	Pending review.
+lit-033	test	Literary and religious text	អ្នក ដំណើរ បាន ឈប់ សម្រាក ក្បែរ អណ្តូង ទឹក បុរាណ ។	draft	Pending review.
+lit-034	test	Literary and religious text	ពេល ល្ងាច សត្វ ស្លាប ហើរ ត្រឡប់ ទៅ សំបុក វិញ ។	draft	Pending review.
+lit-035	test	Literary and religious text	សេចក្តី ពិត អាច ត្រូវ លាក់ បាំង ប៉ុន្តែ មិន អាច បាត់បង់ បាន ។	draft	Pending review.
+tec-001	dev	Technical text	កម្មវិធី នេះ អាច ដំណើរការ ដោយ មិន ចាំបាច់ ភ្ជាប់ អ៊ីនធឺណិត ។	draft	Pending review.
+tec-002	dev	Technical text	អ្នក ប្រើ ត្រូវ បញ្ចូល ពាក្យ សម្ងាត់ មុន ចូល គណនី ។	draft	Pending review.
+tec-003	dev	Technical text	ប្រព័ន្ធ នឹង រក្សា ទុក ឯកសារ ដោយ ស្វ័យប្រវត្តិ ។	draft	Pending review.
+tec-004	dev	Technical text	ទិន្នន័យ ត្រូវ បាន អ៊ិនគ្រីប មុន បញ្ជូន តាម បណ្តាញ ។	draft	Pending review.
+tec-005	dev	Technical text	ម៉ាស៊ីនមេ បាន ឆ្លើយតប ទៅ សំណើ ក្នុង រយៈពេល ខ្លី ។	draft	Pending review.
+tec-006	dev	Technical text	កម្មវិធី រុករក បង្ហាញ ទំព័រ តាម អាសយដ្ឋាន ដែល បាន បញ្ចូល ។	draft	Pending review.
+tec-007	dev	Technical text	ឯកសារ បម្រុង ជួយ សង្គ្រោះ ទិន្នន័យ នៅ ពេល ប្រព័ន្ធ ខូច ។	draft	Pending review.
+tec-008	dev	Technical text	អ្នក អភិវឌ្ឍ បាន កែ កំហុស និង ដំណើរការ តេស្ត ឡើងវិញ ។	draft	Pending review.
+tec-009	dev	Technical text	មូលដ្ឋាន ទិន្នន័យ រក្សា កំណត់ត្រា តាម លំដាប់ លេខ សម្គាល់ ។	draft	Pending review.
+tec-010	dev	Technical text	ការធ្វើ បច្ចុប្បន្នភាព ជួយ បិទ ចន្លោះ ប្រហោង សុវត្ថិភាព ។	draft	Pending review.
+tec-011	dev	Technical text	បណ្តាញ ឥត ខ្សែ មាន ល្បឿន យឺត នៅ ពេល អ្នក ប្រើ ច្រើន ។	draft	Pending review.
+tec-012	dev	Technical text	កូដ ប្រភព ត្រូវ បាន រក្សា ទុក ក្នុង ប្រព័ន្ធ គ្រប់គ្រង កំណែ ។	draft	Pending review.
+tec-013	dev	Technical text	កម្មវិធី បម្លែង អក្សរ ទៅ ជា ទិន្នន័យ យូនីកូដ ។	draft	Pending review.
+tec-014	dev	Technical text	ចំណុច ប្រទាក់ នេះ អនុញ្ញាត ឱ្យ កម្មវិធី ពីរ ផ្លាស់ប្តូរ ទិន្នន័យ ។	draft	Pending review.
+tec-015	dev	Technical text	ការស្វែងរក ប្រើ សន្ទស្សន៍ ដើម្បី បង្ហាញ លទ្ធផល បាន លឿន ។	draft	Pending review.
+tec-016	dev	Technical text	ថ្ម របស់ ទូរស័ព្ទ អាច ប្រើ បាន ពេញ មួយ ថ្ងៃ ។	draft	Pending review.
+tec-017	dev	Technical text	ឧបករណ៍ ចាប់សញ្ញា វាស់ សីតុណ្ហភាព រៀងរាល់ មួយ នាទី ។	draft	Pending review.
+tec-018	dev	Technical text	អ្នក ប្រើ អាច ទាញយក របាយការណ៍ ជា ឯកសារ ភីឌីអេហ្វ ។	draft	Pending review.
+tec-019	dev	Technical text	ប្រព័ន្ធ ប្រតិបត្តិការ គ្រប់គ្រង អង្គចងចាំ និង ឧបករណ៍ ផ្សេងៗ ។	draft	Pending review.
+tec-020	dev	Technical text	ក្បួន ដោះស្រាយ នេះ ជ្រើសរើស ផ្លូវ ដែល មាន តម្លៃ ទាប បំផុត ។	draft	Pending review.
+tec-021	test	Technical text	វចនានុក្រម ត្រូវ បាន បម្លែង ទៅ ជា ទម្រង់ បង្រួម សម្រាប់ កម្មវិធី បង្កប់ ។	draft	Pending review.
+tec-022	test	Technical text	កម្មវិធី បែងចែក ពាក្យ ប្រើ ប្រេកង់ ដើម្បី ជ្រើស ផ្លូវ សមស្រប ។	draft	Pending review.
+tec-023	test	Technical text	សេវា នេះ ផ្ញើ ការ ជូនដំណឹង នៅ ពេល មាន កំហុស ។	draft	Pending review.
+tec-024	test	Technical text	អ្នក គ្រប់គ្រង អាច កំណត់ សិទ្ធិ ចូល ប្រើ សម្រាប់ គណនី នីមួយៗ ។	draft	Pending review.
+tec-025	test	Technical text	គេហទំព័រ ត្រូវ បាន រចនា ឱ្យ បង្ហាញ ល្អ លើ អេក្រង់ តូច ។	draft	Pending review.
+tec-026	test	Technical text	ទិន្នន័យ បញ្ចូល ត្រូវ ឆ្លងកាត់ ការ ផ្ទៀងផ្ទាត់ មុន ដំណើរការ ។	draft	Pending review.
+tec-027	test	Technical text	ឃ្លាំង កូដ បាន កត់ត្រា ប្រវត្តិ នៃ ការ ផ្លាស់ប្តូរ ទាំងអស់ ។	draft	Pending review.
+tec-028	test	Technical text	កម្មវិធី អាច ធ្វើការ លើ វីនដូ លីនុច និង ប្រព័ន្ធ ផ្សេងទៀត ។	draft	Pending review.
+tec-029	test	Technical text	ការបង្ហាប់ ឯកសារ ជួយ កាត់បន្ថយ ទំហំ សម្រាប់ ផ្ទេរ តាម បណ្តាញ ។	draft	Pending review.
+tec-030	test	Technical text	អ្នក ប្រើ គួរ បង្កើត ពាក្យ សម្ងាត់ ដែល ពិបាក ទាយ ។	draft	Pending review.
+nam-001	dev	Names and locations	សុភា រស់នៅ ក្នុង រាជធានី ភ្នំពេញ ជាមួយ គ្រួសារ ។	draft	Pending review.
+nam-002	dev	Names and locations	ដារ៉ា បាន ធ្វើ ដំណើរ ពី កំពង់ចាម ទៅ សៀមរាប ។	draft	Pending review.
+nam-003	dev	Names and locations	ស្រីនាង កំពុង សិក្សា នៅ សាកលវិទ្យាល័យ ភូមិន្ទ ភ្នំពេញ ។	draft	Pending review.
+nam-004	dev	Names and locations	លោក វណ្ណា បាន ទៅ ទស្សនា ប្រាសាទ អង្គរវត្ត ។	draft	Pending review.
+nam-005	dev	Names and locations	ទន្លេ មេគង្គ ហូរ កាត់ ខេត្ត ជាច្រើន ក្នុង ប្រទេស កម្ពុជា ។	draft	Pending review.
+nam-006	dev	Names and locations	ភ្នំ គូលែន ស្ថិតនៅ ក្នុង ខេត្ត សៀមរាប ។	draft	Pending review.
+nam-007	dev	Names and locations	កោះរ៉ុង ជា គោលដៅ ទេសចរណ៍ មួយ ក្នុង ខេត្ត ព្រះសីហនុ ។	draft	Pending review.
+nam-008	dev	Names and locations	ម៉ាលី បាន ផ្ញើ សំបុត្រ ទៅ មិត្តភក្តិ នៅ បាត់ដំបង ។	draft	Pending review.
+nam-009	dev	Names and locations	លោកគ្រូ សុខា បង្រៀន ភាសាខ្មែរ នៅ វិទ្យាល័យ ព្រះស៊ីសុវត្ថិ ។	draft	Pending review.
+nam-010	dev	Names and locations	គ្រួសារ របស់ រតនា មាន ស្រុកកំណើត នៅ ខេត្ត តាកែវ ។	draft	Pending review.
+nam-011	dev	Names and locations	អ្នកស្រី ចន្ទា បាន បើក ហាង លក់ សៀវភៅ នៅ ក្រុង បាត់ដំបង ។	draft	Pending review.
+nam-012	dev	Names and locations	វិសាល បាន ជិះ រថភ្លើង ពី ភ្នំពេញ ទៅ ព្រះសីហនុ ។	draft	Pending review.
+nam-013	dev	Names and locations	បឹង ទន្លេសាប ជា ប្រភព ត្រី ដ៏ សំខាន់ សម្រាប់ ប្រជាជន ។	draft	Pending review.
+nam-014	dev	Names and locations	ឧទ្យានជាតិ បូកគោ មាន អាកាសធាតុ ត្រជាក់ និង ទេសភាព ស្រស់ស្អាត ។	draft	Pending review.
+nam-015	dev	Names and locations	ស្ទឹងសែន ហូរ កាត់ ក្រុង កំពង់ធំ ។	draft	Pending review.
+nam-016	dev	Names and locations	លោក ជា វិបុល បាន ចូលរួម កិច្ច ប្រជុំ នៅ ទីក្រុង បាងកក ។	draft	Pending review.
+nam-017	dev	Names and locations	នាវា បាន ចាកចេញ ពី កំពង់ផែ ស្វយ័ត ក្រុង ព្រះសីហនុ ។	draft	Pending review.
+nam-018	test	Names and locations	ខេត្ត មណ្ឌលគិរី មាន ភ្នំ ព្រៃ និង ទឹកជ្រោះ ជាច្រើន ។	draft	Pending review.
+nam-019	test	Names and locations	ចម្ការ ម្រេច នៅ កំពត ទទួល បាន ភ្ញៀវ ទេសចរ រៀងរាល់ ឆ្នាំ ។	draft	Pending review.
+nam-020	test	Names and locations	សារមន្ទីរជាតិ ស្ថិតនៅ ក្បែរ ព្រះបរមរាជវាំង ក្នុង រាជធានី ភ្នំពេញ ។	draft	Pending review.
+nam-021	test	Names and locations	កញ្ញា លីណា បាន ធ្វើការ នៅ អង្គការ មួយ ក្នុង ក្រុង ប៉ោយប៉ែត ។	draft	Pending review.
+nam-022	test	Names and locations	ផ្លូវ ពី ក្រចេះ ទៅ ស្ទឹងត្រែង រត់ តាម ដង ទន្លេ មេគង្គ ។	draft	Pending review.
+nam-023	test	Names and locations	ប្រាសាទ ព្រះវិហារ ស្ថិតនៅ លើ តំបន់ ខ្ពង់រាប ។	draft	Pending review.
+nam-024	test	Names and locations	សុវណ្ណ បាន ទៅ លេង សាច់ញាតិ នៅ ស្រុក មោងឫស្សី ។	draft	Pending review.
+nam-025	test	Names and locations	ក្រុមហ៊ុន អង្គរ ដឹកជញ្ជូន បាន បើក សាខា ថ្មី នៅ បាវិត ។	draft	Pending review.
+rep-001	dev	Repetition forms and numerals	កុមារ ម្នាក់ៗ ទទួល បាន សៀវភៅ ពីរ ក្បាល ។	draft	Pending review.
+rep-002	dev	Repetition forms and numerals	អ្នក ចូលរួម ត្រូវ ឈរ ជា ក្រុមៗ នៅ មុខ សាលា ។	draft	Pending review.
+rep-003	dev	Repetition forms and numerals	គាត់ ដើរ យឺតៗ តាម ផ្លូវ ក្បែរ មាត់ ទន្លេ ។	draft	Pending review.
+rep-004	dev	Repetition forms and numerals	សូម អាន ពាក្យ នីមួយៗ ឱ្យ បាន ច្បាស់ ។	draft	Pending review.
+rep-005	dev	Repetition forms and numerals	ផ្ទះ តូចៗ ជាច្រើន ស្ថិតនៅ តាម ជើង ភ្នំ ។	draft	Pending review.
+rep-006	dev	Repetition forms and numerals	រថយន្ត បាន ឈប់ ម្តងៗ ដើម្បី ទទួល អ្នក ដំណើរ ។	draft	Pending review.
+rep-007	dev	Repetition forms and numerals	នៅ ឆ្នាំ ២០២៥ សាលា មាន សិស្ស ១២០០ នាក់ ។	draft	Pending review.
+rep-008	dev	Repetition forms and numerals	កិច្ច ប្រជុំ ចាប់ផ្តើម ម៉ោង ៨ និង ៣០ នាទី ព្រឹក ។	draft	Pending review.
+rep-009	dev	Repetition forms and numerals	សំបុត្រ មួយ សន្លឹក មាន តម្លៃ ៥០០០ រៀល ។	draft	Pending review.
+rep-010	dev	Repetition forms and numerals	គម្រោង នេះ ត្រូវ អនុវត្ត ក្នុង រយៈពេល ៣ ឆ្នាំ ។	draft	Pending review.
+rep-011	dev	Repetition forms and numerals	ចម្ងាយ ពី ភូមិ ទៅ សាលា មាន ប្រវែង ២ គីឡូម៉ែត្រ ។	draft	Pending review.
+rep-012	dev	Repetition forms and numerals	សិស្ស បាន ដាំ កូនឈើ ២៥ ដើម នៅ ថ្ងៃ ទី ៥ ខែ មិថុនា ។	draft	Pending review.
+rep-013	dev	Repetition forms and numerals	ភ្ញៀវ បាន ចូល មក ជា បន្តបន្ទាប់ ម្តង មួយៗ ។	draft	Pending review.
+rep-014	test	Repetition forms and numerals	គាត់ គោះ ទ្វារ តិចៗ ចំនួន បី ដង ។	draft	Pending review.
+rep-015	test	Repetition forms and numerals	អ្នក លក់ រៀប ផ្លែឈើ ជា គំនរៗ នៅ លើ តុ ។	draft	Pending review.
+rep-016	test	Repetition forms and numerals	ក្រុម នីមួយៗ មាន សមាជិក ៦ នាក់ ។	draft	Pending review.
+rep-017	test	Repetition forms and numerals	ទឹក មួយ ដប មាន ចំណុះ ១,៥ លីត្រ ។	draft	Pending review.
+rep-018	test	Repetition forms and numerals	គាត់ សន្សំ ប្រាក់ បាន ១០០ ០០០ រៀល ក្នុង មួយ ខែ ។	draft	Pending review.
+rep-019	test	Repetition forms and numerals	កីឡាករ រត់ ជុំវិញ ទីលាន ៤ ជុំ រៀងរាល់ ព្រឹក ។	draft	Pending review.
+rep-020	test	Repetition forms and numerals	សូម ពិនិត្យ ឯកសារ ម្តង ហើយ ម្តង ទៀត មុន ផ្ញើ ។	draft	Pending review.
+uni-001	dev	Valid but difficult Unicode	ខ្ញុំ ស្ដាប់ ព័ត៌មាន តាម វិទ្យុ រៀងរាល់ ព្រឹក ។	draft	COENG TA spelling; compare with uni-002.
+uni-002	dev	Valid but difficult Unicode	ខ្ញុំ ស្តាប់ ព័ត៌មាន តាម វិទ្យុ រៀងរាល់ ព្រឹក ។	draft	COENG DA visual variant; compare with uni-001.
+uni-003	dev	Valid but difficult Unicode	សេចក្ដី សុខ កើត ចេញ ពី ចិត្ត ដែល ស្ងប់ ។	draft	COENG TA spelling.
+uni-004	dev	Valid but difficult Unicode	សេចក្តី សុខ កើត ចេញ ពី ចិត្ត ដែល ស្ងប់ ។	draft	COENG DA visual variant.
+uni-005	dev	Valid but difficult Unicode	ក្មេងៗ បាន ឈរ តម្រង់ ជួរ នៅ មុខ ថ្នាក់ ។	draft	Repetition sign attached to lexical form.
+uni-006	dev	Valid but difficult Unicode	នាង ឱ្យ សៀវភៅ នីមួយៗ ទៅ សិស្ស ។	draft	Dependent-vowel and repetition sequences.
+uni-007	dev	Valid but difficult Unicode	តម្លៃ សរុប គឺ ១២ ៥០០៛ រួម ទាំង ពន្ធ ។	draft	Khmer digits and riel sign.
+uni-008	dev	Valid but difficult Unicode	គាត់ បាន និយាយ ថា « សូម អរគុណ » ។	draft	Khmer text with guillemets.
+uni-009	dev	Valid but difficult Unicode	ពាក្យ « អភិវឌ្ឍន៍ » មាន សញ្ញា បន្តក់ និង ទណ្ឌឃាត ។	draft	Multiple combining marks.
+uni-010	dev	Valid but difficult Unicode	ព្រះពុទ្ធសាសនា បង្រៀន ឱ្យ មនុស្ស ប្រព្រឹត្ត អំពើ ល្អ ។	draft	Several consonant stacks.
+uni-011	test	Valid but difficult Unicode	សិស្ស បាន សរសេរ ពាក្យ « កម្មវិធី » នៅ លើ ក្ដារខៀន ។	draft	COENG TA and stacked consonants.
+uni-012	test	Valid but difficult Unicode	សិស្ស បាន សរសេរ ពាក្យ « កម្មវិធី » នៅ លើ ក្តារខៀន ។	draft	COENG DA visual variant.
+uni-013	test	Valid but difficult Unicode	ថ្ងៃ នេះ ជា ថ្ងៃ ទី ១៥ ខែ កញ្ញា ឆ្នាំ ២០២៦ ។	draft	Khmer digits mixed with punctuation.
+uni-014	test	Valid but difficult Unicode	អ៊ីមែល របស់ គាត់ មាន អក្សរ ខ្មែរ និង លេខ ២ ។	draft	Khmer independent vowel and mixed digit.
+uni-015	test	Valid but difficult Unicode	ពួកគេ បញ្ចប់ ការងារ ហើយៗ ក៏ ត្រឡប់ ទៅ ផ្ទះ វិញ ។	draft	Repetition sign on a clause-final word.

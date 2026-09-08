@@ -44,6 +44,23 @@ class SpellingAccuracy(str, Enum):
             ) from error
 
 
+class LexiconMode(str, Enum):
+    """Select which authority layers participate in analysis."""
+
+    STRICT = "strict"
+    INCLUSIVE = "inclusive"
+
+    @classmethod
+    def coerce(cls, value: "LexiconMode | str") -> "LexiconMode":
+        if isinstance(value, cls):
+            return value
+        try:
+            return cls(value)
+        except ValueError as error:
+            choices = ", ".join(mode.value for mode in cls)
+            raise ValueError(f"unknown lexicon mode {value!r}; expected {choices}") from error
+
+
 class DiagnosticKind(str, Enum):
     """Stable machine-readable spelling diagnostic categories."""
 

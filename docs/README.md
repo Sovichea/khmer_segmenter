@@ -8,6 +8,8 @@ main README.
 - [Project overview and quick start](../README.md)
 - [Design philosophy](DESIGN_PHILOSOPHY.md)
 - [Data sources, attribution, and provenance](DATA.md)
+- [Layered lexicon packs](LEXICON_LAYERS.md)
+- [Unified KDIC v2 language packs](KDICT_V2.md)
 - [RAC-only model rebuild](RAC_REBUILD.md)
 - [Migration from 0.1.1 to 0.2](MIGRATION_0_2.md)
 - [PyPI release guide](PYPI_RELEASE.md)

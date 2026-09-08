@@ -150,6 +150,11 @@ khmer-segment data compile local.klex.json \
 The generated pack is standalone and works with Python, Rust, and WASM. See
 [Unified KDIC v2 Language Packs](docs/KDICT_V2.md).
 
+For independently replaceable RAC, official terminology, user, and community
+packs, use the [layered lexicon workflow](docs/LEXICON_LAYERS.md). Strict mode
+loads RAC + reviewed official lexicons + user dictionaries; inclusive mode also
+loads explicitly supplied community evidence.
+
 The audit records every curated match, retained chunk, and rejected fragment.
 
 ```bash
@@ -371,6 +376,8 @@ linguistic artifacts.
 
 - [Documentation index](docs/README.md)
 - [Data sources, attribution, and provenance](docs/DATA.md)
+- [Layered lexicon packs](docs/LEXICON_LAYERS.md)
+- [Unified KDIC v2 language packs](docs/KDICT_V2.md)
 - [Dictionary and embedded-data preparation](docs/EMBEDDED_DICTIONARY.md)
 - [Development workflows](docs/DEVELOPMENT.md)
 - [Evaluation](docs/EVALUATION.md)

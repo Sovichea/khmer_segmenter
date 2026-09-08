@@ -8,6 +8,7 @@ from .kdict import KDict, KDictWord, compile_klex
 from .models import (
     DiagnosticKind,
     EditOperation,
+    LexiconMode,
     SpellcheckConfig,
     SpellcheckProfile,
     SpellingAccuracy,
@@ -33,6 +34,7 @@ __all__ = [
     "KDictWord",
     "compile_klex",
     "EditOperation",
+    "LexiconMode",
     "DiagnosticKind",
     "SpellcheckConfig",
     "SpellcheckProfile",

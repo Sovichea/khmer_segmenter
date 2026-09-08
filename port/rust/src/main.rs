@@ -38,6 +38,7 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
     if base.as_ref().is_some_and(|pack| pack.version() < 2) {
         return Err(invalid_data("KLEX overlays require a KDIC v2 base pack"));
     }
+    let base_provenance = base.as_ref().and_then(|pack| pack.provenance()).cloned();
     let mut flags_by_word: BTreeMap<String, u32> = base
         .as_ref()
         .map(|pack| {
@@ -272,6 +273,115 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
     for (typed, correction) in &corrections {
         output.extend_from_slice(&offsets[typed].to_le_bytes());
         output.extend_from_slice(&offsets[correction].to_le_bytes());
+    }
+    let mut packs = base_provenance
+        .as_ref()
+        .and_then(|value| value.get("packs"))
+        .and_then(|value| value.as_array())
+        .cloned()
+        .unwrap_or_default();
+    if let Some(pack) = source.get("pack") {
+        if !pack.is_object() {
+            return Err(invalid_data("KLEX pack metadata must be an object"));
+        }
+        packs.push(pack.clone());
+    }
+    let mut sources = base_provenance
+        .as_ref()
+        .and_then(|value| value.get("sources"))
+        .and_then(|value| value.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let mut source_ids = std::collections::BTreeMap::new();
+    for value in &sources {
+        let id = value
+            .as_object()
+            .and_then(|record| record.get("id"))
+            .and_then(|value| value.as_str())
+            .ok_or_else(|| invalid_data("KLEX sources require a string id"))?;
+        if source_ids.insert(id.to_owned(), value.clone()).is_some() {
+            return Err(invalid_data(format!("duplicate KLEX source id {id:?}")));
+        }
+    }
+    if let Some(values) = source.get("sources").and_then(|value| value.as_array()) {
+        for value in values {
+            let id = value
+                .as_object()
+                .and_then(|record| record.get("id"))
+                .and_then(|value| value.as_str())
+                .ok_or_else(|| invalid_data("KLEX sources require a string id"))?;
+            if let Some(previous) = source_ids.get(id) {
+                if previous != value {
+                    return Err(invalid_data(format!(
+                        "conflicting KLEX source metadata for {id:?}"
+                    )));
+                }
+            } else {
+                sources.push(value.clone());
+                source_ids.insert(id.to_owned(), value.clone());
+            }
+        }
+    } else if source.get("sources").is_some() {
+        return Err(invalid_data("KLEX sources must be an array"));
+    }
+    let mut provenance_words = base_provenance
+        .as_ref()
+        .and_then(|value| value.get("words"))
+        .and_then(|value| value.as_object())
+        .cloned()
+        .unwrap_or_default();
+    for record in records {
+        let Some(record) = record.as_object() else {
+            continue;
+        };
+        let word = clean_klex_word(
+            record
+                .get("word")
+                .and_then(|value| value.as_str())
+                .unwrap_or(""),
+        );
+        let Some(items) = record.get("provenance").and_then(|value| value.as_array()) else {
+            if record.get("provenance").is_some() {
+                return Err(invalid_data("KLEX entry provenance must be an array"));
+            }
+            continue;
+        };
+        for item in items {
+            let source_id = item
+                .as_object()
+                .and_then(|record| record.get("source"))
+                .and_then(|value| value.as_str())
+                .ok_or_else(|| invalid_data("KLEX provenance requires a source id"))?;
+            if !source_ids.contains_key(source_id) {
+                return Err(invalid_data(format!(
+                    "KLEX provenance references unknown source {source_id:?}"
+                )));
+            }
+        }
+        if !word.is_empty() && !items.is_empty() {
+            let target = provenance_words
+                .entry(word)
+                .or_insert_with(|| serde_json::Value::Array(Vec::new()));
+            if let Some(target) = target.as_array_mut() {
+                for item in items {
+                    if !target.contains(item) {
+                        target.push(item.clone());
+                    }
+                }
+            }
+        }
+    }
+    if !packs.is_empty() || !sources.is_empty() || !provenance_words.is_empty() {
+        let payload = serde_json::to_vec(&serde_json::json!({
+            "packs": packs,
+            "sources": sources,
+            "words": provenance_words,
+        }))
+        .map_err(|error| invalid_data(error.to_string()))?;
+        output.extend_from_slice(b"KPRV");
+        output.extend_from_slice(&1_u32.to_le_bytes());
+        output.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        output.extend_from_slice(&payload);
     }
     if let Some(parent) = Path::new(output_path).parent() {
         std::fs::create_dir_all(parent)?;
@@ -1009,9 +1119,13 @@ fn main() -> io::Result<()> {
         println!("  --short           Alias for --segmentation-length short");
         println!("  --test-hyphenation <word> Test lookup in khmer_hyphenation.kdict");
         println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
-        println!("  diagnose [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>");
+        println!(
+            "  diagnose [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>"
+        );
         println!("                    Return spellcheck diagnostics as JSON");
-        println!("  analyze [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>");
+        println!(
+            "  analyze [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>"
+        );
         println!("                    Return mapped segments and diagnostics in one pass");
         println!("  data compile <file.klex.json> --output <file.kdict> [--base <base.kdict>]");
         println!("                    Compile a unified KDIC v2 language pack");

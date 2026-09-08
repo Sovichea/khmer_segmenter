@@ -82,14 +82,22 @@ pub fn coeng_da_ta_variants(word: &str) -> Vec<String> {
         };
         let current = variants.clone();
         for candidate in current {
-            let alias = format!("{}{}{}", &candidate[..offset], replacement, &candidate[offset + pair_len..]);
+            let alias = format!(
+                "{}{}{}",
+                &candidate[..offset],
+                replacement,
+                &candidate[offset + pair_len..]
+            );
             if !variants.contains(&alias) {
                 variants.push(alias);
             }
         }
         offset += pair_len;
     }
-    variants.into_iter().filter(|variant| variant != word).collect()
+    variants
+        .into_iter()
+        .filter(|variant| variant != word)
+        .collect()
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -108,6 +116,7 @@ pub struct KDict {
     pub string_pool: *const u8,
     string_pool_len: usize,
     pub table_mask: u32,
+    provenance: Option<serde_json::Value>,
 }
 
 impl KDict {
@@ -279,6 +288,7 @@ impl KDict {
             ));
         }
 
+        let mut provenance = None;
         if header.version >= 2 {
             let extension_offset = header.padding as usize;
             let word_count = u32::from_le_bytes(
@@ -348,6 +358,134 @@ impl KDict {
                 }
                 cursor += 8;
             }
+            if cursor < source.len() {
+                let trailer_header_end = cursor.checked_add(12).ok_or_else(|| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "KDIC provenance offset overflow",
+                    )
+                })?;
+                if trailer_header_end > source.len()
+                    || &source.as_slice()[cursor..cursor + 4] != b"KPRV"
+                {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Invalid KDIC provenance trailer",
+                    ));
+                }
+                let version = u32::from_le_bytes(
+                    source.as_slice()[cursor + 4..cursor + 8]
+                        .try_into()
+                        .unwrap(),
+                );
+                let payload_size = u32::from_le_bytes(
+                    source.as_slice()[cursor + 8..cursor + 12]
+                        .try_into()
+                        .unwrap(),
+                ) as usize;
+                let payload_end =
+                    trailer_header_end
+                        .checked_add(payload_size)
+                        .ok_or_else(|| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                "KDIC provenance size overflow",
+                            )
+                        })?;
+                if version != 1 || payload_end != source.len() {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Invalid KDIC provenance payload size or version",
+                    ));
+                }
+                let payload: serde_json::Value =
+                    serde_json::from_slice(&source.as_slice()[trailer_header_end..payload_end])
+                        .map_err(|error| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                format!("Invalid KDIC provenance JSON: {error}"),
+                            )
+                        })?;
+                let object = payload.as_object().ok_or_else(|| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "KDIC provenance payload must be an object",
+                    )
+                })?;
+                object
+                    .get("packs")
+                    .and_then(|value| value.as_array())
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "KDIC provenance packs must be an array",
+                        )
+                    })?;
+                let sources = object
+                    .get("sources")
+                    .and_then(|value| value.as_array())
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "KDIC provenance sources must be an array",
+                        )
+                    })?;
+                let words = object
+                    .get("words")
+                    .and_then(|value| value.as_object())
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "KDIC provenance words must be an object",
+                        )
+                    })?;
+                let mut source_ids = std::collections::HashSet::new();
+                for source_record in sources {
+                    let id = source_record
+                        .as_object()
+                        .and_then(|record| record.get("id"))
+                        .and_then(|value| value.as_str())
+                        .ok_or_else(|| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                "KDIC provenance source requires a string id",
+                            )
+                        })?;
+                    if !source_ids.insert(id) {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "KDIC provenance source ids must be unique",
+                        ));
+                    }
+                }
+                for evidence in words.values() {
+                    let records = evidence.as_array().ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidData,
+                            "KDIC word provenance must be an array",
+                        )
+                    })?;
+                    for record in records {
+                        let source_id = record
+                            .as_object()
+                            .and_then(|record| record.get("source"))
+                            .and_then(|value| value.as_str())
+                            .ok_or_else(|| {
+                                std::io::Error::new(
+                                    std::io::ErrorKind::InvalidData,
+                                    "KDIC word provenance requires a source id",
+                                )
+                            })?;
+                        if !source_ids.contains(source_id) {
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                "KDIC word provenance references an unknown source",
+                            ));
+                        }
+                    }
+                }
+                provenance = Some(payload);
+            }
         }
 
         let pool_ptr = unsafe { base_ptr.add(pool_offset) };
@@ -359,6 +497,7 @@ impl KDict {
             string_pool: pool_ptr,
             string_pool_len: pool_len,
             table_mask: header.table_size - 1,
+            provenance,
         })
     }
 
@@ -417,6 +556,11 @@ impl KDict {
 
     pub fn has_unified_metadata(&self) -> bool {
         self.version() >= 2
+    }
+
+    /// Return the optional pack/source/word provenance embedded in KDIC v2.
+    pub fn provenance(&self) -> Option<&serde_json::Value> {
+        self.provenance.as_ref()
     }
 
     fn read_u32(&self, offset: usize) -> Option<u32> {
@@ -542,6 +686,18 @@ mod kdict_tests {
         let word = "\u{179f}\u{17d2}\u{178a}\u{17b6}\u{1794}\u{17cb}";
         let alias = "\u{179f}\u{17d2}\u{178f}\u{17b6}\u{1794}\u{17cb}";
         assert_eq!(coeng_da_ta_variants(word), vec![alias.to_owned()]);
+    }
+
+    #[test]
+    fn reads_optional_provenance_trailer() {
+        let mut bytes = TEST_DICTIONARY.to_vec();
+        let payload = br#"{"packs":[{"id":"test"}],"sources":[],"words":{}}"#;
+        bytes.extend_from_slice(b"KPRV");
+        bytes.extend_from_slice(&1_u32.to_le_bytes());
+        bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(payload);
+        let dictionary = KDict::from_bytes(bytes).unwrap();
+        assert_eq!(dictionary.provenance().unwrap()["packs"][0]["id"], "test");
     }
 }
 

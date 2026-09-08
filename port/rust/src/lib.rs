@@ -11,8 +11,8 @@ pub use khmer_segmenter::{
 };
 pub use normalization::{khmer_normalize_mapped, MappedNormalization, NormalizedUnit};
 pub use spelling::{
-    DiagnosticKind, SpellcheckConfig, SpellcheckProfile, SpellingAccuracy, SpellingDiagnostic, SpellingSuggestion,
-    TypoDetector,
+    DiagnosticKind, SpellcheckConfig, SpellcheckProfile, SpellingAccuracy, SpellingDiagnostic,
+    SpellingSuggestion, TypoDetector,
 };
 
 #[cfg(feature = "wasm")]

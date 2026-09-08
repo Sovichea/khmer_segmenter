@@ -23,6 +23,7 @@ port/common/*.kdict
 segmentation_results.txt
 benchmark_results.txt
 unknown_words_from_results.txt
+benchmarks/curated/benchmark.draft.jsonl
 results/
 
 # IDE / System

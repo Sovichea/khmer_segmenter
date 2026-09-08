@@ -20,8 +20,8 @@ from .data import (
     candidate_data_dirs,
 )
 from .hyphenation import KhmerHyphenator
-from .kdict import compile_klex
-from .models import SpellcheckProfile, SpellingAccuracy
+from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, KDict, compile_klex
+from .models import LexiconMode, SpellcheckProfile, SpellingAccuracy
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
 
@@ -48,6 +48,38 @@ def build_parser() -> argparse.ArgumentParser:
         "--kdict",
         type=Path,
         help="unified KDIC v2 language pack",
+    )
+    resources.add_argument(
+        "--rac-kdict",
+        type=Path,
+        help="primary RAC KDIC for layered loading",
+    )
+    parser.add_argument(
+        "--lexicon-kdict",
+        type=Path,
+        action="append",
+        default=[],
+        help="reviewed official lexicon KDIC; repeat to load multiple packs",
+    )
+    parser.add_argument(
+        "--community-kdict",
+        type=Path,
+        action="append",
+        default=[],
+        help="community KDIC loaded only in inclusive mode; repeatable",
+    )
+    parser.add_argument(
+        "--user-kdict",
+        type=Path,
+        action="append",
+        default=[],
+        help="trusted application/user KDIC; repeatable",
+    )
+    parser.add_argument(
+        "--lexicon-mode",
+        choices=tuple(mode.value for mode in LexiconMode),
+        default=LexiconMode.STRICT.value,
+        help="strict excludes community packs; inclusive loads them",
     )
     parser.add_argument("--verbose", action="store_true", help="show data-loading details")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -155,6 +187,10 @@ def build_parser() -> argparse.ArgumentParser:
     compile_data.add_argument(
         "--base", type=Path, help="optional KDIC v2 base pack to extend"
     )
+    inspect_data = data_commands.add_parser(
+        "inspect", help="show KDIC policy counts and embedded source provenance"
+    )
+    inspect_data.add_argument("pack", type=Path, help="KDIC v2 pack to inspect")
     return parser
 
 
@@ -187,6 +223,18 @@ def _serialize_records(records: list[dict[str, Any]], output_format: str) -> str
 
 
 def _segmenter(args: argparse.Namespace) -> KhmerSegmenter:
+    if args.rac_kdict is not None:
+        if args.kdict is not None or args.data_dir is not None:
+            raise ValueError("--rac-kdict cannot be combined with --kdict or --data-dir")
+        return KhmerSegmenter.from_kdict_layers(
+            args.rac_kdict,
+            lexicon_paths=args.lexicon_kdict,
+            community_paths=args.community_kdict,
+            user_paths=args.user_kdict,
+            mode=args.lexicon_mode,
+        )
+    if args.lexicon_kdict or args.community_kdict or args.user_kdict:
+        raise ValueError("layer packs require --rac-kdict")
     if args.kdict is not None:
         return KhmerSegmenter.from_kdict(args.kdict)
     return KhmerSegmenter.from_data_dir(args.data_dir)
@@ -220,6 +268,27 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         if args.data_command == "compile":
             output = compile_klex(args.lexicon, args.output, base_path=args.base)
             print(f"Compiled unified KDIC v2 pack: {output.resolve()}")
+            return 0
+        if args.data_command == "inspect":
+            pack = KDict.load(args.pack)
+            report = {
+                "path": str(args.pack.resolve()),
+                "version": pack.version,
+                "segmentation_words": sum(
+                    bool(record.flags & SEGMENT) for record in pack.words.values()
+                ),
+                "spelling_words": sum(
+                    bool(record.flags & SPELLCHECK) for record in pack.words.values()
+                ),
+                "autocomplete_words": sum(
+                    bool(record.flags & AUTOCOMPLETE) for record in pack.words.values()
+                ),
+                "typo_corrections": len(pack.typo_corrections),
+                "packs": pack.packs,
+                "sources": pack.sources,
+                "provenance_words": len(pack.word_provenance),
+            }
+            print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
         files = _data_files_for_status(args.data_dir)
         print(f"Data directory: {files.root}")

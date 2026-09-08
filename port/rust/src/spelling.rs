@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::str::FromStr;
 
-use crate::kdict::{KDict, WORD_AUTOCOMPLETE, WORD_SPELLCHECK};
 use crate::kdict::coeng_da_ta_variants;
+use crate::kdict::{KDict, WORD_AUTOCOMPLETE, WORD_SPELLCHECK};
 use crate::khmer_segmenter::Segmentation;
 
 const COENG: char = '\u{17d2}';

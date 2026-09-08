@@ -81,6 +81,108 @@ def test_klex_overlay_preserves_base_and_adds_local_policy(tmp_path: Path):
     assert overlay.words[first_base_word].cost == base.words[first_base_word].cost
 
 
+def test_kdict_embeds_and_preserves_word_provenance(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    source = tmp_path / "provenance.klex.json"
+    output = tmp_path / "provenance.kdict"
+    source.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "pack": {"id": "science-v1", "kind": "official_lexicon"},
+                "sources": [
+                    {
+                        "id": "science-book",
+                        "title": "Science terminology",
+                        "sha256": "abc123",
+                    }
+                ],
+                "entries": [
+                    {
+                        "word": "កាដម្យូម",
+                        "uses": ["segmentation", "spelling", "autocomplete"],
+                        "provenance": [
+                            {
+                                "source": "science-book",
+                                "page": 12,
+                                "region": 32,
+                            }
+                        ],
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    compile_klex(source, output)
+    pack = KDict.load(output)
+
+    assert pack.packs == [{"id": "science-v1", "kind": "official_lexicon"}]
+    assert pack.sources[0]["id"] == "science-book"
+    assert pack.word_provenance["កាដម្យូម"][0]["page"] == 12
+    assert KhmerSegmenter.from_kdict(output).provenance_for("កាដម្យូម")[0]["page"] == 12
+
+    assert cli_main(["data", "inspect", str(output)]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["packs"][0]["id"] == "science-v1"
+    assert report["sources"][0]["id"] == "science-book"
+    assert report["provenance_words"] == 1
+
+
+def test_layered_kdict_strict_mode_excludes_community(tmp_path: Path):
+    def build(name: str, word: str) -> Path:
+        source = tmp_path / f"{name}.klex.json"
+        output = tmp_path / f"{name}.kdict"
+        source.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "pack": {"id": name, "kind": name},
+                    "entries": [
+                        {
+                            "word": word,
+                            "uses": ["segmentation", "spelling", "autocomplete"],
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        compile_klex(source, output)
+        return output
+
+    rac = build("rac", "ដែល")
+    lexicon = build("lexicon", "កាដម្យូម")
+    community = build("community", "អោយ")
+    user = build("user", "ឈ្មោះអ្នកប្រើ")
+
+    strict = KhmerSegmenter.from_kdict_layers(
+        rac,
+        lexicon_paths=[lexicon],
+        community_paths=[community],
+        user_paths=[user],
+        mode="strict",
+    )
+    assert strict.is_spelling_valid("ដែល")
+    assert strict.is_spelling_valid("កាដម្យូម")
+    assert strict.is_spelling_valid("ឈ្មោះអ្នកប្រើ")
+    assert strict.provenance_for("កាដម្យូម") == ()
+    assert "អោយ" not in strict.words
+
+    inclusive = KhmerSegmenter.from_kdict_layers(
+        rac,
+        lexicon_paths=[lexicon],
+        community_paths=[community],
+        user_paths=[user],
+        mode="inclusive",
+    )
+    assert inclusive.is_spelling_valid("អោយ")
+    assert inclusive.segment("កាដម្យូម") == ["កាដម្យូម"]
+
+
 def test_python_cli_compiles_overlay(tmp_path: Path):
     base_source = Path(__file__).parents[1] / "examples" / "custom.klex.json"
     base_output = tmp_path / "base.kdict"

@@ -1,0 +1,9 @@
+{
+  "segmenter_version": "0.2.0rc3",
+  "model_id": "rac-2022-layered-v1",
+  "model_manifest_sha256": "207535fb639b3402665a323930757456d1f80826bd61328a52df77d2aa05fcf3",
+  "source_revision": "525c0171894465cba920a9181387a032c11610d3",
+  "records": 300,
+  "review_column": "segmented_text",
+  "immutable_baseline_column": "model_segmented_text"
+}

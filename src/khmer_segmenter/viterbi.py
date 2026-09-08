@@ -12,6 +12,7 @@ from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
 from .models import (
     SpellcheckConfig,
     SpellcheckProfile,
+    LexiconMode,
     SpellingAccuracy,
     SpellingDiagnostic,
     SpellingSuggestion,
@@ -41,17 +42,28 @@ class KhmerSegmenter:
         *,
         data_dir=None,
         kdict_path=None,
+        kdict_layers=None,
     ):
         """
         Initialize the segmenter by loading the dictionary and word frequencies.
         """
         supplied_sources = sum(
-            value is not None for value in (dictionary_path, data_dir, kdict_path)
+            value is not None for value in (dictionary_path, data_dir, kdict_path, kdict_layers)
         )
         if supplied_sources > 1:
-            raise ValueError("pass only one of dictionary_path, data_dir, or kdict_path")
+            raise ValueError(
+                "pass only one of dictionary_path, data_dir, kdict_path, or kdict_layers"
+            )
         pack = KDict.load(kdict_path) if kdict_path is not None else None
-        if pack is not None:
+        layers = (
+            [(kind, KDict.load(path)) for kind, path in kdict_layers]
+            if kdict_layers is not None
+            else None
+        )
+        if layers:
+            data_files = DataFiles(Path(kdict_layers[0][1]).resolve().parent)
+            dictionary_path = None
+        elif pack is not None:
             data_files = DataFiles(Path(kdict_path).resolve().parent)
             dictionary_path = None
         elif dictionary_path is None:
@@ -79,6 +91,10 @@ class KhmerSegmenter:
         self._spellcheck_words = None
         self._autocomplete_words = None
         self._pack_typo_corrections = None
+        self.kdict_packs = []
+        self.kdict_sources = []
+        self.word_provenance = {}
+        self._word_sources = {}
         self._curated_runtime_words = set()
         self._supplemental_runtime_words = set()
         self._typo_detector = None
@@ -92,7 +108,9 @@ class KhmerSegmenter:
             check_invalid_single_func=self._is_invalid_single, is_separator_func=self._is_separator
         )
 
-        if pack is not None:
+        if layers:
+            self._load_kdict_layers(layers)
+        elif pack is not None:
             self._load_kdict(pack)
         else:
             self._load_dictionary(dictionary_path)
@@ -112,6 +130,37 @@ class KhmerSegmenter:
 
         return cls(kdict_path=path)
 
+    @classmethod
+    def from_kdict_layers(
+        cls,
+        rac_path,
+        *,
+        lexicon_paths=(),
+        community_paths=(),
+        user_paths=(),
+        mode=LexiconMode.STRICT,
+    ):
+        """Load separately replaceable KDIC authority layers.
+
+        Strict mode uses RAC, reviewed official lexicons, and user dictionaries.
+        Inclusive mode additionally loads community packs. Earlier layers retain
+        lexical priority when the same surface occurs in more than one pack.
+        """
+
+        mode = LexiconMode.coerce(mode)
+        layers = [("rac", rac_path)]
+        layers.extend(("lexicon", path) for path in lexicon_paths)
+        layers.extend(("user", path) for path in user_paths)
+        if mode is LexiconMode.INCLUSIVE:
+            layers.extend(("community", path) for path in community_paths)
+        return cls(kdict_layers=layers)
+
+    def provenance_for(self, word, *, normalize=True):
+        """Return immutable source-evidence records for a loaded lexical form."""
+
+        key = self.normalizer.normalize(word) if normalize else word
+        return tuple(dict(record) for record in self.word_provenance.get(key, ()))
+
     def _load_kdict(self, pack):
         if pack.version < 2:
             raise ValueError("Python unified loading requires KDIC version 2")
@@ -122,10 +171,16 @@ class KhmerSegmenter:
         self._curated_runtime_words = set()
         self._supplemental_runtime_words = set()
         self._pack_typo_corrections = dict(pack.typo_corrections)
+        self.kdict_packs = list(pack.packs)
+        self.kdict_sources = list(pack.sources)
+        self.word_provenance = {
+            word: list(records) for word, records in pack.word_provenance.items()
+        }
         for record in pack.words.values():
             if record.flags & SEGMENT:
                 self.words.add(record.word)
                 self.word_costs[record.word] = record.cost
+                self._word_sources.setdefault(record.word, "dictionary")
                 # KDIC v1/v2 packs may predate this alias policy.  Expand at
                 # load time as well as during text-dictionary loading so every
                 # pack offers the same segmentation behaviour.
@@ -139,6 +194,77 @@ class KhmerSegmenter:
                 self._autocomplete_words.add(record.word)
             if record.flags & SUPPLEMENTAL:
                 self._supplemental_runtime_words.add(record.word)
+        self.max_word_length = max(map(len, self.words), default=0)
+
+    def _load_kdict_layers(self, layers):
+        """Merge independent packs while preserving their authority order."""
+
+        if not layers:
+            raise ValueError("at least one KDIC layer is required")
+        for kind, pack in layers:
+            if pack.version < 2:
+                raise ValueError("layered loading requires KDIC version 2")
+        primary = layers[0][1]
+        self.default_cost = primary.default_cost
+        self.unknown_cost = primary.unknown_cost
+        self._spellcheck_words = set()
+        self._autocomplete_words = set()
+        self._curated_runtime_words = set()
+        self._supplemental_runtime_words = set()
+        self._pack_typo_corrections = {}
+        penalties = {"rac": 0.0, "user": 0.25, "lexicon": 0.75, "community": 1.5}
+        source_labels = {
+            "rac": "rac_2022",
+            "lexicon": "official_lexicon",
+            "user": "user",
+            "community": "community",
+        }
+        source_ids = {}
+        for kind, pack in layers:
+            for metadata in pack.packs:
+                if metadata not in self.kdict_packs:
+                    self.kdict_packs.append(metadata)
+            for source in pack.sources:
+                source_id = source.get("id")
+                previous = source_ids.get(source_id)
+                if previous is not None and previous != source:
+                    raise ValueError(f"conflicting KDIC source metadata for {source_id!r}")
+                if previous is None:
+                    self.kdict_sources.append(source)
+                    source_ids[source_id] = source
+            for word, evidence in pack.word_provenance.items():
+                for item in evidence:
+                    if item not in self.word_provenance.setdefault(word, []):
+                        self.word_provenance[word].append(item)
+            if kind == "community":
+                for typed, correction in pack.typo_corrections.items():
+                    self._pack_typo_corrections.setdefault(typed, correction)
+            else:
+                self._pack_typo_corrections.update(pack.typo_corrections)
+            penalty = penalties.get(kind, 1.0)
+            for record in pack.words.values():
+                if record.flags & SEGMENT:
+                    effective_cost = (
+                        record.cost
+                        if kind == "rac"
+                        else max(record.cost, self.default_cost + penalty)
+                    )
+                    if record.word not in self.words:
+                        self.words.add(record.word)
+                        self.word_costs[record.word] = effective_cost
+                        self._word_sources[record.word] = source_labels.get(kind, kind)
+                    for variant in coeng_da_ta_variants(record.word):
+                        if variant not in self.words:
+                            self.words.add(variant)
+                            self.word_costs[variant] = effective_cost
+                            self._word_sources[variant] = source_labels.get(kind, kind)
+                if record.flags & SPELLCHECK:
+                    self._spellcheck_words.add(record.word)
+                    self._curated_runtime_words.add(record.word)
+                if record.flags & AUTOCOMPLETE:
+                    self._autocomplete_words.add(record.word)
+                if record.flags & SUPPLEMENTAL:
+                    self._supplemental_runtime_words.add(record.word)
         self.max_word_length = max(map(len, self.words), default=0)
 
     def _load_word_set(self, path, destination):
@@ -767,7 +893,9 @@ class KhmerSegmenter:
             else:
                 token_type = "unknown"
 
-            if known and token in self._curated_runtime_words:
+            if known and token in self._word_sources:
+                source = self._word_sources[token]
+            elif known and token in self._curated_runtime_words:
                 source = "rac_2022"
             elif known and token in self._supplemental_runtime_words:
                 source = "supplemental"
