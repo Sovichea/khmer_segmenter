@@ -19,7 +19,6 @@ from .data import (
     DataNotFoundError,
     candidate_data_dirs,
 )
-from .hyphenation import KhmerHyphenator
 from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, KDict, compile_klex
 from .models import LexiconMode, SpellcheckProfile, SpellingAccuracy
 from .preparation import prepare_dictionary
@@ -149,18 +148,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="legacy alias for high-recall fragment inspection",
     )
 
-    hyphenate = commands.add_parser(
-        "hyphenate", help="apply locally generated safe break opportunities"
+    word_breaks = commands.add_parser(
+        "word-breaks", help="find or insert safe Khmer word-break opportunities"
     )
-    _add_text_input(hyphenate)
-    hyphenate.add_argument(
-        "--separator",
-        default="\u200b",
-        help="inserted separator; defaults to zero-width space",
+    _add_text_input(word_breaks)
+    word_breaks.add_argument(
+        "--format", choices=("plain", "json", "jsonl"), default="plain"
     )
-    hyphenate.add_argument(
-        "--visible-hyphen", action="store_true", help="insert '-' for inspection"
-    )
+    word_breaks.add_argument("--no-normalize", action="store_true")
 
     benchmark = commands.add_parser("benchmark", help="measure segmentation throughput")
     benchmark.add_argument("--input", "-i", required=True, type=Path)
@@ -402,12 +397,25 @@ def run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         _write(_serialize_records(records, args.format), args.output)
         return 0
 
-    if args.command == "hyphenate":
-        hyphenator = KhmerHyphenator.from_data_dir(args.data_dir)
-        separator = "-" if args.visible_hyphen else args.separator
-        rendered = "\n".join(
-            hyphenator.hyphenate(text, segmenter=segmenter, separator=separator) for text in texts
-        )
+    if args.command == "word-breaks":
+        records = [
+            {
+                "text": text,
+                "break_offsets": list(
+                    segmenter.word_break_opportunities(
+                        text, normalize=not args.no_normalize
+                    )
+                ),
+                "output": segmenter.insert_word_breaks(
+                    text, normalize=not args.no_normalize
+                ),
+            }
+            for text in texts
+        ]
+        if args.format == "plain":
+            rendered = "\n".join(record["output"] for record in records)
+        else:
+            rendered = _serialize_records(records, args.format)
         _write(rendered, args.output)
         return 0
 

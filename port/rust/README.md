@@ -64,13 +64,25 @@ feedback, `document` for an explicit full-document check, and reserve
 `high-recall` for experimental corpus review. Native Rust exposes the same API:
 
 ```rust
-use khmer_segmenter::{KhmerSegmenter, SpellcheckProfile};
+use khmer_segmenter::{KhmerSegmenter, SegmenterConfig, SpellcheckProfile};
+
+let segmenter = KhmerSegmenter::from_path(
+    "khmer_dictionary.kdict",
+    SegmenterConfig::default(),
+)?;
 
 let diagnostics = segmenter.check_text(text, SpellcheckProfile::Typing)?;
 
 // Preferred when the caller also needs tokens and original-source ranges.
 let analysis = segmenter.analyze_text(text, SpellcheckProfile::Typing)?;
 ```
+
+Every constructor requires a valid KDIC. Native applications can use
+`from_path()`, while embedded and WASM integrations can use `from_bytes()`.
+Callers that already loaded a `KDict` can pass ownership to `from_kdict()`.
+This prevents a segmenter from being created in an unusable dictionary-less
+state. Native ranges use UTF-8 byte offsets; the WASM wrapper converts ranges
+to JavaScript UTF-16 code-unit offsets.
 
 The native CLI exposes the same combined output:
 
@@ -105,7 +117,14 @@ Run the binary directly or via `cargo run`.
 cargo run --release -- diagnose --profile typing "សម្បត្ត"
 cargo run --release -- diagnose --profile document --input manuscript.txt
 cargo run --release -- diagnose --dictionary custom.kdict --profile typing "ដេល"
+cargo run --release -- --kdict custom.kdict analyze --profile typing "ដេល"
 ```
+
+For installed binaries, `--dictionary` and `--kdict` can appear before or
+after `diagnose`, `analyze`, or `word-breaks`. If neither is supplied, the CLI
+checks `KHMER_SEGMENTER_KDICT`, the working directory, and then the executable
+directory (including its `data` subdirectory). A missing or invalid configured
+dictionary is an error; the CLI never silently runs without lexical data.
 
 ### Segment Raw Text
 ```bash
@@ -127,17 +146,15 @@ cargo run --release -- --benchmark
 cargo run --release -- --input ../../dataset/corpus.txt --benchmark
 ```
 
-### Hyphenation Lookups
-You can query the compiled `khmer_hyphenation.kdict` directly to fetch sub-word hyphenation break points (inserted with invisible Zero Width Space characters).
+### Word-break opportunities
+
+Layout engines can request legal Khmer word-boundary byte offsets or insert
+U+200B at those boundaries. The operation uses the segmenter's main KDIC, not
+a separate hyphenation dictionary, and never adds breaks inside a dictionary
+word.
 
 ```bash
-# Query a single word for its hyphenation mapping
-cargo run --release -- --test-hyphenation "កក្រើករំជួល"
-# Output: កក្រើក-រំជួល
-
-# Segment an entire sentence and apply hyphenation lookups to each token
-cargo run --release -- --hyphenate-sentence "សហប្រតិបត្តិការពហុភាគីគឺជារបាំងធុរកិច្ចដ៏សំខាន់មួយ។"
-# Output: សហ-ប្រតិបត្តិការ | ពហុ-ភាគី | គឺជា | របាំង-ធុរកិច្ច | ដ៏ | សំ-ខាន់ | មួយ | ។
+cargo run --release -- word-breaks --format json "ខ្មែរស្រឡាញ់ខ្មែរ"
 ```
 
 ## Performance

@@ -63,7 +63,7 @@ con-001	dev	Conversational text	សួស្តីអ្នកសុខសប្
 con-002	dev	Conversational text	ខ្ញុំសុខសប្បាយទេអរគុណចុះអ្នកវិញ?	ខ្ញុំ សុខសប្បាយ ទេ អរគុណ ចុះ អ្នក វិញ ?	ខ្ញុំ សុខសប្បាយ ទេ អរគុណ ចុះ អ្នក វិញ ?	draft	Pending review of Khmer Segmenter output.
 con-003	dev	Conversational text	ថ្ងៃនេះអ្នកចង់ញ៉ាំអ្វី?	ថ្ងៃ នេះ អ្នក ចង់ ញ៉ាំ អ្វី ?	ថ្ងៃ នេះ អ្នក ចង់ ញ៉ាំ អ្វី ?	draft	Pending review of Khmer Segmenter output.
 con-004	dev	Conversational text	ខ្ញុំចង់ទៅផ្សារជាមួយម្តាយ។	ខ្ញុំ ចង់ ទៅ ផ្សារ ជាមួយ ម្តាយ ។	ខ្ញុំ ចង់ ទៅ ផ្សារ ជាមួយ ម្តាយ ។	draft	Pending review of Khmer Segmenter output.
-con-005	dev	Conversational text	កុំភ្លេចយកឆ័ត្រទៅផង។	កុំ ភ្លេច យក ឆ័ត្រ ទៅ ផង ។	កុំ ភ្លេច យក ឆ័ត្រ ទៅ ផង ។	draft	Pending review of Khmer Segmenter output.
+con-005	dev	Conversational text	កុំភ្លេចយកឆត្រទៅផង។	កុំ ភ្លេច យក ឆត្រ ទៅ ផង ។	កុំ ភ្លេច យក ឆត្រ ទៅ ផង ។	approved	Source spelling corrected during review.
 con-006	dev	Conversational text	តើអ្នកមកដល់ផ្ទះហើយឬនៅ?	តើ អ្នក មក ដល់ ផ្ទះ ហើយ ឬ នៅ ?	តើ អ្នក មក ដល់ ផ្ទះ ហើយ ឬ នៅ ?	draft	Pending review of Khmer Segmenter output.
 con-007	dev	Conversational text	បន្តិចទៀតខ្ញុំនឹងទៅដល់ហើយ។	បន្តិច ទៀត ខ្ញុំ នឹង ទៅ ដល់ ហើយ ។	បន្តិច ទៀត ខ្ញុំ នឹង ទៅ ដល់ ហើយ ។	draft	Pending review of Khmer Segmenter output.
 con-008	dev	Conversational text	សូមជួយបិទទ្វារឱ្យខ្ញុំផង។	សូម ជួយ បិទទ្វារ ឱ្យ ខ្ញុំ ផង ។	សូម ជួយ បិទទ្វារ ឱ្យ ខ្ញុំ ផង ។	draft	Pending review of Khmer Segmenter output.

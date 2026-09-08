@@ -45,7 +45,7 @@ impl Default for SegmenterConfig {
 }
 
 pub struct KhmerSegmenter {
-    kdict: Option<KDict>,
+    kdict: KDict,
     typo_detector: OnceLock<TypoDetector>,
     rule_engine: RuleEngine,
     config: SegmenterConfig,
@@ -128,14 +128,12 @@ impl Segmentation {
 
 #[derive(Debug)]
 pub enum SegmentationError {
-    MissingDictionary,
     NoSegmentationPath,
 }
 
 impl fmt::Display for SegmentationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::MissingDictionary => formatter.write_str("Khmer dictionary is not loaded"),
             Self::NoSegmentationPath => formatter.write_str("No valid segmentation path was found"),
         }
     }
@@ -150,34 +148,16 @@ struct State {
 }
 
 impl KhmerSegmenter {
-    pub fn new(kdict_path: Option<&str>, config: SegmenterConfig) -> std::io::Result<Self> {
-        match kdict_path {
-            Some(path) => Self::from_path(path, config),
-            None => Ok(Self::new_with_dict(None, config)),
-        }
-    }
-
     #[cfg(not(target_arch = "wasm32"))]
     pub fn from_path(path: impl AsRef<Path>, config: SegmenterConfig) -> std::io::Result<Self> {
-        Ok(Self::new_with_dict(Some(KDict::load(path)?), config))
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn from_path(_path: impl AsRef<str>, _config: SegmenterConfig) -> std::io::Result<Self> {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "File loading is not supported on WASM; use from_bytes",
-        ))
+        Ok(Self::from_kdict(KDict::load(path)?, config))
     }
 
     pub fn from_bytes(bytes: impl Into<Vec<u8>>, config: SegmenterConfig) -> std::io::Result<Self> {
-        Ok(Self::new_with_dict(
-            Some(KDict::from_bytes(bytes.into())?),
-            config,
-        ))
+        Ok(Self::from_kdict(KDict::from_bytes(bytes.into())?, config))
     }
 
-    pub fn new_with_dict(kdict: Option<KDict>, config: SegmenterConfig) -> Self {
+    pub fn from_kdict(kdict: KDict, config: SegmenterConfig) -> Self {
         Self {
             kdict,
             typo_detector: OnceLock::new(),
@@ -226,11 +206,8 @@ impl KhmerSegmenter {
         dp[0].cost = 0.0;
 
         // Dictionary Accessors
-        let (header, table, mask) = if let Some(ref kd) = self.kdict {
-            unsafe { (&*kd.header, kd.table, kd.table_mask) }
-        } else {
-            return Err(SegmentationError::MissingDictionary);
-        };
+        let kd = &self.kdict;
+        let (header, table, mask) = unsafe { (&*kd.header, kd.table, kd.table_mask) };
 
         let mut i = 0;
 
@@ -300,56 +277,54 @@ impl KhmerSegmenter {
             }
 
             // Dictionary Lookup
-            if let Some(ref kd) = self.kdict {
-                let max_wl = header.max_word_length as usize;
-                let mut khash: u32 = 5381;
-                let mut current_offset = i;
-                let bytes = text.as_bytes();
+            let max_wl = header.max_word_length as usize;
+            let mut khash: u32 = 5381;
+            let mut current_offset = i;
+            let bytes = text.as_bytes();
 
-                for sub_c in text[i..].chars() {
-                    let sc_len = sub_c.len_utf8();
-                    if current_offset + sc_len - i > max_wl {
+            for sub_c in text[i..].chars() {
+                let sc_len = sub_c.len_utf8();
+                if current_offset + sc_len - i > max_wl {
+                    break;
+                }
+
+                // Incremental Hash
+                for b in &bytes[current_offset..current_offset + sc_len] {
+                    khash = (khash << 5).wrapping_add(khash).wrapping_add(*b as u32);
+                }
+
+                current_offset += sc_len;
+
+                // Lookup
+                let mut idx = khash & mask;
+                loop {
+                    let entry = unsafe { &*table.add(idx as usize) };
+                    if entry.name_offset == 0 {
                         break;
                     }
 
-                    // Incremental Hash
-                    for b in &bytes[current_offset..current_offset + sc_len] {
-                        khash = (khash << 5).wrapping_add(khash).wrapping_add(*b as u32);
-                    }
+                    // Optimized: Pointer-based comparison
+                    let len = current_offset - i;
+                    let stored_ptr = kd.get_pool_ptr(entry.name_offset);
+                    // bytes is a slice, as_ptr is safe.
+                    let word_ptr = unsafe { bytes.as_ptr().add(i) };
 
-                    current_offset += sc_len;
-
-                    // Lookup
-                    let mut idx = khash & mask;
-                    loop {
-                        let entry = unsafe { &*table.add(idx as usize) };
-                        if entry.name_offset == 0 {
+                    unsafe {
+                        // Check first byte, then SIMD body, then sentinel
+                        if *stored_ptr == *word_ptr
+                            && utils::fast_str_eq(stored_ptr, word_ptr, len)
+                            && *stored_ptr.add(len) == 0
+                        {
+                            let new_cost = dp[i].cost + entry.cost;
+                            if new_cost < dp[current_offset].cost {
+                                dp[current_offset].cost = new_cost;
+                                dp[current_offset].prev_idx = i as isize;
+                            }
                             break;
                         }
-
-                        // Optimized: Pointer-based comparison
-                        let len = current_offset - i;
-                        let stored_ptr = kd.get_pool_ptr(entry.name_offset);
-                        // bytes is a slice, as_ptr is safe.
-                        let word_ptr = unsafe { bytes.as_ptr().add(i) };
-
-                        unsafe {
-                            // Check first byte, then SIMD body, then sentinel
-                            if *stored_ptr == *word_ptr
-                                && utils::fast_str_eq(stored_ptr, word_ptr, len)
-                                && *stored_ptr.add(len) == 0
-                            {
-                                let new_cost = dp[i].cost + entry.cost;
-                                if new_cost < dp[current_offset].cost {
-                                    dp[current_offset].cost = new_cost;
-                                    dp[current_offset].prev_idx = i as isize;
-                                }
-                                break;
-                            }
-                        }
-
-                        idx = (idx + 1) & mask;
                     }
+
+                    idx = (idx + 1) & mask;
                 }
             }
 
@@ -451,11 +426,7 @@ impl KhmerSegmenter {
                         if entry.name_offset == 0 {
                             break;
                         } // Not found
-                        let stored_bytes = self
-                            .kdict
-                            .as_ref()
-                            .unwrap()
-                            .get_pool_bytes(entry.name_offset);
+                        let stored_bytes = self.kdict.get_pool_bytes(entry.name_offset);
                         if stored_bytes == seg.as_bytes() {
                             is_known = true;
                             break;
@@ -534,11 +505,61 @@ impl KhmerSegmenter {
         }
     }
 
+    /// Return legal Khmer word-break offsets in the original UTF-8 source.
+    ///
+    /// Offsets are byte offsets, as required by Rust string slicing. Breaks are
+    /// offered only between adjacent known Khmer dictionary words.
+    pub fn word_break_opportunities(
+        &self,
+        raw_text: &str,
+    ) -> Result<Vec<usize>, SegmentationError> {
+        let segmentation = self.segment_detailed(raw_text)?;
+        let normalized = segmentation.normalized();
+        let mut offsets = Vec::new();
+        for pair in segmentation
+            .ranges()
+            .windows(2)
+            .zip(segmentation.mapped_segments().windows(2))
+        {
+            let (ranges, mapped) = pair;
+            let left = &normalized[ranges[0].clone()];
+            let right = &normalized[ranges[1].clone()];
+            let offset = mapped[0].source_range.end;
+            if is_lexical_khmer(left)
+                && is_lexical_khmer(right)
+                && self.is_dictionary_word(left)
+                && self.is_dictionary_word(right)
+                && offset == mapped[1].source_range.start
+                && offset > 0
+                && offset < raw_text.len()
+                && !raw_text[..offset].ends_with('\u{200b}')
+                && !raw_text[offset..].starts_with('\u{200b}')
+            {
+                offsets.push(offset);
+            }
+        }
+        Ok(offsets)
+    }
+
+    /// Insert U+200B at legal Khmer word boundaries while preserving source text.
+    pub fn insert_word_breaks(&self, raw_text: &str) -> Result<String, SegmentationError> {
+        let offsets = self.word_break_opportunities(raw_text)?;
+        if offsets.is_empty() {
+            return Ok(raw_text.to_owned());
+        }
+        let mut output = String::with_capacity(raw_text.len() + offsets.len() * 3);
+        let mut start = 0;
+        for offset in offsets {
+            output.push_str(&raw_text[start..offset]);
+            output.push('\u{200b}');
+            start = offset;
+        }
+        output.push_str(&raw_text[start..]);
+        Ok(output)
+    }
+
     pub fn is_known_word(&self, word: &str) -> bool {
-        self.is_dictionary_word(word)
-            || self
-                .typo_detector()
-                .is_some_and(|detector| detector.is_word(word))
+        self.is_dictionary_word(word) || self.typo_detector().is_word(word)
     }
 
     /// Return whether `word` is accepted by the curated spelling vocabulary.
@@ -551,8 +572,7 @@ impl KhmerSegmenter {
     }
 
     pub fn is_spelling_valid_with_accuracy(&self, word: &str, accuracy: SpellingAccuracy) -> bool {
-        self.typo_detector()
-            .is_some_and(|detector| detector.is_word_with_accuracy(word, accuracy))
+        self.typo_detector().is_word_with_accuracy(word, accuracy)
     }
 
     pub fn suggest_spelling(
@@ -576,18 +596,18 @@ impl KhmerSegmenter {
         max_suggestions: usize,
         accuracy: SpellingAccuracy,
     ) -> Vec<SpellingSuggestion> {
-        self.typo_detector()
-            .map(|detector| {
-                detector.suggest_word_with_accuracy(word, max_edit_cost, max_suggestions, accuracy)
-            })
-            .unwrap_or_default()
+        self.typo_detector().suggest_word_with_accuracy(
+            word,
+            max_edit_cost,
+            max_suggestions,
+            accuracy,
+        )
     }
 
     /// Suggest dictionary words beginning with the supplied prefix.
     pub fn complete_word(&self, prefix: &str, max_suggestions: usize) -> Vec<SpellingSuggestion> {
         self.typo_detector()
-            .map(|detector| detector.complete_prefix(prefix, max_suggestions))
-            .unwrap_or_default()
+            .complete_prefix(prefix, max_suggestions)
     }
 
     pub fn detect_typos(
@@ -694,17 +714,14 @@ impl KhmerSegmenter {
         accuracy: SpellingAccuracy,
     ) -> Vec<SpellingDiagnostic> {
         self.typo_detector()
-            .map(|detector| {
-                detector.detect(
-                    &segmentation,
-                    config.max_edit_cost,
-                    config.max_suggestions,
-                    config.context_tokens,
-                    config.include_valid_fragments,
-                    accuracy,
-                )
-            })
-            .unwrap_or_default()
+            .detect(
+                segmentation,
+                config.max_edit_cost,
+                config.max_suggestions,
+                config.context_tokens,
+                config.include_valid_fragments,
+                accuracy,
+            )
             .into_iter()
             .filter(|diagnostic| diagnostic.confidence >= config.min_confidence)
             .filter(|diagnostic| !self.is_spelling_valid_with_accuracy(&diagnostic.text, accuracy))
@@ -717,11 +734,9 @@ impl KhmerSegmenter {
             .collect()
     }
 
-    fn typo_detector(&self) -> Option<&TypoDetector> {
-        self.kdict.as_ref().map(|dictionary| {
-            self.typo_detector
-                .get_or_init(|| TypoDetector::from_kdict(dictionary))
-        })
+    fn typo_detector(&self) -> &TypoDetector {
+        self.typo_detector
+            .get_or_init(|| TypoDetector::from_kdict(&self.kdict))
     }
 
     fn refine_segments_for_short_length(
@@ -797,10 +812,7 @@ impl KhmerSegmenter {
     }
 
     fn is_dictionary_word(&self, word: &str) -> bool {
-        self.kdict
-            .as_ref()
-            .and_then(|dictionary| dictionary.cost(word))
-            .is_some()
+        self.kdict.cost(word).is_some()
     }
 
     fn is_short_segmentation_part(&self, word: &str) -> bool {
@@ -826,6 +838,13 @@ fn source_range_for(normalization: &MappedNormalization, range: &Range<usize>) -
     source_start.unwrap_or(0)..source_end
 }
 
+fn is_lexical_khmer(text: &str) -> bool {
+    !text.is_empty()
+        && text.chars().all(|character| {
+            ('\u{1780}'..='\u{17d3}').contains(&character) || character == '\u{17dd}'
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -845,6 +864,32 @@ mod tests {
             .tokens()
             .map(ToOwned::to_owned)
             .collect()
+    }
+
+    #[test]
+    fn constructors_require_a_valid_dictionary() {
+        assert!(KhmerSegmenter::from_bytes(
+            b"not a KDIC dictionary".to_vec(),
+            SegmenterConfig::default(),
+        )
+        .is_err());
+
+        let dictionary = KDict::from_bytes(TEST_DICTIONARY.to_vec()).unwrap();
+        let segmenter = KhmerSegmenter::from_kdict(dictionary, SegmenterConfig::default());
+        assert!(segmenter.is_known_word("ដែល"));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn native_constructor_loads_a_dictionary_file() {
+        let path = std::env::temp_dir().join(format!(
+            "khmer-segmenter-constructor-test-{}.kdict",
+            std::process::id()
+        ));
+        std::fs::write(&path, TEST_DICTIONARY).unwrap();
+        let segmenter = KhmerSegmenter::from_path(&path, SegmenterConfig::default()).unwrap();
+        assert!(segmenter.is_known_word("ដែល"));
+        std::fs::remove_file(path).unwrap();
     }
 
     #[test]
@@ -966,6 +1011,28 @@ mod tests {
         assert_eq!(analysis.segmentation.normalized(), typo);
         assert_eq!(analysis.diagnostics[0].range, 0..typo.len());
         assert_eq!(analysis.diagnostics[0].source_range, 3..source.len());
+    }
+
+    #[test]
+    fn word_breaks_preserve_source_and_skip_nonlexical_boundaries() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        let text = "ខ្មែរស្រឡាញ់ខ្មែរ";
+        assert_eq!(
+            segmenter.word_break_opportunities(text).unwrap(),
+            vec![15, 36]
+        );
+        assert_eq!(
+            segmenter.insert_word_breaks(text).unwrap(),
+            "ខ្មែរ\u{200b}ស្រឡាញ់\u{200b}ខ្មែរ"
+        );
+        assert_eq!(
+            segmenter.insert_word_breaks("ខ្មែរ ស្រឡាញ់។").unwrap(),
+            "ខ្មែរ ស្រឡាញ់។"
+        );
+        assert_eq!(
+            segmenter.insert_word_breaks("ខ្មែរ\u{200b}ស្រឡាញ់").unwrap(),
+            "ខ្មែរ\u{200b}ស្រឡាញ់"
+        );
     }
 
     #[test]

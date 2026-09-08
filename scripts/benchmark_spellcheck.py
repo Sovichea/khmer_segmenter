@@ -5,14 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import statistics
 import sys
 import time
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from khmer_segmenter import KhmerSegmenter, SpellcheckProfile
+from khmer_segmenter import KhmerSegmenter, SpellcheckProfile, SpellingAccuracy
 
 try:
     import psutil
@@ -37,10 +37,22 @@ def main() -> int:
         type=Path,
         help="UTF-8 valid prose; each non-empty line is checked for false positives",
     )
+    parser.add_argument(
+        "--valid-jsonl",
+        type=Path,
+        help="Curated JSONL whose text fields are checked for false positives",
+    )
     parser.add_argument("--prefix", default="សរសេ", help="completion prefix")
+    parser.add_argument(
+        "--spelling-accuracy",
+        choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
+        default=SpellingAccuracy.LEXICAL.value,
+        help="require dictionary encoding or accept visual COENG DA/TA equivalents",
+    )
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    accuracy = SpellingAccuracy(args.spelling_accuracy)
 
     text = args.input.read_text(encoding="utf-8-sig") if args.input else DEFAULT_TEXT
     process = psutil.Process(os.getpid()) if psutil else None
@@ -49,10 +61,16 @@ def main() -> int:
     segmenter = KhmerSegmenter()
     initialization_ms = (time.perf_counter() - start) * 1000
     first_spellcheck_ms = elapsed_ms(
-        lambda: segmenter.check_text(text, profile=SpellcheckProfile.DOCUMENT)
+        lambda: segmenter.check_text(
+            text, profile=SpellcheckProfile.DOCUMENT, accuracy=accuracy
+        )
     )
     repeated = [
-        elapsed_ms(lambda: segmenter.check_text(text, profile=SpellcheckProfile.DOCUMENT))
+        elapsed_ms(
+            lambda: segmenter.check_text(
+                text, profile=SpellcheckProfile.DOCUMENT, accuracy=accuracy
+            )
+        )
         for _ in range(args.iterations)
     ]
     completions = [
@@ -61,7 +79,7 @@ def main() -> int:
     ]
     memory_after = process.memory_info().rss if process else None
 
-    valid_lines = []
+    valid_lines: list[str] = []
     false_positive_lines = 0
     diagnostics = 0
     if args.valid_input:
@@ -70,14 +88,25 @@ def main() -> int:
             for line in args.valid_input.read_text(encoding="utf-8-sig").splitlines()
             if line.strip()
         ]
+    elif args.valid_jsonl:
+        valid_lines = [
+            str(json.loads(line)["text"])
+            for line in args.valid_jsonl.read_text(encoding="utf-8-sig").splitlines()
+            if line.strip()
+        ]
+
+    if valid_lines:
         for line in valid_lines:
-            found = segmenter.check_text(line, profile=SpellcheckProfile.DOCUMENT)
+            found = segmenter.check_text(
+                line, profile=SpellcheckProfile.DOCUMENT, accuracy=accuracy
+            )
             false_positive_lines += bool(found)
             diagnostics += len(found)
 
     report = {
         "text_codepoints": len(text),
         "iterations": args.iterations,
+        "spelling_accuracy": accuracy.value,
         "initialization_ms": round(initialization_ms, 3),
         "first_spellcheck_ms": round(first_spellcheck_ms, 3),
         "repeated_spellcheck_mean_ms": round(statistics.mean(repeated), 3),

@@ -9,10 +9,13 @@ import sys
 import time
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from khmer_segmenter import KhmerSegmenter  # noqa: E402
+from khmer_segmenter import KhmerSegmenter
 
 
 def missing_vowel_cases(

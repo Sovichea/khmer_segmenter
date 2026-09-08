@@ -96,7 +96,7 @@ fn main() -> io::Result<()> {
     let dictionary = dictionary
         .or_else(|| default_dictionary().map(str::to_owned))
         .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "KDIC dictionary not found"))?;
-    let segmenter = KhmerSegmenter::new(Some(&dictionary), SegmenterConfig::default())
+    let segmenter = KhmerSegmenter::from_path(&dictionary, SegmenterConfig::default())
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
     let mut evidence: HashMap<(String, String), Evidence> = HashMap::new();
     let mut lines_seen = 0usize;

@@ -19,9 +19,9 @@ python scripts/evaluate_segmentation.py \
   --output results/curated-dev.json
 ```
 
-The benchmark is still being curated. Until all 300 records are approved, a
-0.2 build is a release candidate and must not be promoted based on legacy
-corpora alone.
+All 300 v0.2 records have one-reviewer approval. The dataset was seeded from
+the current segmenter and is therefore a regression suite, not an independent
+claim of general Khmer segmentation accuracy.
 
 ## Legacy compatibility datasets
 
@@ -113,13 +113,21 @@ Measure editor-facing latency and false positives separately from segmentation:
 python scripts/benchmark_spellcheck.py \
   --input path/to/paragraph.txt \
   --valid-input path/to/reviewed-valid-lines.txt \
+  --spelling-accuracy visual \
   --output results/spellcheck-performance.json
 ```
+
+The script also accepts `--valid-jsonl` for a curated benchmark containing a
+`text` field. Run both `--spelling-accuracy lexical` and `visual`: lexical mode
+intentionally reports dictionary-encoding variants, while visual mode accepts
+COENG DA/TA forms that render equivalently. Do not label those intentional
+lexical diagnostics as product false positives.
 
 This reports initialization, first lazy spellcheck, repeated spellcheck,
 completion latency, resident-memory growth (when `psutil` is installed), and the rate of valid lines receiving
 at least one diagnostic. Use reviewed valid prose for `--valid-input`; raw web
-text is not a trustworthy false-positive reference.
+text—and the segmentation-reviewed 300-sentence set—are not independently
+spelling-reviewed false-positive references.
 
 On the curated benchmark, boundary F1 is the primary comparison metric. Exact sentence match is
 intentionally strict, and different valid compound conventions can reduce it.

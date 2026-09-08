@@ -8,7 +8,7 @@ coverage, accepted lexical forms ending in `ៗ`, and a provenance manifest.
 
 ## COENG DA/TA alias policy
 
-RC3 separates segmentation tolerance from spelling authority. COENG DA/TA
+Version 0.2 separates segmentation tolerance from spelling authority. COENG DA/TA
 variants are available to segmentation so either visual form can remain one
 token. Spellcheck stays exact by default; applications can opt into
 `accuracy="visual"` when they want to accept the two forms as visually
@@ -16,7 +16,7 @@ equivalent.
 
 ## Recommended adoption
 
-1. Install `0.2.0rc3` in a test environment.
+1. Install `0.2.0` in a test environment.
 2. Compare application samples and the curated development benchmark with
    `0.1.1`; treat khPOS and Khmer ALT only as compatibility diagnostics.
 3. Review category regressions larger than two percentage points.
@@ -38,8 +38,19 @@ Alternatively, pass an existing 0.1 data directory through `data_dir=` or
 `--data-dir`. If that directory has no `khmer_spellcheck_words.txt`, spelling
 checks use its segmentation dictionary for backward compatibility.
 
-Hyphenation is unchanged, remains experimental, and is not part of the RAC
-segmentation model claim. The Rust port can now consume the rebuilt KDIC in
-native and WebAssembly applications and includes experimental typo suggestions.
-The C port remains on its current release-validation path until the Python
-release candidate is accepted.
+The experimental hyphenation API and KHYP data were removed. Khmer text does
+not need Latin-style internal-word hyphenation. Layout engines should use
+`word_break_opportunities()` to obtain legal source offsets, or
+`insert_word_breaks()` to insert U+200B between adjacent known Khmer words.
+Python offsets use code points, Rust offsets use UTF-8 bytes, and WASM offsets
+use UTF-16 code units.
+
+The Rust port can consume the rebuilt KDIC in native and WebAssembly
+applications and provides the same analysis, spelling, completion, and
+word-breaking behavior. Rust no longer permits a dictionary-less segmenter:
+replace `KhmerSegmenter::new(Some(path), config)` with `from_path(path, config)`,
+use `from_bytes(bytes, config)` for embedded or WASM data, or use
+`from_kdict(dictionary, config)` when the caller already owns a loaded `KDict`.
+The CLI accepts `--dictionary` and `--kdict` before or after its structured
+commands and exits with an error when it cannot load lexical data. The C port
+remains segmentation-only.

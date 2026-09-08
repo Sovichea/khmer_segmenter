@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use khmer_segmenter::kdict::{
@@ -438,15 +438,133 @@ fn run_data_compile(args: &[String]) -> io::Result<()> {
     Ok(())
 }
 
-fn default_dictionary_path() -> Option<&'static str> {
-    [
-        "khmer_dictionary.kdict",
-        "../../port/common/khmer_dictionary.kdict",
-        "../common/khmer_dictionary.kdict",
-        "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_dictionary.kdict",
-    ]
-    .into_iter()
-    .find(|path| Path::new(path).exists())
+fn resolve_dictionary_path(
+    explicit: Option<PathBuf>,
+    environment: Option<PathBuf>,
+    working_directory: &Path,
+    executable_directory: Option<&Path>,
+) -> io::Result<PathBuf> {
+    if let Some(path) = explicit {
+        return Ok(path);
+    }
+    if let Some(path) = environment {
+        return Ok(path);
+    }
+
+    let working_directory = working_directory.join("khmer_dictionary.kdict");
+    if working_directory.is_file() {
+        return Ok(working_directory);
+    }
+
+    executable_directory
+        .into_iter()
+        .flat_map(|directory| {
+            [
+                directory.join("khmer_dictionary.kdict"),
+                directory.join("data").join("khmer_dictionary.kdict"),
+            ]
+        })
+        .find(|path| path.is_file())
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                "Khmer KDIC not found; pass --dictionary <path>, set KHMER_SEGMENTER_KDICT, or place khmer_dictionary.kdict in the working directory, beside the executable, or in its data directory",
+            )
+        })
+}
+
+fn require_dictionary_path(dictionary: Option<PathBuf>) -> io::Result<PathBuf> {
+    let environment = env::var_os("KHMER_SEGMENTER_KDICT").map(PathBuf::from);
+    let working_directory = env::current_dir()?;
+    let executable = env::current_exe().ok();
+    let executable_directory = executable.as_deref().and_then(Path::parent);
+    resolve_dictionary_path(
+        dictionary,
+        environment,
+        &working_directory,
+        executable_directory,
+    )
+}
+
+fn load_segmenter(path: &Path, config: SegmenterConfig) -> io::Result<KhmerSegmenter> {
+    KhmerSegmenter::from_path(path, config).map_err(|error| {
+        io::Error::new(
+            error.kind(),
+            format!("failed to load KDIC {}: {error}", path.display()),
+        )
+    })
+}
+
+fn run_word_breaks(args: &[String]) -> io::Result<()> {
+    let mut dictionary: Option<String> = None;
+    let mut format = "plain";
+    let mut text_parts = Vec::new();
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--dictionary" | "--kdict" => {
+                index += 1;
+                dictionary = Some(
+                    args.get(index)
+                        .ok_or_else(|| {
+                            io::Error::new(
+                                io::ErrorKind::InvalidInput,
+                                "--dictionary requires a path",
+                            )
+                        })?
+                        .clone(),
+                );
+            }
+            "--format" => {
+                index += 1;
+                format = args.get(index).map(String::as_str).ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidInput, "--format requires a value")
+                })?;
+                if !matches!(format, "plain" | "json") {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "--format must be plain or json",
+                    ));
+                }
+            }
+            value if value.starts_with('-') => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("unknown word-breaks option: {value}"),
+                ));
+            }
+            value => text_parts.push(value.to_owned()),
+        }
+        index += 1;
+    }
+    let text = if text_parts.is_empty() {
+        let mut value = String::new();
+        io::stdin().read_to_string(&mut value)?;
+        value
+    } else {
+        text_parts.join(" ")
+    };
+    let dictionary = require_dictionary_path(dictionary.map(PathBuf::from))?;
+    let segmenter = load_segmenter(&dictionary, SegmenterConfig::default())?;
+    let offsets = segmenter
+        .word_break_opportunities(&text)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+    let output = segmenter
+        .insert_word_breaks(&text)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+    if format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "text": text,
+                "break_offsets": offsets,
+                "output": output,
+            }))?
+        );
+    } else {
+        println!("{output}");
+    }
+    Ok(())
 }
 
 fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
@@ -477,7 +595,7 @@ fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
                     .parse()
                     .map_err(|error: String| io::Error::new(io::ErrorKind::InvalidInput, error))?;
             }
-            "--dictionary" | "--data" => {
+            "--dictionary" | "--kdict" | "--data" => {
                 index += 1;
                 dictionary = Some(
                     args.get(index)
@@ -538,9 +656,8 @@ fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
         io::stdin().read_to_string(&mut value)?;
         value
     };
-    let dictionary = dictionary.or_else(|| default_dictionary_path().map(str::to_owned));
-    let segmenter = KhmerSegmenter::new(dictionary.as_deref(), SegmenterConfig::default())
-        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+    let dictionary = require_dictionary_path(dictionary.map(PathBuf::from))?;
+    let segmenter = load_segmenter(&dictionary, SegmenterConfig::default())?;
     let analysis = segmenter
         .analyze_text_with_accuracy(&text, profile, accuracy)
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
@@ -653,6 +770,47 @@ fn get_memory_mb() -> f64 {
     0.0
 }
 
+fn dispatch_structured_command(args: &[String]) -> Option<io::Result<()>> {
+    let (command_index, global_dictionary) = match args.get(1).map(String::as_str) {
+        Some("diagnose" | "analyze" | "word-breaks" | "data") => (1, None),
+        Some("--dictionary" | "--kdict")
+            if args.get(2).is_some()
+                && matches!(
+                    args.get(3).map(String::as_str),
+                    Some("diagnose" | "analyze" | "word-breaks")
+                ) =>
+        {
+            (3, args.get(2).cloned())
+        }
+        _ => return None,
+    };
+    let command = args[command_index].as_str();
+    if command == "data" {
+        return Some(
+            if args.get(command_index + 1).map(String::as_str) == Some("compile") {
+                run_data_compile(&args[command_index + 2..])
+            } else {
+                Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "expected `data compile <file.klex.json> --output <file.kdict>`",
+                ))
+            },
+        );
+    }
+
+    let mut command_args = args[command_index + 1..].to_vec();
+    if let Some(dictionary) = global_dictionary {
+        command_args.insert(0, dictionary);
+        command_args.insert(0, "--dictionary".to_owned());
+    }
+    Some(match command {
+        "diagnose" => run_diagnose(&command_args, false),
+        "analyze" => run_diagnose(&command_args, true),
+        "word-breaks" => run_word_breaks(&command_args),
+        _ => unreachable!(),
+    })
+}
+
 fn main() -> io::Result<()> {
     // Config defaults
     let mut config = SegmenterConfig::default();
@@ -662,36 +820,24 @@ fn main() -> io::Result<()> {
     let mut mode_benchmark = false;
     let mut threads = 4;
     let mut limit: i32 = -1;
-    let mut test_hyphenation_word: Option<String> = None;
     let mut dictionary_path: Option<String> = None;
 
     let args: Vec<String> = env::args().collect();
-    if args.get(1).map(String::as_str) == Some("diagnose") {
-        return run_diagnose(&args[2..], false);
-    }
-    if args.get(1).map(String::as_str) == Some("analyze") {
-        return run_diagnose(&args[2..], true);
-    }
-    if args.get(1).map(String::as_str) == Some("data")
-        && args.get(2).map(String::as_str) == Some("compile")
-    {
-        return run_data_compile(&args[3..]);
+    if let Some(result) = dispatch_structured_command(&args) {
+        return result;
     }
     let mut i = 1;
     while i < args.len() {
         let arg = &args[i];
         if arg == "--benchmark" || arg == "--bench" {
             mode_benchmark = true;
-            eprintln!("DEBUG: Set benchmark match {}", arg);
         } else if arg == "--dictionary" || arg == "--kdict" {
             if i + 1 < args.len() {
                 dictionary_path = Some(args[i + 1].clone());
                 i += 1;
             }
         } else if arg == "--input" || arg == "--file" {
-            eprintln!("DEBUG: Found input flag at {}", i);
             while i + 1 < args.len() && !args[i + 1].starts_with('-') {
-                eprintln!("DEBUG: Pushing input file: {}", args[i + 1]);
                 input_files.push(args[i + 1].clone());
                 i += 1;
             }
@@ -754,17 +900,6 @@ fn main() -> io::Result<()> {
                     value
                 ),
             }
-        } else if arg == "--test-hyphenation" {
-            if i + 1 < args.len() {
-                test_hyphenation_word = Some(args[i + 1].clone());
-                i += 1;
-            }
-        } else if arg == "--hyphenate-sentence" {
-            if i + 1 < args.len() {
-                input_text = Some(args[i + 1].clone());
-                test_hyphenation_word = Some("SENTENCE_TEST".to_string()); // flag
-                i += 1;
-            }
         } else if !arg.starts_with('-') {
             if let Some(ref mut text) = input_text {
                 text.push(' ');
@@ -776,98 +911,17 @@ fn main() -> io::Result<()> {
         i += 1;
     }
 
-    eprintln!("DEBUG: Args: {:?}", args);
-    eprintln!("DEBUG: Parsed Input Files: {:?}", input_files);
-    eprintln!("DEBUG: Benchmark Mode: {}", mode_benchmark);
-
-    if let Some(test_val) = test_hyphenation_word {
-        let hyp_paths = [
-            "khmer_hyphenation.kdict",
-            "../../port/common/khmer_hyphenation.kdict",
-            "../common/khmer_hyphenation.kdict",
-            "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_hyphenation.kdict",
-        ];
-
-        let mut hyp_dict_opt = None;
-        for p in &hyp_paths {
-            if Path::new(p).exists() {
-                if let Ok(d) = khmer_segmenter::kdict::KHypDict::load(p) {
-                    hyp_dict_opt = Some(d);
-                    break;
-                }
-            }
-        }
-
-        if test_val == "SENTENCE_TEST" {
-            if let Some(text) = input_text {
-                let dict_path = Some("../../port/common/khmer_dictionary.kdict");
-                let seg = KhmerSegmenter::new(dict_path, config).unwrap();
-                let segmented = seg.segment(&text, Some(" | "));
-                println!("1. Original:   {}", text);
-                println!("2. Segmented:  {}", segmented);
-
-                if let Some(dict) = hyp_dict_opt {
-                    let mut final_tokens = Vec::new();
-                    for token in segmented.split(" | ") {
-                        if let Some(hyphenated) = dict.lookup(token) {
-                            final_tokens.push(hyphenated.replace('\u{200b}', "-"));
-                        } else {
-                            final_tokens.push(token.to_string());
-                        }
-                    }
-                    println!("3. Hyphenated: {}", final_tokens.join(" | "));
-                }
-            }
-        } else {
-            // Original word test
-            println!("Testing hyphenation lookup for: {}", test_val);
-            if let Some(dict) = hyp_dict_opt {
-                if let Some(hyphenated) = dict.lookup(&test_val) {
-                    println!("Match found!");
-                    println!("Original: {}", test_val);
-                    println!("Hyphenated: {}", hyphenated.replace('\u{200b}', "-"));
-                } else {
-                    println!("No hyphenation found for '{}'", test_val);
-                }
-            } else {
-                println!("Error: Could not load khmer_hyphenation.kdict from any default paths.");
-            }
-        }
-        return Ok(());
-    }
     if !input_files.is_empty() && output_file.is_none() {
         output_file = Some("segmentation_results.txt".to_string());
     }
 
-    // Locate Dictionary
-    let dict_paths = [
-        "khmer_dictionary.kdict",
-        "../../port/common/khmer_dictionary.kdict",
-        "../common/khmer_dictionary.kdict", // Just in case
-        "c:/Users/Sovichea/Documents/git/khmer_segmenter/port/common/khmer_dictionary.kdict", // Absolute fallback
-    ];
-
-    let mut dict_path = dictionary_path.as_deref();
-    if dict_path.is_none() {
-        for p in &dict_paths {
-            if Path::new(p).exists() {
-                dict_path = Some(p);
-                break;
-            }
-        }
-    }
+    let dict_path = require_dictionary_path(dictionary_path.map(PathBuf::from))?;
 
     if mode_benchmark || !input_files.is_empty() {
         eprintln!("Initializing segmenter (Dict: {:?})...", dict_path);
     }
 
-    let seg = match KhmerSegmenter::new(dict_path, config) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("Failed to init segmenter: {}", e);
-            return Ok(());
-        }
-    };
+    let seg = load_segmenter(&dict_path, config)?;
 
     if mode_benchmark || !input_files.is_empty() {
         eprintln!("Initialization complete.");
@@ -884,10 +938,7 @@ fn main() -> io::Result<()> {
             let mut lines = Vec::new();
             let mut current_limit = limit;
 
-            eprintln!("DEBUG: Input files: {:?}", input_files);
-
             for file in &input_files {
-                eprintln!("DEBUG: Reading file: {}", file);
                 let f = File::open(file)?;
                 let reader = BufReader::new(f);
                 for line in reader.lines() {
@@ -912,7 +963,6 @@ fn main() -> io::Result<()> {
                     break;
                 }
             }
-            eprintln!("DEBUG: Read {} lines", lines.len());
 
             // Calculate size
             let total_bytes: usize = lines.iter().map(|l| l.len()).sum();
@@ -1104,9 +1154,11 @@ fn main() -> io::Result<()> {
         writeln!(f, "----------------------------------------")?;
         eprintln!("Results saved to {}", out_path);
     } else {
-        println!("Usage: khmer_segmenter.exe [flags] [text]");
+        println!("Usage: khmer_segmenter [flags] [text]");
         println!("  --input <path...> Multiple input files");
-        println!("  --dictionary <path> Unified KDIC v2 language pack");
+        println!("  --dictionary, --kdict <path> Unified KDIC v2 language pack");
+        println!("                    May appear before or after a structured command");
+        println!("                    KHMER_SEGMENTER_KDICT provides the default path");
         println!("  --output <path>   Output file path");
         println!("  --limit <N>       Limit total lines processed");
         println!("  --threads <N>     Number of threads (default: 4)");
@@ -1117,8 +1169,6 @@ fn main() -> io::Result<()> {
         );
         println!("  --long            Alias for --segmentation-length long");
         println!("  --short           Alias for --segmentation-length short");
-        println!("  --test-hyphenation <word> Test lookup in khmer_hyphenation.kdict");
-        println!("  --hyphenate-sentence <text> Segment text and apply hyphenation");
         println!(
             "  diagnose [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>"
         );
@@ -1127,6 +1177,8 @@ fn main() -> io::Result<()> {
             "  analyze [--profile typing|document|high-recall] [--accuracy lexical|visual] <text>"
         );
         println!("                    Return mapped segments and diagnostics in one pass");
+        println!("  word-breaks [--format plain|json] <text>");
+        println!("                    Return safe Khmer word-boundary opportunities");
         println!("  data compile <file.klex.json> --output <file.kdict> [--base <base.kdict>]");
         println!("                    Compile a unified KDIC v2 language pack");
         println!("  <text>            Process raw text");
@@ -1139,6 +1191,76 @@ fn main() -> io::Result<()> {
 mod cli_tests {
     use super::*;
     use khmer_segmenter::kdict::{KDict, WORD_SEGMENT, WORD_SPELLCHECK, WORD_TYPO_SURFACE};
+
+    #[test]
+    fn dictionary_resolution_is_predictable_and_preserves_configured_paths() {
+        let stem = format!("khmer-dictionary-resolution-test-{}", std::process::id());
+        let root = std::env::temp_dir().join(stem);
+        let working = root.join("working");
+        let executable = root.join("bin");
+        std::fs::create_dir_all(&working).unwrap();
+        std::fs::create_dir_all(&executable).unwrap();
+
+        let explicit = root.join("explicit.kdict");
+        let environment = root.join("environment.kdict");
+        assert_eq!(
+            resolve_dictionary_path(
+                Some(explicit.clone()),
+                Some(environment.clone()),
+                &working,
+                Some(&executable),
+            )
+            .unwrap(),
+            explicit
+        );
+        assert_eq!(
+            resolve_dictionary_path(None, Some(environment.clone()), &working, Some(&executable))
+                .unwrap(),
+            environment
+        );
+
+        let working_dictionary = working.join("khmer_dictionary.kdict");
+        std::fs::write(&working_dictionary, b"test").unwrap();
+        assert_eq!(
+            resolve_dictionary_path(None, None, &working, Some(&executable)).unwrap(),
+            working_dictionary
+        );
+        std::fs::remove_file(&working_dictionary).unwrap();
+
+        let sidecar = executable.join("data").join("khmer_dictionary.kdict");
+        std::fs::create_dir_all(sidecar.parent().unwrap()).unwrap();
+        std::fs::write(&sidecar, b"test").unwrap();
+        assert_eq!(
+            resolve_dictionary_path(None, None, &working, Some(&executable)).unwrap(),
+            sidecar
+        );
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn dictionary_resolution_reports_missing_dictionary() {
+        let stem = format!("khmer-missing-dictionary-test-{}", std::process::id());
+        let root = std::env::temp_dir().join(stem);
+        let working = root.join("working");
+        let executable = root.join("bin");
+        std::fs::create_dir_all(&working).unwrap();
+        std::fs::create_dir_all(&executable).unwrap();
+
+        let error = resolve_dictionary_path(None, None, &working, Some(&executable)).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::NotFound);
+        assert!(error.to_string().contains("--dictionary"));
+
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn malformed_data_command_is_not_treated_as_segmentation_text() {
+        let args = vec!["khmer_segmenter".to_owned(), "data".to_owned()];
+        let error = dispatch_structured_command(&args).unwrap().unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+        assert!(error.to_string().contains("data compile"));
+    }
 
     #[test]
     fn native_cli_compiler_writes_unified_policy_and_corrections() {
@@ -1192,6 +1314,28 @@ mod cli_tests {
             preserved.cost
         );
         assert_eq!(overlay.typo_corrections(), dictionary.typo_corrections());
+
+        let command_first = vec![
+            "khmer_segmenter".to_owned(),
+            "analyze".to_owned(),
+            "--dictionary".to_owned(),
+            output.to_string_lossy().into_owned(),
+            "ដែល".to_owned(),
+        ];
+        assert!(dispatch_structured_command(&command_first)
+            .expect("structured command")
+            .is_ok());
+
+        let dictionary_first = vec![
+            "khmer_segmenter".to_owned(),
+            "--kdict".to_owned(),
+            output.to_string_lossy().into_owned(),
+            "diagnose".to_owned(),
+            "ដែល".to_owned(),
+        ];
+        assert!(dispatch_structured_command(&dictionary_first)
+            .expect("structured command")
+            .is_ok());
 
         let _ = std::fs::remove_file(source);
         let _ = std::fs::remove_file(output);

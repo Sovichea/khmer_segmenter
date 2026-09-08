@@ -14,6 +14,8 @@ main README.
 - [Migration from 0.1.1 to 0.2](MIGRATION_0_2.md)
 - [PyPI release guide](PYPI_RELEASE.md)
 - [0.2 release checklist](RELEASE_CHECKLIST_0_2.md)
+- [0.2 release notes](RELEASE_NOTES_0_2.md)
+- [Community corpus roadmap](COMMUNITY_CORPUS_ROADMAP.md)
 
 ## Use and evaluate
 
@@ -23,7 +25,7 @@ main README.
 - [Development workflows](DEVELOPMENT.md): tests, corpus preparation,
   frequencies, dictionaries, and unknown-word review
 - [Prepare dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md): local
-  source preparation, KDIC/KHYP conversion, testing, and deployment
+  source preparation, KDIC conversion, testing, and deployment
 
 ## Implementations
 

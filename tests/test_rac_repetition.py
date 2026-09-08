@@ -53,12 +53,8 @@ def test_supplemental_runtime_dictionary_is_segmentation_only():
     assert all(not segmenter.is_spelling_valid(word) for word in supplemental)
 
 
-def test_spellcheck_cli_and_hyphenation_data(capsys):
+def test_spellcheck_cli(capsys):
     from khmer_segmenter.cli import main
-    from khmer_segmenter.hyphenation import KhmerHyphenator
 
     assert main(["--data-dir", str(DATA_DIR), "spellcheck", "មួយៗ"]) == 0
     assert capsys.readouterr().out.strip() == "valid\tមួយៗ"
-
-    hyphenator = KhmerHyphenator.from_data_dir(DATA_DIR)
-    assert hyphenator.hyphenate_word("កក់ក្ដៅ", separator="-") == "កក់-ក្ដៅ"

@@ -86,19 +86,15 @@ contextual POS tagger.
 Follow [Data Sources, Attribution, and Provenance](DATA.md) to obtain the source
 TSV and synchronize the official and supplemental word lists.
 
-For the complete workflow from the upstream TSV through `KDIC`/`KHYP` files
+For the complete workflow from the upstream TSV through `KDIC` files
 used by embedded C and Rust applications, see
 [Prepare Dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md).
 
-## Hyphenation data
+## Word-break opportunities
 
-Hyphenation pairs support word processors and rendering engines that need safe
-line-break opportunities in long compound words. The locally generated text
-pairs and compiled `port/common/khmer_hyphenation.kdict` are consumed by native
-ports; neither artifact is redistributed by this repository.
-
-When changing hyphenation generation, validate lookups in both the C and Rust
-implementations and keep their shared binary data synchronized.
+Python, Rust, and WASM expose safe word-boundary offsets for layout engines.
+They are derived directly from segmentation and require no second dictionary.
+The project does not insert break points inside Khmer dictionary words.
 
 ## Shared behavior changes
 

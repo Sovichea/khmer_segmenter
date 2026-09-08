@@ -939,6 +939,77 @@ class KhmerSegmenter:
             )
         ]
 
+    @staticmethod
+    def _is_known_khmer_word(token):
+        return (
+            token.known
+            and token.type == "word"
+            and bool(token.text)
+            and all(
+                "\u1780" <= character <= "\u17d3" or character == "\u17dd"
+                for character in token.text
+            )
+        )
+
+    def word_break_opportunities(
+        self, text, *, normalize=True, disable_post_processing=False
+    ) -> tuple[int, ...]:
+        """Return safe Khmer word-boundary offsets in the original source text.
+
+        The returned code-point offsets are intended for layout engines. A break
+        is offered only between adjacent known Khmer lexical words. Existing
+        whitespace, punctuation, unknown spans, numbers, and existing zero-width
+        spaces therefore do not produce redundant opportunities.
+        """
+
+        if normalize:
+            normalized_text, source_mapping = self.normalizer.normalize_with_mapping(text)
+        else:
+            normalized_text = text
+            source_mapping = tuple((index, index + 1) for index in range(len(text)))
+        tokens = self.analyze(
+            normalized_text,
+            normalize=False,
+            disable_post_processing=disable_post_processing,
+        )
+        mapped = [
+            replace(
+                token,
+                source_start=self._source_range(token.start, token.end, source_mapping)[0],
+                source_end=self._source_range(token.start, token.end, source_mapping)[1],
+            )
+            for token in tokens
+        ]
+        return tuple(
+            left.source_end
+            for left, right in zip(mapped, mapped[1:])
+            if self._is_known_khmer_word(left)
+            and self._is_known_khmer_word(right)
+            and left.source_end == right.source_start
+            and 0 < left.source_end < len(text)
+            and text[left.source_end - 1] != "\u200b"
+            and text[left.source_end] != "\u200b"
+        )
+
+    def insert_word_breaks(
+        self, text, *, normalize=True, disable_post_processing=False
+    ) -> str:
+        """Insert U+200B at safe Khmer word boundaries without changing text."""
+
+        offsets = set(
+            self.word_break_opportunities(
+                text,
+                normalize=normalize,
+                disable_post_processing=disable_post_processing,
+            )
+        )
+        if not offsets:
+            return text
+        return "".join(
+            ("\u200b" if index in offsets else "") + character
+            for index, character in enumerate(text)
+        )
+
     def _is_khmer_char(self, char):
         code = ord(char)
         return 0x1780 <= code <= 0x17FF or 0x19E0 <= code <= 0x19FF

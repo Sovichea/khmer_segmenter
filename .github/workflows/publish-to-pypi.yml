@@ -21,8 +21,86 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install build tools
-        run: python -m pip install --upgrade build twine
+      - name: Install build and test tools
+        run: python -m pip install --upgrade '.[dev]'
+
+      - name: Verify component versions
+        run: |
+          python - <<'PY'
+          import json, pathlib, tomllib
+
+          python_version = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
+          rust_version = tomllib.loads(pathlib.Path("port/rust/Cargo.toml").read_text())["package"]["version"]
+          model_version = json.loads(
+              pathlib.Path("src/khmer_segmenter/dictionary_data/khmer_model_manifest.json").read_text()
+          )["release"]
+          versions = {python_version, rust_version, model_version}
+          if len(versions) != 1:
+              raise SystemExit(
+                  "release versions disagree: "
+                  f"Python={python_version}, Rust={rust_version}, model={model_version}"
+              )
+          print(f"all release components identify version {python_version}")
+          PY
+
+      - name: Verify release tag
+        if: github.event_name == 'release'
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import os, pathlib, tomllib
+
+          version = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
+          expected = f"v{version}"
+          if os.environ["RELEASE_TAG"] != expected:
+              raise SystemExit(f"release tag {os.environ['RELEASE_TAG']!r} must equal {expected!r}")
+          PY
+
+      - name: Run Python tests and curated benchmark validation
+        run: |
+          python -m pytest -q
+          python scripts/compile_curated_ambiguity_review.py \
+            --sentences benchmarks/curated/automatic_rac_segments.reviewed.tsv \
+            --ambiguities benchmarks/curated/ambiguous_rac_review.reviewed.tsv \
+            --unresolved benchmarks/curated/unresolved_spans.reviewed.tsv \
+            --output /tmp/benchmark.jsonl \
+            --primary-reviewer Sovichea \
+            --require-approved
+          cmp benchmarks/curated/benchmark.jsonl /tmp/benchmark.jsonl
+          python scripts/evaluate_segmentation.py \
+            --dataset curated --dataset-path /tmp/benchmark.jsonl --split test \
+            --output /tmp/curated-test.json
+          python - <<'PY'
+          import json, pathlib
+
+          summary = json.loads(pathlib.Path("/tmp/curated-test.json").read_text())["summary"]
+          gates = {
+              "boundary_f1": (summary["boundary_f1"], 0.99),
+              "exact_sentence_match": (summary["exact_sentence_match"], 0.90),
+          }
+          failed = {name: values for name, values in gates.items() if values[0] < values[1]}
+          if summary["unknown_word_rate"] > 0.01:
+              failed["unknown_word_rate"] = (summary["unknown_word_rate"], 0.01)
+          if failed:
+              raise SystemExit(f"curated release gate failed: {failed}")
+          PY
+
+      - name: Validate Rust and WASM ports
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo test --manifest-path port/rust/Cargo.toml
+          cargo check --manifest-path port/rust/Cargo.toml \
+            --target wasm32-unknown-unknown --no-default-features --features wasm
+
+      - name: Set up Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.13.0
+
+      - name: Validate C port
+        working-directory: port/c
+        run: zig build release --summary all
 
       - name: Build wheel and source distribution
         run: python -m build
@@ -68,7 +146,10 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    if: github.event_name == 'release' && github.event.action == 'published'
+    if: >-
+      github.event_name == 'release' &&
+      github.event.action == 'published' &&
+      github.event.release.prerelease == false
     needs: build
     runs-on: ubuntu-latest
     environment:

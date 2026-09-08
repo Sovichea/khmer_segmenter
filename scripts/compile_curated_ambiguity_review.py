@@ -23,7 +23,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def read_tsv(path: Path) -> list[dict[str, str]]:
-    with path.open(encoding="utf-8", newline="") as handle:
+    with path.open(encoding="utf-8-sig", newline="") as handle:
         return list(csv.DictReader(handle, delimiter="\t"))
 
 
@@ -122,7 +122,13 @@ def main() -> None:
             if args.require_approved:
                 if row["review_status"] != "approved":
                     raise ValueError(f"{row['case_id']}: unresolved classification is not approved")
-                if classification not in {"name", "valid_missing_term"}:
+                if classification not in {
+                    "name",
+                    "valid_missing_term",
+                    "common_variant",
+                    "borrowed_term",
+                    "numeric_notation",
+                }:
                     raise ValueError(
                         f"{row['case_id']}: replace typo/noise sentences before release"
                     )
@@ -131,6 +137,9 @@ def main() -> None:
             all_approved &= row["review_status"] == "approved" and classification in {
                 "name",
                 "valid_missing_term",
+                "common_variant",
+                "borrowed_term",
+                "numeric_notation",
             }
 
         for index, (start, end, case_id) in enumerate(sorted(spans)):

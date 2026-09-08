@@ -26,7 +26,6 @@ use:
 - `khmer_typo_corrections.tsv` (review workflow and approved exact pairs)
 - `khmer_word_frequencies.json`
 - `khmer_word_pos.json`
-- `khmer_dictionary_hyphenation_pairs.txt`
 - `khmer_model_manifest.json`
 
 The segmentation frequencies are generated only from RAC definitions and
@@ -45,11 +44,9 @@ dataset are credited to that CC BY 4.0 source. Pending rows do not affect
 runtime behavior. Maintainer-approved exact pairs are project curation and
 must retain their per-row provenance when redistributed.
 
-The experimental hyphenation pairs predate the strict RAC segmentation rebuild
-and are preserved as a separate runtime asset; they are not presented as output
-of that rebuild. These bundled linguistic files remain under the same
-noncommercial and attribution conditions. Redistribution must retain this
-notice and credit Seanghay Hay and the Royal Academy of Cambodia source.
+These bundled linguistic files remain under the same noncommercial and
+attribution conditions. Redistribution must retain this notice and credit
+Seanghay Hay and the Royal Academy of Cambodia source.
 
 No restriction in this notice applies to independently supplied dictionaries
 used with the MIT-licensed segmentation code.

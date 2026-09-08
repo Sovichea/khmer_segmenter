@@ -21,8 +21,8 @@ sentences: 200 development records and 100 frozen test records. Planned strata:
 
 Every record needs a source URL or a `project-authored` declaration, explicit
 redistribution terms, attribution, and human review. A record becomes eligible
-for scoring only after `review.status` is `approved`. Prefer independent review
-by two Khmer speakers; document adjudication whenever their boundaries differ.
+for scoring only after `review.status` is `approved`. Version 0.2 uses Sovichea
+as its primary reviewer; a second reviewer may be added in a future revision.
 
 The test split is frozen after its first approved release. Tune model choices on
 the development split only. Never derive accepted spellings from this benchmark.
@@ -66,9 +66,10 @@ with the command below. Do not run it over a sheet containing review work.
 python scripts/seed_curated_review.py
 ```
 
-The model boundaries must not be treated as gold boundaries until the focused
-human review and any adjudication are complete. Freeze the 100-record test split
-only after that approval.
+The model boundaries must not be treated as gold boundaries until focused human
+review is complete. Because the worksheet was seeded by the model under test,
+this dataset is a regression suite rather than an independent accuracy claim.
+The 100-record test split is frozen with the approved v0.2 benchmark.
 
 ## Contextual ambiguity review
 
@@ -124,13 +125,14 @@ Use only an alternative that is not `none`, then set `review_status` to
 `approved`. The JSON columns preserve costs and RAC membership evidence for
 auditing; they are not the linguistic answer.
 
-For `unresolved_spans.tsv`, classify each item in `reviewer_classification` as
-`name`, `valid_missing_term`, `typo`, or `noise`. A missing valid term should be
-reviewed for the appropriate lexical source rather than silently promoted from
-this benchmark. Spaces may be added to `reviewed_segmented_text` when an
-unresolved span contains more than one user-confirmed unit. Set `review_status`
-to `approved` after classification. A sentence containing `typo` or `noise`
-must be corrected or replaced before the release benchmark is compiled.
+For `unresolved_spans.tsv`, classify each item as `name`,
+`valid_missing_term`, `common_variant`, `borrowed_term`, `numeric_notation`,
+`typo`, or `noise`. A valid term or variant should be reviewed for the
+appropriate lexical source rather than silently promoted from this benchmark.
+Spaces may be added to `reviewed_segmented_text` when an unresolved span
+contains more than one confirmed unit. Set `review_status` to `approved` after
+classification. A sentence containing `typo` or `noise` must be corrected or
+replaced before release compilation.
 
 Finally, check sentence naturalness and spelling in
 `automatic_rac_segments.tsv`, then set `sentence_review_status` to `approved`.
@@ -149,7 +151,6 @@ been approved, build the release-gating benchmark with:
 ```bash
 python scripts/compile_curated_ambiguity_review.py \
   --output benchmarks/curated/benchmark.jsonl \
-  --primary-reviewer "reviewer-name" \
-  --secondary-reviewer "second-reviewer-name" \
+  --primary-reviewer "Sovichea" \
   --require-approved
 ```

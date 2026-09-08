@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from khmer_segmenter import KhmerHyphenator, KhmerSegmenter, Token, prepare_dictionary
+from khmer_segmenter import KhmerSegmenter, Token, prepare_dictionary
 from khmer_segmenter.data import resolve_data_files
 
 
@@ -15,15 +15,13 @@ class PublicApiTests(unittest.TestCase):
         self.assertTrue(files.lexical_pos.is_file())
         self.assertTrue(files.spellcheck_words.is_file())
         self.assertTrue(files.model_manifest.is_file())
-        self.assertTrue(files.hyphenation_pairs.is_file())
 
         segmenter = KhmerSegmenter()
-        hyphenator = KhmerHyphenator.from_data_dir()
         self.assertGreater(len(segmenter.words), 1_000)
         self.assertGreater(len(segmenter.word_frequencies), 1_000)
         self.assertGreater(len(segmenter.pos_tags), 100)
         self.assertEqual(segmenter.data_manifest["model_id"], "rac-2022-layered-v1")
-        self.assertGreater(len(hyphenator._pairs), 1_000)
+        self.assertRegex(segmenter.data_manifest["release"], r"^\d+\.\d+\.\d+$")
 
     def make_data(self, directory: str) -> Path:
         root = Path(directory)
@@ -34,9 +32,6 @@ class PublicApiTests(unittest.TestCase):
         )
         (root / "khmer_word_pos.json").write_text(
             json.dumps({"កម្ពុជា": ["NNP"]}, ensure_ascii=False), encoding="utf-8"
-        )
-        (root / "khmer_dictionary_hyphenation_pairs.txt").write_text(
-            "កម្ពុជា\tកម្ពុ-ជា\n", encoding="utf-8"
         )
         return root
 
@@ -63,14 +58,6 @@ class PublicApiTests(unittest.TestCase):
                 {"word": "មិនមានក្នុងវចនានុក្រម", "valid": False},
             ],
         )
-
-    def test_hyphenation_uses_segmented_tokens(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = self.make_data(directory)
-            segmenter = KhmerSegmenter.from_data_dir(root)
-            hyphenator = KhmerHyphenator.from_data_dir(root)
-            result = hyphenator.hyphenate("ស្រឡាញ់កម្ពុជា", segmenter=segmenter, separator="-")
-        self.assertEqual(result, "ស្រឡាញ់កម្ពុ-ជា")
 
     def test_prepare_dictionary_from_user_obtained_tsv(self):
         with tempfile.TemporaryDirectory() as directory:

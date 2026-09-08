@@ -16,7 +16,6 @@ APPROVED_RUNTIME_NAMES = {
     "khmer_dictionary_supplemental_words.txt",
     "khmer_spellcheck_words.txt",
     "khmer_typo_corrections.tsv",
-    "khmer_dictionary_hyphenation_pairs.txt",
     "khmer_model_manifest.json",
     "khmer_word_frequencies.json",
     "khmer_word_pos.json",
@@ -29,6 +28,7 @@ PROHIBITED_NAMES = {
     "khmer_frequencies.bin",
     "khmer_dictionary.kdict",
     "khmer_hyphenation.kdict",
+    "khmer_dictionary_hyphenation_pairs.txt",
     "RAC-Khmer-Dict-2022.csv",
 }
 

@@ -59,7 +59,7 @@ python scripts/test_viterbi.py "ខ្ញុំស្រឡាញ់ប្រទ
 
 ## 3. Convert the dictionary to KDIC
 
-Both native implementations read the same `KDIC` version 1 format. It contains
+Both native implementations read the same `KDIC` version 2 policy-pack format. It contains
 the normalized words, generated spelling variants, and frequency-derived word
 costs in an open-addressed lookup table.
 
@@ -118,27 +118,13 @@ ignored by Git):
 khmer_segmenter/dictionary_data/khmer_word_frequencies.json
 port/common/khmer_frequencies.bin
 port/common/khmer_dictionary.kdict
-khmer_segmenter/dictionary_data/khmer_dictionary_hyphenation_pairs.txt
-port/common/khmer_hyphenation.kdict
 ```
 
 `khmer_frequencies.bin` is the legacy text-dictionary companion format. New
 native deployments should normally use the single `khmer_dictionary.kdict`
 file instead.
 
-## 5. Build only the hyphenation dictionary
-
-After the text dictionary and frequency JSON exist, run:
-
-```bash
-python generate_hyphenation_pairs.py
-python build_hyphenation_kdict.py
-```
-
-This creates `port/common/khmer_hyphenation.kdict` in `KHYP` version 1 format.
-It is optional unless the application exposes hyphenation.
-
-## 6. Test the C artifact
+## 5. Test the C artifact
 
 Build the executable if necessary:
 
@@ -152,7 +138,6 @@ From the repository root on Windows:
 
 ```powershell
 .\port\c\zig-out\win\bin\khmer_segmenter.exe "ខ្ញុំស្រឡាញ់ប្រទេសកម្ពុជា"
-.\port\c\zig-out\win\bin\khmer_segmenter.exe --test-hyphenation "សហប្រតិបត្តិការ"
 ```
 
 On Linux, use `port/c/zig-out/linux/bin/khmer_segmenter`. The development CLI
@@ -161,12 +146,12 @@ deployed `.kdict` path to `khmer_segmenter_init_ex`. The current C loader reads
 KDIC from a file; memory-only firmware would require a separate byte-array
 loader.
 
-## 7. Test the Rust artifact
+## 6. Test the Rust artifact
 
 ```bash
 cd port/rust
 cargo run --release -- "ខ្ញុំស្រឡាញ់ប្រទេសកម្ពុជា"
-cargo run --release -- --test-hyphenation "សហប្រតិបត្តិការ"
+cargo run --release -- word-breaks --format json "ខ្មែរស្រឡាញ់ខ្មែរ"
 ```
 
 The Rust CLI finds both files in `../common/` when run from `port/rust`. Library
@@ -174,13 +159,12 @@ applications can load a deployed file with `KDict::load`. The lower-level Rust
 KDIC reader also exposes `KDict::from_bytes` for integrations that package the
 artifact as application bytes.
 
-## 8. Deploy and verify
+## 7. Deploy and verify
 
 Copy only the locally generated files needed by the target application:
 
 ```text
 khmer_dictionary.kdict       required for segmentation
-khmer_hyphenation.kdict      optional for hyphenation
 ```
 
 Treat these binaries as derived dictionary artifacts subject to the upstream

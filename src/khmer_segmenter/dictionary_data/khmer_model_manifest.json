@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "model_id": "rac-2022-layered-v1",
-  "release": "0.2.0rc1",
+  "release": "0.2.0",
   "source": {
     "name": "Khmer Dictionary 2022",
     "authority": "National Council of Khmer Language, Royal Academy of Cambodia",
@@ -80,8 +80,5 @@
       "bytes": 1872833,
       "records": 37314
     }
-  },
-  "excluded_assets": {
-    "khmer_dictionary_hyphenation_pairs.txt": "Preserved experimental runtime asset; not generated from the RAC segmentation model"
   }
 }

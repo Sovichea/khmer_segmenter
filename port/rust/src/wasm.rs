@@ -181,6 +181,28 @@ impl WasmKhmerSegmenter {
         serde_wasm_bindgen::to_value(&suggestions)
             .map_err(|error| JsValue::from_str(&error.to_string()))
     }
+
+    /// Return legal line-break positions as UTF-16 offsets into the source text.
+    #[wasm_bindgen(js_name = wordBreakOpportunities)]
+    pub fn word_break_opportunities(&self, text: &str) -> Result<JsValue, JsValue> {
+        let offsets: Vec<_> = self
+            .inner
+            .word_break_opportunities(text)
+            .map_err(|error| JsValue::from_str(&error.to_string()))?
+            .into_iter()
+            .map(|offset| utf16_offset(text, offset))
+            .collect();
+        serde_wasm_bindgen::to_value(&offsets)
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
+
+    /// Insert U+200B at legal Khmer word boundaries.
+    #[wasm_bindgen(js_name = insertWordBreaks)]
+    pub fn insert_word_breaks(&self, text: &str) -> Result<String, JsValue> {
+        self.inner
+            .insert_word_breaks(text)
+            .map_err(|error| JsValue::from_str(&error.to_string()))
+    }
 }
 
 fn browser_diagnostic(

@@ -1,0 +1,4 @@
+include DATA_LICENSE.md
+include LICENSE
+include README.md
+recursive-include benchmarks/curated benchmark.jsonl benchmark.meta.json README.md

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "release": "0.2.0",
+  "records": 300,
+  "splits": {
+    "dev": 200,
+    "test": 100
+  },
+  "categories": {
+    "News and formal prose": 60,
+    "Conversational text": 40,
+    "Public administration": 40,
+    "Education": 35,
+    "Literary and religious text": 35,
+    "Technical text": 30,
+    "Names and locations": 25,
+    "Repetition forms and numerals": 20,
+    "Valid but difficult Unicode": 15
+  },
+  "review": {
+    "approved": 300,
+    "primary_reviewer": "Sovichea",
+    "secondary_reviewer": null
+  },
+  "benchmark_sha256": "8f8e198ff03a9d2c708e6449768162f92a7928daea8a6aac8156ad31412b8985",
+  "warning": "Model-seeded, human-reviewed regression suite; not an independent estimate of general Khmer accuracy."
+}

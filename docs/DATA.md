@@ -25,9 +25,8 @@ files or terms; their current pages are authoritative.
 
 ## Bundled runtime data
 
-The installed package includes a layered segmentation model, a strictly
-RAC-curated spelling vocabulary, and the preserved experimental hyphenation
-asset:
+The installed package includes a layered segmentation model and a strictly
+RAC-curated spelling vocabulary:
 
 ```text
 src/khmer_segmenter/dictionary_data/
@@ -38,7 +37,6 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_typo_corrections.tsv
 |-- khmer_word_frequencies.json
 |-- khmer_word_pos.json
-|-- khmer_dictionary_hyphenation_pairs.txt
 `-- khmer_model_manifest.json
 ```
 
@@ -81,7 +79,7 @@ The simpler `khmer-segment data prepare --rac-tsv PATH` command is retained for
 custom dictionary overrides, not for reproducing the bundled strict model.
 
 See [Prepare Dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md) for
-all generated files and KDIC/KHYP conversion.
+all generated files and KDIC conversion.
 
 ## Optional evaluation corpora
 
@@ -116,7 +114,6 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_typo_corrections.tsv
 |-- khmer_word_frequencies.json
 |-- khmer_word_pos.json
-|-- khmer_dictionary_hyphenation_pairs.txt
 `-- khmer_model_manifest.json
 
 khmer_segmenter/dictionary_data/
@@ -124,13 +121,11 @@ khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_official_2022_words.txt
 |-- khmer_dictionary_supplemental_words.txt
 |-- khmer_word_frequencies.json
-|-- khmer_word_pos.json
-`-- khmer_dictionary_hyphenation_pairs.txt
+`-- khmer_word_pos.json
 
 port/common/
 |-- khmer_dictionary.kdict
-|-- khmer_frequencies.bin
-`-- khmer_hyphenation.kdict
+`-- khmer_frequencies.bin
 ```
 
 Only approved files under `src/khmer_segmenter/dictionary_data/` are tracked

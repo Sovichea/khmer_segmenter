@@ -16,11 +16,6 @@ unknown-word recovery without a runtime machine-learning model.
 > for noncommercial use. Project code is MIT licensed; the bundled linguistic
 > data has separate terms in [DATA_LICENSE.md](DATA_LICENSE.md).
 
-> [!WARNING]
-> **Hyphenation is experimental.** Its dictionary and rules are still being
-> refined, and many words do not yet receive correct internal break positions.
-> Do not rely on hyphenation output for production typography without review.
-
 ## Features
 
 - Deterministic segmentation for the same code and local data
@@ -32,9 +27,9 @@ unknown-word recovery without a runtime machine-learning model.
 - Whole-span typo diagnostics with Khmer-aware ranked suggestions
 - Unknown-span preservation
 - Typed token metadata with offsets and lexical POS candidates
-- Experimental Khmer hyphenation
+- Safe Khmer word-break opportunities for layout engines
 - Python API and `khmer-segment` CLI
-- Shared KDIC/KHYP formats for C and Rust applications
+- Shared KDIC format for C and Rust applications
 - Rust/WASM segmentation and experimental spelling APIs for browser applications
 
 This is a lexical segmenter, not a semantic parser or contextual POS tagger.
@@ -82,8 +77,8 @@ of Khmer Language, Royal Academy of Cambodia:
 <https://huggingface.co/datasets/seanghay/khmer-dictionary-44k>
 
 The dataset may be redistributed for noncommercial use with attribution. The
-bundled normalized lexicons, RAC-only frequencies, lexical POS candidates, and
-experimental hyphenation pairs retain that credit and restriction. See
+bundled normalized lexicons, RAC-only frequencies, and lexical POS candidates
+retain that credit and restriction. See
 [the linguistic data notice](DATA_LICENSE.md).
 
 For an exact model rebuild, download the structured RAC CSV directly from the
@@ -179,7 +174,7 @@ khmer-segment data prepare --rac-tsv dataset/rac_dictionary_2022_pairs.tsv
 ```
 
 See [Prepare Dictionaries for Python, C, and Rust](docs/EMBEDDED_DICTIONARY.md)
-for frequency generation and KDIC/KHYP compilation.
+for frequency generation and KDIC compilation.
 
 ## Python API
 
@@ -304,20 +299,16 @@ copy so Rust and WASM consume the same list.
 The legacy dictionary result remains available as
 `segment_with_metadata(text)`.
 
-Experimental hyphenation uses the bundled pairs by default. Many words are not
-yet separated correctly, so applications should treat its output as a
-suggestion and review it before display or publication:
+For text layout, request legal break positions without changing the source:
 
 ```python
-from khmer_segmenter import KhmerHyphenator
-
-hyphenator = KhmerHyphenator.from_data_dir()
-result = hyphenator.hyphenate(
-    "សហប្រតិបត្តិការ",
-    segmenter=segmenter,
-    separator="-",  # use "\u200b" for invisible break opportunities
-)
+offsets = segmenter.word_break_opportunities("ខ្មែរស្រឡាញ់ខ្មែរ")
+text_with_breaks = segmenter.insert_word_breaks("ខ្មែរស្រឡាញ់ខ្មែរ")
 ```
+
+Offsets refer to the original Python string. Breaks are offered only between
+adjacent known Khmer words, never inside a dictionary word. Layout engines can
+choose which opportunity to use; simpler consumers can use the insertion helper.
 
 ## CLI
 
@@ -342,15 +333,12 @@ khmer-segment diagnose "រស់ជាតិ" --profile high-recall --format js
 
 `analyze` reports lexical candidates; it does not claim contextual POS tagging.
 
-Experimental hyphenation and benchmarking:
+Word-break opportunities and benchmarking:
 
 ```bash
-khmer-segment hyphenate "សហប្រតិបត្តិការ" --visible-hyphen
+khmer-segment word-breaks "ខ្មែរស្រឡាញ់ខ្មែរ" --format json
 khmer-segment benchmark --input dataset/my_corpus.txt --limit 1000
 ```
-
-The `hyphenate` command is not production-ready: many words may contain
-incorrect or missing break positions.
 
 Use a non-default local data directory with the global option before the
 subcommand:

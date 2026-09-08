@@ -36,7 +36,7 @@ dictionary from
 review its terms, and follow the repository's data guide before running the
 pipeline with a locally obtained corpus:
 
-For dictionary-only conversion, full corpus rebuilding, hyphenation, and
+For dictionary-only conversion, full corpus rebuilding, and
 deployment instructions, see
 [Prepare Dictionaries for Python, C, and Rust](../../docs/EMBEDDED_DICTIONARY.md).
 

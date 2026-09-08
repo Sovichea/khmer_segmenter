@@ -27,7 +27,7 @@ DEFAULT_DEFINITION_WEIGHT = 1.0
 DEFAULT_EXAMPLE_WEIGHT = 3.0
 DEFAULT_SELF_HEADWORD_WEIGHT = 0.25
 MODEL_ID = "rac-2022-strict-v1"
-MODEL_RELEASE = "0.2.0rc1"
+MODEL_RELEASE = "0.2.0"
 RAC_SOURCE_REVISION = "525c0171894465cba920a9181387a032c11610d3"
 MODEL_DATA_FILES = (
     "khmer_dictionary_words.txt",
@@ -149,11 +149,6 @@ def _write_model_manifest(
             "serialized_frequency_total": sum(serialized_frequencies.values()),
         },
         "files": files,
-        "excluded_assets": {
-            "khmer_dictionary_hyphenation_pairs.txt": (
-                "Preserved experimental runtime asset; not generated from the RAC segmentation model"
-            )
-        },
     }
     path = data_dir / "khmer_model_manifest.json"
     _write_text_lf(path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")

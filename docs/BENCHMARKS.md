@@ -48,6 +48,28 @@ memory improved substantially, while steady-state throughput was approximately
 unchanged (+1%). Repeat this measurement on deployment hardware before making
 capacity decisions.
 
+## Curated 0.2 regression set
+
+The frozen 100-sentence test split gives the following stable-candidate result:
+
+| Version | Boundary precision | Boundary recall | Boundary F1 | Exact sentence | Unknown tokens |
+|:---|---:|---:|---:|---:|---:|
+| 0.1.1 | 99.11% | 85.01% | 91.52% | 17.00% | 12.56% |
+| 0.2.0 | 100.00% | 99.34% | **99.67%** | 94.00% | 0.20% |
+
+These figures show a large regression-test improvement, but the set was seeded
+from the newer model and reviewed for ambiguous boundaries. It is not an
+independent general-accuracy benchmark.
+
+On a local Windows/Python 3.10 run, the document spellcheck profile initialized
+in about 2.0 seconds, its first lazy check took about 1.6 seconds, repeated
+checks of a 49-code-point sample averaged 3.0–3.2 ms, and completion averaged
+5.5–5.9 ms. The 300 sentences produced diagnostics on 18% of lines in lexical
+mode and 2% in visual mode. Most of the difference consists of intentional
+COENG DA/TA lexical-encoding diagnostics. Because this set was not independently
+reviewed for spelling validity, these rates are diagnostic—not final
+false-positive estimates.
+
 ## Frequency coverage
 
 The historical 0.1 artifacts combined 3,120,579 corpus tokens with 585,396

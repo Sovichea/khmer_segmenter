@@ -55,10 +55,6 @@ class DataFiles:
     def model_manifest(self) -> Path:
         return self.root / "khmer_model_manifest.json"
 
-    @property
-    def hyphenation_pairs(self) -> Path:
-        return self.root / "khmer_dictionary_hyphenation_pairs.txt"
-
     def status(self) -> dict[str, bool]:
         return {
             "dictionary": self.dictionary.is_file(),
@@ -69,7 +65,6 @@ class DataFiles:
             "spellcheck_words": self.spellcheck_words.is_file(),
             "typo_corrections": self.typo_corrections.is_file(),
             "model_manifest": self.model_manifest.is_file(),
-            "hyphenation_pairs": self.hyphenation_pairs.is_file(),
         }
 
 
