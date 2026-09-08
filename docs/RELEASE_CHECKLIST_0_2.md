@@ -17,6 +17,8 @@ Completed engineering gates:
 - Python/Rust pack conformance plus native Rust, WASM, and C build checks;
 - first-use, steady-state spellcheck, completion, and memory benchmark tooling;
 - final wheel/sdist metadata, attribution, and bundled-data audits.
+- an optional 126-entry pilot community pack with recorded approvals,
+  rejections, provenance, and reproducible corpus-mining tools;
 
 Stable `0.2.0` remains blocked by evidence, not implementation completeness:
 

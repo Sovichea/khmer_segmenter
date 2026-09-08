@@ -247,17 +247,17 @@ class KhmerSegmenter:
                     effective_cost = (
                         record.cost
                         if kind == "rac"
-                        else max(record.cost, self.default_cost + penalty)
+                        else max(
+                            0.0,
+                            self.default_cost
+                            + penalty
+                            + (record.cost - pack.default_cost),
+                        )
                     )
                     if record.word not in self.words:
                         self.words.add(record.word)
                         self.word_costs[record.word] = effective_cost
                         self._word_sources[record.word] = source_labels.get(kind, kind)
-                    for variant in coeng_da_ta_variants(record.word):
-                        if variant not in self.words:
-                            self.words.add(variant)
-                            self.word_costs[variant] = effective_cost
-                            self._word_sources[variant] = source_labels.get(kind, kind)
                 if record.flags & SPELLCHECK:
                     self._spellcheck_words.add(record.word)
                     self._curated_runtime_words.add(record.word)
@@ -265,6 +265,28 @@ class KhmerSegmenter:
                     self._autocomplete_words.add(record.word)
                 if record.flags & SUPPLEMENTAL:
                     self._supplemental_runtime_words.add(record.word)
+            # Add visual COENG DA/TA aliases only after every canonical record
+            # in this layer. Otherwise an alias encountered first can shadow a
+            # later canonical word's own cost and change segmentation merely
+            # because the same pack was loaded through the layered API.
+            for record in pack.words.values():
+                if not record.flags & SEGMENT:
+                    continue
+                effective_cost = (
+                    record.cost
+                    if kind == "rac"
+                    else max(
+                        0.0,
+                        self.default_cost
+                        + penalty
+                        + (record.cost - pack.default_cost),
+                    )
+                )
+                for variant in coeng_da_ta_variants(record.word):
+                    if variant not in self.words:
+                        self.words.add(variant)
+                        self.word_costs[variant] = effective_cost
+                        self._word_sources[variant] = source_labels.get(kind, kind)
         self.max_word_length = max(map(len, self.words), default=0)
 
     def _load_word_set(self, path, destination):
@@ -610,7 +632,13 @@ class KhmerSegmenter:
         if word not in self.words:
             return self.unknown_cost
         if word in self._supplemental_runtime_words:
-            return self.default_cost + SUPPLEMENTAL_WORD_PENALTY
+            # Unified/layered KDIC packs already encode a source penalty and
+            # retain relative frequency within the supplemental layer. Legacy
+            # text-only additions have no explicit cost and still use the
+            # conservative fallback.
+            return self.word_costs.get(
+                word, self.default_cost + SUPPLEMENTAL_WORD_PENALTY
+            )
         return self.word_costs.get(word, self.default_cost)
 
     def is_spelling_valid(

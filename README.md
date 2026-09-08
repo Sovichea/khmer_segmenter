@@ -150,6 +150,11 @@ packs, use the [layered lexicon workflow](docs/LEXICON_LAYERS.md). Strict mode
 loads RAC + reviewed official lexicons + user dictionaries; inclusive mode also
 loads explicitly supplied community evidence.
 
+Corpus discovery and frequency curation are documented separately in the
+[community corpus workflow](docs/COMMUNITY_CORPUS.md). Community frequency can
+improve segmentation in inclusive mode, but it never grants spelling or
+autocomplete authority.
+
 The audit records every curated match, retained chunk, and rejected fragment.
 
 ```bash

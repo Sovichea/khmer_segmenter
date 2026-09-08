@@ -68,6 +68,13 @@ fn compile_klex(source_path: &str, output_path: &str, base_path: Option<&str>) -
         .iter()
         .filter_map(|(word, flags)| (*flags == 0).then_some(word.clone()))
         .collect();
+    if let Some(base) = &base {
+        correction_targets.extend(
+            base.typo_corrections()
+                .into_iter()
+                .map(|(_, correction)| correction),
+        );
+    }
     let explicit_cost_model =
         source
             .get("cost_model")

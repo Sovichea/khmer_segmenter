@@ -243,6 +243,11 @@ def compile_klex(
     correction_targets: set[str] = {
         word for word, flags in flags_by_word.items() if flags == 0
     }
+    if base is not None:
+        # Zero-flag correction-target records are not required to survive as
+        # ordinary lexical records in every KDIC writer. The approved base
+        # corrections still prove that their values are intentional targets.
+        correction_targets.update(base.typo_corrections.values())
     packs: list[dict] = list(base.packs) if base else []
     sources: list[dict] = list(base.sources) if base else []
     word_provenance: dict[str, list[dict]] = (

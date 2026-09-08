@@ -516,7 +516,10 @@ def prepare_one(
                     else:
                         extracted.append(approved_word)
                         uses_by_word[approved_word].add("segmentation")
-                        if coeng_status == "verified":
+                        # Reviewed words without a COENG ambiguity are already
+                        # lexically resolved. Only DA/TA forms require the
+                        # additional explicit ``verified`` decision.
+                        if coeng_status in {"not_applicable", "verified"}:
                             uses_by_word[approved_word].update({"spelling", "autocomplete"})
                         evidence = {
                             "source": source["id"],

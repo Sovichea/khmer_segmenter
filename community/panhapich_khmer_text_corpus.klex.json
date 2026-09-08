@@ -1,0 +1,2168 @@
+{
+  "version": 1,
+  "pack": {
+    "id": "panhapich-community-v1",
+    "kind": "community_evidence",
+    "maturity": "pilot",
+    "release": "0.2",
+    "policy": "segmentation_only",
+    "curation": "AI-assisted conservative contextual review of corpus candidates",
+    "reviewed_entries": 126
+  },
+  "sources": [
+    {
+      "id": "panhapich-khmer-text-corpus",
+      "title": "Khmer Text Corpus",
+      "publisher": "Panhapich",
+      "dataset": "Panhapich/khmer-text-corpus",
+      "url": "https://huggingface.co/datasets/Panhapich/khmer-text-corpus",
+      "revision": "e42e1dd0d77836f1874ad14e83f4e291e5bb0a01",
+      "raw_sha256": "95cca2f8542f40596c69e5b08f6ec579ff7f01caa4f713db2d15681884b4ddce",
+      "license": "other (inherited source licenses require verification)"
+    }
+  ],
+  "entries": [
+    {
+      "word": "កាលីហ្វ័រញ៉ា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 12390,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "កាលីហ្វ័រញ៉ា",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 12390
+        }
+      ]
+    },
+    {
+      "word": "កុម្មង់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 266,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "កុម្មង់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 266
+        }
+      ]
+    },
+    {
+      "word": "កូរ៉ាន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 231,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "កូរ៉ាន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 231
+        }
+      ]
+    },
+    {
+      "word": "កេណ្ណឌី",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 21,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "កេណ្ណឌី",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 21
+        }
+      ]
+    },
+    {
+      "word": "កេរ្តិ៍ដំណែល",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1383,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "កេរ្តិ៍ដំណែល",
+          "category": "lexical_compound",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1383
+        }
+      ]
+    },
+    {
+      "word": "កំហុសឆ្គង",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 756,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "កំហុសឆ្គង",
+          "category": "lexical_compound",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 756
+        }
+      ]
+    },
+    {
+      "word": "ក្យូតូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 175,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ក្យូតូ",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 175
+        }
+      ]
+    },
+    {
+      "word": "ក្លរីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 367,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ក្លរីន",
+          "category": "science_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 367
+        }
+      ]
+    },
+    {
+      "word": "ខាឌីណាល់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 511,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ខាឌីណាល់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 511
+        }
+      ]
+    },
+    {
+      "word": "ខារ៉ូលីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 35,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ខារ៉ូលីន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 35
+        }
+      ]
+    },
+    {
+      "word": "ខូឃី",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 548,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ខូឃី",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 548
+        }
+      ]
+    },
+    {
+      "word": "ខូហេន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 21,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ខូហេន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 21
+        }
+      ]
+    },
+    {
+      "word": "ខូឡូរ៉ាដូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 362,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ខូឡូរ៉ាដូ",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 362
+        }
+      ]
+    },
+    {
+      "word": "ខៅប៊យ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 11,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ខៅប៊យ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 11
+        }
+      ]
+    },
+    {
+      "word": "គ្រីមៀ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 543,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្រីមៀ",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 543
+        }
+      ]
+    },
+    {
+      "word": "គ្រីស្តូហ្វឺ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 25,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្រីស្តូហ្វឺ",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 25
+        }
+      ]
+    },
+    {
+      "word": "គ្រីស្ទ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1529,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្រីស្ទ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1529
+        }
+      ]
+    },
+    {
+      "word": "គ្រីស្ទី",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 96,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្រីស្ទី",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 96
+        }
+      ]
+    },
+    {
+      "word": "គ្រីស្ទីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 59,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្រីស្ទីន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 59
+        }
+      ]
+    },
+    {
+      "word": "គ្រឿងអលង្ការ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1463,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្រឿងអលង្ការ",
+          "category": "lexical_compound",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1463
+        }
+      ]
+    },
+    {
+      "word": "គ្លីនតុន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 8045,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្លីនតុន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 8045
+        }
+      ]
+    },
+    {
+      "word": "គ្លីសេរីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 35,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "គ្លីសេរីន",
+          "category": "science_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 35
+        }
+      ]
+    },
+    {
+      "word": "ង្វៀន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 152,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ង្វៀន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 152
+        }
+      ]
+    },
+    {
+      "word": "ចាស៎",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 155,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ចាស៎",
+          "category": "common_variant",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 155
+        }
+      ]
+    },
+    {
+      "word": "ចាស្ទីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 101,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ចាស្ទីន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 101
+        }
+      ]
+    },
+    {
+      "word": "ច្រវ៉ាក់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 223,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ច្រវ៉ាក់",
+          "category": "community_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 223
+        }
+      ]
+    },
+    {
+      "word": "ឆេឆេន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 97,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ឆេឆេន",
+          "category": "place_or_people_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 97
+        }
+      ]
+    },
+    {
+      "word": "ជ្វីហ្វ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 6068,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ជ្វីហ្វ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 6068
+        }
+      ]
+    },
+    {
+      "word": "ញូតុន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 499,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ញូតុន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 499
+        }
+      ]
+    },
+    {
+      "word": "ញូវតុន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 393,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ញូវតុន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 393
+        }
+      ]
+    },
+    {
+      "word": "ដូណាល់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1270,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ដូណាល់",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1270
+        }
+      ]
+    },
+    {
+      "word": "ដេបៀន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 17,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ដេបៀន",
+          "category": "technology_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 17
+        }
+      ]
+    },
+    {
+      "word": "ដេវីឌ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 144,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ដេវីឌ",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 144
+        }
+      ]
+    },
+    {
+      "word": "ឌីស្តូបៀន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 16,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ឌីស្តូបៀន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 16
+        }
+      ]
+    },
+    {
+      "word": "តាកូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 20,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "តាកូ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 20
+        }
+      ]
+    },
+    {
+      "word": "តិរិច្ឆាន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 36,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "តិរិច្ឆាន",
+          "category": "pali_learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 36
+        }
+      ]
+    },
+    {
+      "word": "តូប៊ីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 15,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "តូប៊ីន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 15
+        }
+      ]
+    },
+    {
+      "word": "តេស្តូស្តេរ៉ូន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 425,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "តេស្តូស្តេរ៉ូន",
+          "category": "science_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 425
+        }
+      ]
+    },
+    {
+      "word": "ថាក់ស៊ីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 56,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ថាក់ស៊ីន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 56
+        }
+      ]
+    },
+    {
+      "word": "ថេល័រ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 50,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ថេល័រ",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 50
+        }
+      ]
+    },
+    {
+      "word": "ធុរេន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 19,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ធុរេន",
+          "category": "community_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 19
+        }
+      ]
+    },
+    {
+      "word": "ធ្នើ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1199,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ធ្នើ",
+          "category": "community_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1199
+        }
+      ]
+    },
+    {
+      "word": "ធ្វីទ័រ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 14,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ធ្វីទ័រ",
+          "category": "technology_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 14
+        }
+      ]
+    },
+    {
+      "word": "បារ៉ាក់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 2282,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "បារ៉ាក់",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 2282
+        }
+      ]
+    },
+    {
+      "word": "បូស្នៀ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 758,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "បូស្នៀ",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 758
+        }
+      ]
+    },
+    {
+      "word": "ប៉ុស្តាល់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 225,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ប៉ុស្តាល់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 225
+        }
+      ]
+    },
+    {
+      "word": "ប៉ូស្ដាល់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 46,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ប៉ូស្ដាល់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 46
+        }
+      ]
+    },
+    {
+      "word": "ប៊ីស្ត្រូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 39,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ប៊ីស្ត្រូ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 39
+        }
+      ]
+    },
+    {
+      "word": "ប៊ឺហ្គឺ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1058,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ប៊ឺហ្គឺ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1058
+        }
+      ]
+    },
+    {
+      "word": "ប្រូហ្សេស្តេរ៉ូន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 72,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ប្រូហ្សេស្តេរ៉ូន",
+          "category": "science_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 72
+        }
+      ]
+    },
+    {
+      "word": "ប្ល័រិន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 15,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ប្ល័រិន",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 15
+        }
+      ]
+    },
+    {
+      "word": "ផារ៉ោន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 154,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ផារ៉ោន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 154
+        }
+      ]
+    },
+    {
+      "word": "ផ្លាតូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 357,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ផ្លាតូ",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 357
+        }
+      ]
+    },
+    {
+      "word": "ផ្លាទីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 333,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ផ្លាទីន",
+          "category": "science_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 333
+        }
+      ]
+    },
+    {
+      "word": "ផ្លាហ្សា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 353,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ផ្លាហ្សា",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 353
+        }
+      ]
+    },
+    {
+      "word": "ព្យាណូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1060,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ព្យាណូ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1060
+        }
+      ]
+    },
+    {
+      "word": "ព្រីនស៍",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 27,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ព្រីនស៍",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 27
+        }
+      ]
+    },
+    {
+      "word": "ភិក្ខវេ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 64,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ភិក្ខវេ",
+          "category": "pali_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 64
+        }
+      ]
+    },
+    {
+      "word": "ភិក្ខូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 63,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ភិក្ខូ",
+          "category": "pali_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 63
+        }
+      ]
+    },
+    {
+      "word": "មូបារ៉ាក់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 61,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "មូបារ៉ាក់",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 61
+        }
+      ]
+    },
+    {
+      "word": "ម៉ាការ៉ូនី",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 14,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ម៉ាការ៉ូនី",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 14
+        }
+      ]
+    },
+    {
+      "word": "ម៉ាក្ស",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1785,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ម៉ាក្ស",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1785
+        }
+      ]
+    },
+    {
+      "word": "ម៉ាយ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 10611,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ម៉ាយ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 10611
+        }
+      ]
+    },
+    {
+      "word": "ម៉ាយល៍",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1269,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ម៉ាយល៍",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1269
+        }
+      ]
+    },
+    {
+      "word": "ម៉ូស្គូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1333,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ម៉ូស្គូ",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1333
+        }
+      ]
+    },
+    {
+      "word": "យូណេស្កូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 380,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "យូណេស្កូ",
+          "category": "organization_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 380
+        }
+      ]
+    },
+    {
+      "word": "យូហ្កា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 49,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "យូហ្កា",
+          "category": "common_variant",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 49
+        }
+      ]
+    },
+    {
+      "word": "យូហ្គា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 767,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "យូហ្គា",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 767
+        }
+      ]
+    },
+    {
+      "word": "យេម៉ែន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 2885,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "យេម៉ែន",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 2885
+        }
+      ]
+    },
+    {
+      "word": "រោទិ៍",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1361,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រោទិ៍",
+          "category": "learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1361
+        }
+      ]
+    },
+    {
+      "word": "រ៉យទ័រ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1869,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រ៉យទ័រ",
+          "category": "organization_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1869
+        }
+      ]
+    },
+    {
+      "word": "រ៉ូឌីអូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 21,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រ៉ូឌីអូ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 21
+        }
+      ]
+    },
+    {
+      "word": "រ៉ូឌ្រីហ្គោ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 26,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រ៉ូឌ្រីហ្គោ",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 26
+        }
+      ]
+    },
+    {
+      "word": "រ៉ូទ័រ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 26,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រ៉ូទ័រ",
+          "category": "technology_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 26
+        }
+      ]
+    },
+    {
+      "word": "រ៉ូប៊ីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 152,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រ៉ូប៊ីន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 152
+        }
+      ]
+    },
+    {
+      "word": "រ៉ូយ៉ាល់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 97,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រ៉ូយ៉ាល់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 97
+        }
+      ]
+    },
+    {
+      "word": "រ័សុល",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 141,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "រ័សុល",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 141
+        }
+      ]
+    },
+    {
+      "word": "លាតសន្ធឹង",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 3740,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "លាតសន្ធឹង",
+          "category": "lexical_compound",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 3740
+        }
+      ]
+    },
+    {
+      "word": "លេនីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 895,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "លេនីន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 895
+        }
+      ]
+    },
+    {
+      "word": "វាយនភ័ណ្ឌ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 186,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "វាយនភ័ណ្ឌ",
+          "category": "learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 186
+        }
+      ]
+    },
+    {
+      "word": "វុទ្ធី",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 97,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "វុទ្ធី",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 97
+        }
+      ]
+    },
+    {
+      "word": "វេណេស៊ុយអេឡា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 524,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "វេណេស៊ុយអេឡា",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 524
+        }
+      ]
+    },
+    {
+      "word": "វេណេហ្ស៊ុយអេឡា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 740,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "វេណេហ្ស៊ុយអេឡា",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 740
+        }
+      ]
+    },
+    {
+      "word": "វេហ្គាន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 17,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "វេហ្គាន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 17
+        }
+      ]
+    },
+    {
+      "word": "វ្ល៉ាឌីមៀ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1023,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "វ្ល៉ាឌីមៀ",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1023
+        }
+      ]
+    },
+    {
+      "word": "សេដ្ឋវិទូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1871,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "សេដ្ឋវិទូ",
+          "category": "learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1871
+        }
+      ]
+    },
+    {
+      "word": "ស៊ីរី",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 17720,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស៊ីរី",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 17720
+        }
+      ]
+    },
+    {
+      "word": "ស្កូតឺ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 125,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្កូតឺ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 125
+        }
+      ]
+    },
+    {
+      "word": "ស្កែន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1462,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្កែន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1462
+        }
+      ]
+    },
+    {
+      "word": "ស្ក្រាប់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 30,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្ក្រាប់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 30
+        }
+      ]
+    },
+    {
+      "word": "ស្គ្រីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 145,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្គ្រីន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 145
+        }
+      ]
+    },
+    {
+      "word": "ស្តង់ដារ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 18828,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្តង់ដារ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 18828
+        }
+      ]
+    },
+    {
+      "word": "ស្តេហ្វិន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 25,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្តេហ្វិន",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 25
+        }
+      ]
+    },
+    {
+      "word": "ស្ទូឌីយ៉ូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1351,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្ទូឌីយ៉ូ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1351
+        }
+      ]
+    },
+    {
+      "word": "ស្ពែនស៍",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 18,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្ពែនស៍",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 18
+        }
+      ]
+    },
+    {
+      "word": "ស្ព្រាយ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 50,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្ព្រាយ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 50
+        }
+      ]
+    },
+    {
+      "word": "ស្មាតហ្វូន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 4426,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ស្មាតហ្វូន",
+          "category": "technology_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 4426
+        }
+      ]
+    },
+    {
+      "word": "ហាយវេ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 2625,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហាយវេ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 2625
+        }
+      ]
+    },
+    {
+      "word": "ហាំប៊ឺហ្គឺ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 267,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហាំប៊ឺហ្គឺ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 267
+        }
+      ]
+    },
+    {
+      "word": "ហ្គារ៉ាស់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 93,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្គារ៉ាស់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 93
+        }
+      ]
+    },
+    {
+      "word": "ហ្គាហ្សា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1940,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្គាហ្សា",
+          "category": "place_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1940
+        }
+      ]
+    },
+    {
+      "word": "ហ្គាហ្សាន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 20,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្គាហ្សាន",
+          "category": "place_demonym",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 20
+        }
+      ]
+    },
+    {
+      "word": "ហ្គេតូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 18,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្គេតូ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 18
+        }
+      ]
+    },
+    {
+      "word": "ហ្គ្រីហ្វីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 26,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្គ្រីហ្វីន",
+          "category": "person_or_creature_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 26
+        }
+      ]
+    },
+    {
+      "word": "ហ្គ្រេហ្គ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 18,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្គ្រេហ្គ",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 18
+        }
+      ]
+    },
+    {
+      "word": "ហ្វ្រង់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 462,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្វ្រង់",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 462
+        }
+      ]
+    },
+    {
+      "word": "ហ្សាំប៊ី",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 16,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្សាំប៊ី",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 16
+        }
+      ]
+    },
+    {
+      "word": "ហ្សែន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 12645,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ហ្សែន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 12645
+        }
+      ]
+    },
+    {
+      "word": "ឡាទីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 2444,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "ឡាទីន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 2444
+        }
+      ]
+    },
+    {
+      "word": "អចេតនា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 1870,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អចេតនា",
+          "category": "pali_learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 1870
+        }
+      ]
+    },
+    {
+      "word": "អដស៍",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 34,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អដស៍",
+          "category": "medical_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 34
+        }
+      ]
+    },
+    {
+      "word": "អសណ្តាប់ធ្នាប់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 10,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អសណ្តាប់ធ្នាប់",
+          "category": "common_variant",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 10
+        }
+      ]
+    },
+    {
+      "word": "អសមធម៌",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 23,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អសមធម៌",
+          "category": "pali_learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 23
+        }
+      ]
+    },
+    {
+      "word": "អសមភាព",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 23,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អសមភាព",
+          "category": "pali_learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 23
+        }
+      ]
+    },
+    {
+      "word": "អសរីរាង្គ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 81,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អសរីរាង្គ",
+          "category": "pali_learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 81
+        }
+      ]
+    },
+    {
+      "word": "អសីលធម៌",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 728,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អសីលធម៌",
+          "category": "pali_learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 728
+        }
+      ]
+    },
+    {
+      "word": "អសុពលភាព",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 33,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អសុពលភាព",
+          "category": "pali_learned_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 33
+        }
+      ]
+    },
+    {
+      "word": "អាល់ប៊ីណូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 51,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អាល់ប៊ីណូ",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 51
+        }
+      ]
+    },
+    {
+      "word": "អាល់ភីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 18,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អាល់ភីន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 18
+        }
+      ]
+    },
+    {
+      "word": "អាល់ម៉ុន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 493,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អាល់ម៉ុន",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 493
+        }
+      ]
+    },
+    {
+      "word": "អុកស៊ីដង់",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 13,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អុកស៊ីដង់",
+          "category": "science_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 13
+        }
+      ]
+    },
+    {
+      "word": "អូបាម៉ា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 19328,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អូបាម៉ា",
+          "category": "person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 19328
+        }
+      ]
+    },
+    {
+      "word": "អូស្ទីន",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 293,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អូស្ទីន",
+          "category": "place_or_person_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 293
+        }
+      ]
+    },
+    {
+      "word": "អេដូ",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 17,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អេដូ",
+          "category": "historical_name",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 17
+        }
+      ]
+    },
+    {
+      "word": "អេឡិចត្រូនិច",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 4353,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អេឡិចត្រូនិច",
+          "category": "technology_term",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 4353
+        }
+      ]
+    },
+    {
+      "word": "អ័រកា",
+      "uses": [
+        "segmentation",
+        "supplemental"
+      ],
+      "frequency": 85,
+      "provenance": [
+        {
+          "source": "panhapich-khmer-text-corpus",
+          "candidate": "អ័រកា",
+          "category": "borrowed_word",
+          "review": "approved_ai_assisted_contextual_curation",
+          "occurrences": 85
+        }
+      ]
+    }
+  ]
+}

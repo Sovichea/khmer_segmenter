@@ -14,6 +14,8 @@
 - Made Rust dictionary loading explicit and hardened CLI dictionary discovery
   and failure reporting.
 - Added source provenance to compiled language packs.
+- Added an optional 126-entry pilot community pack for inclusive segmentation;
+  its entries remain invalid for spelling and autocomplete.
 - Added safe Khmer word-break opportunities for layout engines.
 - Removed experimental internal-word hyphenation and the KHYP data format.
 

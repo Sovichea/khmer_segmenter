@@ -14,6 +14,11 @@ Segmenter can load independently replaceable KDIC v2 packs in this order:
 also loads community packs. Community entries therefore cannot silently make
 strict spellcheck accept a popular typo.
 
+Each secondary pack is rebased to the RAC cost scale and receives a layer
+penalty. This preserves frequency differences inside the pack—frequent
+community evidence can beat an accidental fragmented path—without treating
+raw cost values from independently compiled packs as directly comparable.
+
 ## Python
 
 ```python

@@ -52,3 +52,17 @@ Seanghay Hay and the Royal Academy of Cambodia source.
 
 No restriction in this notice applies to independently supplied dictionaries
 used with the MIT-licensed segmentation code.
+
+## Optional community evidence pack
+
+`community/panhapich_khmer_text_corpus.klex.json` and its compiled KDIC are a
+small, AI-assisted and auditable, segmentation-only adaptation derived from
+frequency and context observations in **Panhapich's Khmer Text Corpus**:
+
+https://huggingface.co/datasets/Panhapich/khmer-text-corpus
+
+The source is pinned in the pack metadata and credited to Panhapich. Its
+dataset card currently labels the license as `other` and states that inherited
+source licenses require confirmation. The repository does not redistribute
+the source sentences or candidate cache. Downstream distributors must review
+the upstream terms; provenance metadata is attribution, not a license grant.

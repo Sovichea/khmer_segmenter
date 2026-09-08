@@ -49,6 +49,45 @@ def test_coeng_da_ta_aliases_segment_but_visual_spelling_is_opt_in(tmp_path: Pat
     assert [item.text for item in segmenter.complete_word(visual_alias[:3])] == []
 
 
+def test_layered_loading_does_not_let_visual_alias_shadow_canonical_cost(
+    tmp_path: Path,
+):
+    source = tmp_path / "coeng-costs.klex.json"
+    output = tmp_path / "coeng-costs.kdict"
+    canonical_da = "\u179f\u17d2\u178a\u17b6\u1794\u17cb"
+    canonical_ta = "\u179f\u17d2\u178f\u17b6\u1794\u17cb"
+    source.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "cost_model": {"default_cost": 5.0, "unknown_cost": 10.0},
+                "entries": [
+                    {
+                        "word": canonical_da,
+                        "uses": ["segmentation", "spelling"],
+                        "cost": 4.0,
+                    },
+                    {
+                        "word": canonical_ta,
+                        "uses": ["segmentation"],
+                        "cost": 2.0,
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    compile_klex(source, output)
+
+    direct = KhmerSegmenter.from_kdict(output)
+    layered = KhmerSegmenter.from_kdict_layers(output)
+
+    assert direct.word_costs[canonical_ta] == pytest.approx(2.0)
+    assert layered.word_costs[canonical_ta] == pytest.approx(2.0)
+    assert layered.word_costs == direct.word_costs
+
+
 def test_klex_overlay_preserves_base_and_adds_local_policy(tmp_path: Path):
     base_source = Path(__file__).parents[1] / "examples" / "custom.klex.json"
     base_output = tmp_path / "base.kdict"
@@ -219,6 +258,70 @@ def test_layered_kdict_strict_mode_excludes_community(tmp_path: Path):
     )
     assert inclusive.is_spelling_valid("អោយ")
     assert inclusive.segment("កាដម្យូម") == ["កាដម្យូម"]
+
+
+def test_layered_kdict_rebases_and_preserves_community_frequency(tmp_path: Path):
+    rac_source = tmp_path / "rac.klex.json"
+    community_source = tmp_path / "community.klex.json"
+    rac = tmp_path / "rac.kdict"
+    community = tmp_path / "community.kdict"
+    rac_source.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "entries": [
+                    {
+                        "word": "ពាក្យ",
+                        "uses": ["segmentation", "spelling"],
+                        "frequency": 10,
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    community_source.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "entries": [
+                    {
+                        "word": "ហ្សែន",
+                        "uses": ["segmentation", "supplemental"],
+                        "frequency": 100,
+                    },
+                    {
+                        "word": "ហាយវេ",
+                        "uses": ["segmentation", "supplemental"],
+                        "frequency": 1,
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    compile_klex(rac_source, rac)
+    compile_klex(community_source, community)
+
+    segmenter = KhmerSegmenter.from_kdict_layers(
+        rac,
+        community_paths=[community],
+        mode="inclusive",
+    )
+
+    assert segmenter.word_costs["ហ្សែន"] < segmenter.word_costs["ហាយវេ"]
+    assert segmenter.word_costs["ហាយវេ"] == pytest.approx(
+        segmenter.default_cost + 1.5
+    )
+    assert not segmenter.is_spelling_valid("ហ្សែន")
+
+    assert all(
+        segmenter.get_word_cost(word) == cost
+        for word, cost in segmenter.word_costs.items()
+        if word in segmenter._supplemental_runtime_words
+    )
 
 
 def test_python_cli_compiles_overlay(tmp_path: Path):

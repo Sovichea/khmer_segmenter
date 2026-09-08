@@ -16,6 +16,8 @@ Highlights:
   interchange format;
 - safe Khmer word-break opportunities and ZWSP insertion for layout engines;
 - equivalent core behavior in the Python, Rust, and WASM ports;
+- an optional pilot community pack containing 126 AI-assisted, auditable,
+  segmentation-only forms discovered from Panhapich's Khmer Text Corpus;
 - an approved 300-sentence project regression benchmark.
 
 The experimental hyphenation feature and KHYP data have been removed. Khmer
@@ -35,5 +37,7 @@ Known limitations:
   it is a regression set rather than an independent linguistic gold standard;
 - the C port reads KDIC data but does not yet expose the full analysis API.
 
-Community-corpus language modeling, including optional bigram and trigram
-reranking, is intentionally deferred to the 0.3 development line.
+The pilot community pack does not grant spelling or autocomplete validity and
+is loaded only when an application explicitly selects inclusive mode. Broader
+community curation and contextual bigram/trigram reranking remain work for the
+0.3 development line.

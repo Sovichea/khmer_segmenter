@@ -39,3 +39,8 @@ required-features = ["cli"]
 name = "mine_typos"
 path = "src/bin/mine_typos.rs"
 required-features = ["cli"]
+
+[[bin]]
+name = "mine_community_words"
+path = "src/bin/mine_community_words.rs"
+required-features = ["cli"]
