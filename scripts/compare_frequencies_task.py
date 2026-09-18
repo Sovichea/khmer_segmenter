@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 
 def compare_frequencies(new_path, backup_path, top_n=5000):
     print(f"Comparing top {top_n} words...")
@@ -39,4 +40,14 @@ def compare_frequencies(new_path, backup_path, top_n=5000):
         print(f"  {w}: New={new_freq[w]}, Backup={backup_freq[w]}")
 
 if __name__ == "__main__":
-    compare_frequencies("khmer_segmenter/dictionary_data/khmer_word_frequencies.json", "khmer_segmenter/dictionary_data/khmer_word_frequencies.backup.json", 5000)
+    data_dir = Path(__file__).resolve().parents[1] / "src" / "khmer_segmenter" / "dictionary_data"
+    new_path = data_dir / "khmer_word_frequencies.json"
+    backup_path = data_dir / "khmer_word_frequencies.backup.json"
+    if not new_path.is_file():
+        sys.exit(f"frequency file not found: {new_path}")
+    if not backup_path.is_file():
+        sys.exit(
+            f"backup frequency file not found: {backup_path}\n"
+            "Save a previous model beside it before comparing."
+        )
+    compare_frequencies(str(new_path), str(backup_path), 5000)

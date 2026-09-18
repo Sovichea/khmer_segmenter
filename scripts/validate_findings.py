@@ -106,6 +106,12 @@ def main() -> int:
     generated_summary = None
 
     if not args.bundled_only:
+        if not args.rac_csv.is_file():
+            parser.error(
+                f"RAC CSV not found: {args.rac_csv}\n"
+                "Run 'python scripts/fetch_sources.py' to download the pinned "
+                "source, or pass --bundled-only."
+            )
         output_dir = args.output_dir
         temporary = None
         if output_dir is None:

@@ -97,10 +97,23 @@ ports are intended for high-throughput or low-memory deployments.
 
 ## Reproduce locally
 
-```bash
-python scripts/benchmark_suite.py
+The curated benchmark split is tracked and runs against the bundled model, so a
+fresh clone can reproduce it without downloading data:
 
+```bash
+python -m pytest tests/test_curated_release_benchmark.py -q
+python scripts/evaluate_segmentation.py \
+  --dataset curated \
+  --dataset-path benchmarks/curated/benchmark.jsonl
+
+python scripts/benchmark_suite.py
 khmer-segment benchmark --input path/to/your/local_corpus.txt
+```
+
+Tools that rebuild the model from source first need the pinned upstream table:
+
+```bash
+python scripts/fetch_sources.py
 ```
 
 See [Evaluation Guide](EVALUATION.md) for gold-corpus commands and metric

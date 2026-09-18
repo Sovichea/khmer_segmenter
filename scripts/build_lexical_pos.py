@@ -21,13 +21,13 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=PROJECT_ROOT / "khmer_segmenter" / "dictionary_data"
+        default=PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data"
         / "khmer_word_pos.json",
     )
     parser.add_argument(
         "--metadata",
         type=Path,
-        default=PROJECT_ROOT / "khmer_segmenter" / "dictionary_data"
+        default=PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data"
         / "khmer_word_pos_provenance.json",
     )
     args = parser.parse_args()

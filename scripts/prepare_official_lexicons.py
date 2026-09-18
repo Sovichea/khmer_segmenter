@@ -890,6 +890,13 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--review", type=Path, default=DEFAULT_REVIEW)
     args = parser.parse_args()
+    if not args.input.is_dir():
+        parser.error(
+            f"official lexicon source directory not found: {args.input}\n"
+            "Extract the official lexicon sources there before running this tool."
+        )
+    if not args.rac.is_file():
+        parser.error(f"RAC word list not found: {args.rac}")
     normalizer = KhmerNormalizer()
     rac_lexical = {
         normalizer.normalize(line.strip())

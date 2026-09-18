@@ -42,25 +42,25 @@ def main() -> None:
     parser.add_argument(
         "--base",
         type=Path,
-        default=PROJECT_ROOT / "khmer_segmenter" / "dictionary_data"
+        default=PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data"
         / "khmer_word_frequencies_corpus.json",
     )
     parser.add_argument(
         "--dictionary",
         type=Path,
-        default=PROJECT_ROOT / "khmer_segmenter" / "dictionary_data"
+        default=PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data"
         / "khmer_dictionary_words.txt",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=PROJECT_ROOT / "khmer_segmenter" / "dictionary_data"
+        default=PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data"
         / "khmer_word_frequencies.json",
     )
     parser.add_argument(
         "--metadata",
         type=Path,
-        default=PROJECT_ROOT / "khmer_segmenter" / "dictionary_data"
+        default=PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data"
         / "khmer_word_frequencies_provenance.json",
     )
     parser.add_argument(

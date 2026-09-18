@@ -32,6 +32,12 @@ def main():
     limit = 100000
     threads = 10
     
+    if not os.path.exists(input_path):
+        raise SystemExit(
+            f"corpus not found: {input_path}\n"
+            "This one-off comparison needs a local Khmer wiki corpus; see "
+            "docs/BENCHMARKS.md."
+        )
     print(f"Loading first {limit} lines from {input_path}...")
     lines = []
     with open(input_path, "r", encoding="utf-8") as f:

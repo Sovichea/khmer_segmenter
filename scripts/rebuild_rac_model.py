@@ -36,6 +36,11 @@ def main() -> int:
         help="copy the rebuilt runtime files into this directory",
     )
     args = parser.parse_args()
+    if not args.rac_csv.is_file():
+        parser.error(
+            f"RAC CSV not found: {args.rac_csv}\n"
+            "Run 'python scripts/fetch_sources.py' to download the pinned source."
+        )
     result = build_rac_model(
         args.rac_csv,
         args.output_dir,

@@ -573,8 +573,8 @@ def main():
         required=True,
         help="Paths to locally obtained corpora (source datasets are not bundled)",
     )
-    parser.add_argument("--dict", default="khmer_segmenter/dictionary_data/khmer_dictionary_words.txt", help="Input dictionary text file")
-    parser.add_argument("--output-json", default="khmer_segmenter/dictionary_data/khmer_word_frequencies.json", help="Output frequency JSON path")
+    parser.add_argument("--dict", default=os.path.join(PROJECT_ROOT, "src", "khmer_segmenter", "dictionary_data", "khmer_dictionary_words.txt"), help="Input dictionary text file")
+    parser.add_argument("--output-json", default=os.path.join(PROJECT_ROOT, "src", "khmer_segmenter", "dictionary_data", "khmer_word_frequencies.json"), help="Output frequency JSON path")
     parser.add_argument("--output-bin", default="port/common/khmer_frequencies.bin", help="Output frequency binary (KLIB) path")
     parser.add_argument("--output-kdict", default="port/common/khmer_dictionary.kdict", help="Output dictionary binary (KDIC) path")
     parser.add_argument("--limit", type=int, help="Limit lines processed for testing")

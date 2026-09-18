@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # Setup paths
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
-    dict_dir = os.path.join(project_root, 'khmer_segmenter', 'dictionary_data')
+    dict_dir = os.path.join(project_root, 'src', 'khmer_segmenter', 'dictionary_data')
     dataset_dir = os.path.join(project_root, 'dataset')
     
     dict_path = os.path.join(dict_dir, "khmer_dictionary_words.txt")

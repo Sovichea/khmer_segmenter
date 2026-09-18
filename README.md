@@ -82,8 +82,13 @@ bundled normalized lexicons, RAC-only frequencies, and lexical POS candidates
 retain that credit and restriction. See
 [the linguistic data notice](DATA_LICENSE.md).
 
-For an exact model rebuild, download the structured RAC CSV directly from the
-original publisher:
+For an exact model rebuild, fetch the pinned, checksum-verified RAC CSV:
+
+```bash
+python scripts/fetch_sources.py
+```
+
+Or download the structured RAC CSV directly from the original publisher:
 
 ```bash
 mkdir -p dataset

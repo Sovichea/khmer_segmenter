@@ -24,7 +24,7 @@ def main() -> None:
     parser.add_argument(
         "--dictionary-dir",
         type=Path,
-        default=PROJECT_ROOT / "khmer_segmenter" / "dictionary_data",
+        default=PROJECT_ROOT / "src" / "khmer_segmenter" / "dictionary_data",
     )
     parser.add_argument(
         "--port-dictionary",

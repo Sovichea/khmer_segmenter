@@ -3,6 +3,34 @@
 This guide covers repository tests and regeneration tasks. Source corpora must
 be obtained separately and stored under the ignored `dataset/` directory.
 
+## Fetch upstream sources
+
+The packaged runtime model works on a fresh clone, but rebuild and validation
+tools need the upstream RAC source table, which is not stored in Git. Download
+the pinned, checksum-verified revision with:
+
+```bash
+python scripts/fetch_sources.py
+```
+
+Files are written under the ignored `dataset/` directory. Pass `--force` to
+refetch or `--output-dir PATH` to place them elsewhere.
+
+## Reproduce the benchmark
+
+The curated benchmark split is tracked in the repository and runs against the
+bundled model, so no download is required:
+
+```bash
+python -m pytest tests/test_curated_release_benchmark.py -q
+python scripts/evaluate_segmentation.py \
+  --dataset curated \
+  --dataset-path benchmarks/curated/benchmark.jsonl
+```
+
+Tools that rebuild the model from source additionally require
+`python scripts/fetch_sources.py` first.
+
 ## Run tests
 
 ```bash
@@ -29,7 +57,7 @@ updates occurrence frequencies, and compiles shared native artifacts.
 ```bash
 python scripts/prepare_data.py \
   --corpus dataset/my_corpus.txt \
-  --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
+  --dict src/khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 ```
 
 Generated native files include the following local, Git-ignored artifacts:
@@ -54,9 +82,9 @@ Then update experimental frequencies when appropriate:
 
 ```bash
 python scripts/incremental_update.py \
-  --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt \
-  --freq khmer_segmenter/dictionary_data/khmer_word_frequencies.json \
-  --unknown-freq khmer_segmenter/dictionary_data/unknown_word_frequencies.json
+  --dict src/khmer_segmenter/dictionary_data/khmer_dictionary_words.txt \
+  --freq src/khmer_segmenter/dictionary_data/khmer_word_frequencies.json \
+  --unknown-freq src/khmer_segmenter/dictionary_data/unknown_word_frequencies.json
 ```
 
 The script uses observed unknown counts, derives a compound estimate when
@@ -94,7 +122,9 @@ used by embedded C and Rust applications, see
 
 Python, Rust, and WASM expose safe word-boundary offsets for layout engines.
 They are derived directly from segmentation and require no second dictionary.
-The project does not insert break points inside Khmer dictionary words.
+The Python reference also offers breaks inside a long word that decomposes into
+smaller accepted words, but never next to a bare consonant or a single-cluster
+syllable. See [Safe word breaks](WORD_BREAKS.md).
 
 ## Shared behavior changes
 

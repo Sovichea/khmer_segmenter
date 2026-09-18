@@ -422,6 +422,11 @@ def main() -> int:
     parser.add_argument("--min-community-boundaries", type=int, default=2)
     parser.add_argument("--max-clusters", type=int, default=10)
     args = parser.parse_args()
+    if not args.rac_csv.is_file():
+        parser.error(
+            f"RAC CSV not found: {args.rac_csv}\n"
+            "Run 'python scripts/fetch_sources.py' to download the pinned source."
+        )
 
     normalizer = KhmerNormalizer()
     rows = read_rac(args.rac_csv)
