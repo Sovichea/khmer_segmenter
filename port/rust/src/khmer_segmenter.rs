@@ -1079,16 +1079,22 @@ mod tests {
     #[test]
     fn word_breaks_split_long_retained_compositions() {
         let segmenter = segmenter(SegmentationLength::Long);
-        // A retained dictionary word that decomposes into two full words.
+        // Retained dictionary words that decompose into two full words.
         assert_eq!(
             segmenter.insert_word_breaks("ត្រូវការ").unwrap(),
             "ត្រូវ\u{200b}ការ"
         );
-        // A retained word that cannot decompose stays whole.
         assert_eq!(
-            segmenter.word_break_opportunities("សាលា").unwrap(),
-            Vec::<usize>::new()
+            segmenter.insert_word_breaks("ខូចខាត").unwrap(),
+            "ខូច\u{200b}ខាត"
         );
+        // A nondominant lexical word and a non-composition stay whole.
+        for word in ["សាលា", "សរសេរ"] {
+            assert_eq!(
+                segmenter.word_break_opportunities(word).unwrap(),
+                Vec::<usize>::new()
+            );
+        }
     }
 
     #[test]

@@ -120,7 +120,7 @@ of internal break opportunities appear as ordinary between-word breaks.
 
 The Rust/WASM port implements both the lone-consonant guard and runtime
 composition breaks, resolving the internal boundaries from the pack's accepted
-spellings. Because a KDIC pack stores costs rather than raw frequencies, the
-native decomposition omits the Python dominance test, so it offers a small
-number of additional safe breaks (about 2% of retained words); every break is
-still between two words of two or more clusters.
+spellings. A KDIC pack stores costs rather than raw frequencies, so the
+dominance test maps onto costs: because a lower cost means a higher frequency,
+the whole word must not be cheaper than its most frequent part. This keeps
+`សរសេរ` whole while allowing `ត្រូវការ`, `ខូចខាត`, and `របាយការណ៍`.

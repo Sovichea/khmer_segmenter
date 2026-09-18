@@ -220,6 +220,7 @@ pub struct TypoDetector {
 
 struct CompositionParts {
     words: HashSet<String>,
+    costs: HashMap<String, f32>,
     max_len: usize,
 }
 
@@ -458,14 +459,20 @@ impl TypoDetector {
     pub(crate) fn composition_break_offsets(&self, text: &str) -> Vec<usize> {
         let parts = self.composition_parts.get_or_init(|| {
             let mut words = HashSet::new();
+            let mut costs = HashMap::new();
             let mut max_len = 0;
-            for word in &self.words {
+            for (word, cost) in &self.entries {
                 if orthographic_cluster_count(word) >= 2 {
                     max_len = max_len.max(word.chars().count());
                     words.insert(word.clone());
+                    costs.insert(word.clone(), *cost);
                 }
             }
-            CompositionParts { words, max_len }
+            CompositionParts {
+                words,
+                costs,
+                max_len,
+            }
         });
         let characters: Vec<char> = text.chars().collect();
         let length = characters.len();
@@ -513,21 +520,45 @@ impl TypoDetector {
                 }
             }
         }
-        let Some(mut position) = first_end else {
+        let Some(first) = first_end else {
             return Vec::new();
         };
-        let mut offsets = vec![byte_index[position]];
-        while position < length {
-            let Some(end) = next_split[position] else {
-                break;
-            };
+        let mut boundaries = Vec::new();
+        let mut pieces: Vec<&str> = Vec::new();
+        let mut start = 0usize;
+        let mut end = first;
+        loop {
+            pieces.push(&text[byte_index[start]..byte_index[end]]);
             if end >= length {
                 break;
             }
-            offsets.push(byte_index[end]);
-            position = end;
+            boundaries.push(byte_index[end]);
+            let Some(next) = next_split[end] else {
+                break;
+            };
+            start = end;
+            end = next;
         }
-        offsets
+        if pieces.len() < 2 {
+            return Vec::new();
+        }
+        // Map the Python "whole word is not dominant" rule onto KDIC costs: a
+        // lower cost means a higher frequency, so the whole word must not be
+        // cheaper than its most frequent part.
+        if let Some(whole_cost) = parts.costs.get(text) {
+            let mut min_part_cost = f32::INFINITY;
+            for piece in &pieces {
+                if let Some(part_cost) = parts.costs.get(*piece) {
+                    if *part_cost < min_part_cost {
+                        min_part_cost = *part_cost;
+                    }
+                }
+            }
+            if min_part_cost.is_finite() && *whole_cost < min_part_cost {
+                return Vec::new();
+            }
+        }
+        boundaries
     }
 
     pub fn is_word(&self, word: &str) -> bool {
