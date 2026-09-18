@@ -118,7 +118,7 @@ the KDIC pack (see [Runtime word composition](COMPOSITION.md#native-packs)),
 native consumers now segment long forms into their parts, so the great majority
 of internal break opportunities appear as ordinary between-word breaks.
 
-Two differences remain in the native ports: they do not add internal
-composition breaks for a retained single token, and they do not yet suppress a
-between-word break that sits next to a lone consonant. Both are small and
-self-contained; the composition axis no longer depends on runtime frequencies.
+The lone-consonant guard is implemented in the Rust/WASM port. One difference
+remains: native ports do not add internal composition breaks for a retained
+single token. Because the composition split is baked into the pack, a retained
+token is a lexical unit, so this difference is small.

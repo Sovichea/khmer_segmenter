@@ -529,6 +529,8 @@ impl KhmerSegmenter {
                 && is_lexical_khmer(right)
                 && self.is_dictionary_word(left)
                 && self.is_dictionary_word(right)
+                && !is_single_consonant(left)
+                && !is_single_consonant(right)
                 && offset == mapped[1].source_range.start
                 && offset > 0
                 && offset < raw_text.len()
@@ -845,6 +847,15 @@ fn is_lexical_khmer(text: &str) -> bool {
         })
 }
 
+/// True for a lone Khmer consonant letter, which is never a safe break neighbour.
+fn is_single_consonant(text: &str) -> bool {
+    let mut characters = text.chars();
+    match (characters.next(), characters.next()) {
+        (Some(character), None) => ('\u{1780}'..='\u{17a2}').contains(&character),
+        _ => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1032,6 +1043,21 @@ mod tests {
         assert_eq!(
             segmenter.insert_word_breaks("ខ្មែរ\u{200b}ស្រឡាញ់").unwrap(),
             "ខ្មែរ\u{200b}ស្រឡាញ់"
+        );
+    }
+
+    #[test]
+    fn word_breaks_skip_lone_consonant_neighbours() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        // A lone consonant token must never create a break next to a word.
+        assert_eq!(
+            segmenter.word_break_opportunities("កបាន").unwrap(),
+            Vec::<usize>::new()
+        );
+        // A genuine word boundary with a full first word remains.
+        assert_eq!(
+            segmenter.word_break_opportunities("ដីកសាង").unwrap(),
+            vec![6]
         );
     }
 
