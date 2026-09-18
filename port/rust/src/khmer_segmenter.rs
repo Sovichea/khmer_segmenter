@@ -515,31 +515,46 @@ impl KhmerSegmenter {
     ) -> Result<Vec<usize>, SegmentationError> {
         let segmentation = self.segment_detailed(raw_text)?;
         let normalized = segmentation.normalized();
+        let ranges = segmentation.ranges();
+        let mapped = segmentation.mapped_segments();
         let mut offsets = Vec::new();
-        for pair in segmentation
-            .ranges()
-            .windows(2)
-            .zip(segmentation.mapped_segments().windows(2))
-        {
-            let (ranges, mapped) = pair;
-            let left = &normalized[ranges[0].clone()];
-            let right = &normalized[ranges[1].clone()];
-            let offset = mapped[0].source_range.end;
-            if is_lexical_khmer(left)
-                && is_lexical_khmer(right)
-                && self.is_dictionary_word(left)
-                && self.is_dictionary_word(right)
-                && !is_single_consonant(left)
-                && !is_single_consonant(right)
-                && offset == mapped[1].source_range.start
-                && offset > 0
-                && offset < raw_text.len()
-                && !raw_text[..offset].ends_with('\u{200b}')
-                && !raw_text[offset..].starts_with('\u{200b}')
-            {
-                offsets.push(offset);
+        for index in 0..ranges.len() {
+            let left = &normalized[ranges[index].clone()];
+            if !is_lexical_khmer(left) || !self.is_dictionary_word(left) {
+                continue;
+            }
+            // Between-word break with the following token.
+            if index + 1 < ranges.len() {
+                let right = &normalized[ranges[index + 1].clone()];
+                let offset = mapped[index].source_range.end;
+                if is_lexical_khmer(right)
+                    && self.is_dictionary_word(right)
+                    && !is_single_consonant(left)
+                    && !is_single_consonant(right)
+                    && offset == mapped[index + 1].source_range.start
+                {
+                    offsets.push(offset);
+                }
+            }
+            // Internal composition break inside a retained word.
+            let source_start = mapped[index].source_range.start;
+            let source_end = mapped[index].source_range.end;
+            for relative in self.typo_detector().composition_break_offsets(left) {
+                let source = source_start + relative;
+                if source > source_start && source < source_end {
+                    offsets.push(source);
+                }
             }
         }
+        offsets.sort_unstable();
+        offsets.dedup();
+        offsets.retain(|offset| {
+            *offset > 0
+                && *offset < raw_text.len()
+                && raw_text.is_char_boundary(*offset)
+                && !raw_text[..*offset].ends_with('\u{200b}')
+                && !raw_text[*offset..].starts_with('\u{200b}')
+        });
         Ok(offsets)
     }
 
@@ -1058,6 +1073,21 @@ mod tests {
         assert_eq!(
             segmenter.word_break_opportunities("ដីកសាង").unwrap(),
             vec![6]
+        );
+    }
+
+    #[test]
+    fn word_breaks_split_long_retained_compositions() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        // A retained dictionary word that decomposes into two full words.
+        assert_eq!(
+            segmenter.insert_word_breaks("ត្រូវការ").unwrap(),
+            "ត្រូវ\u{200b}ការ"
+        );
+        // A retained word that cannot decompose stays whole.
+        assert_eq!(
+            segmenter.word_break_opportunities("សាលា").unwrap(),
+            Vec::<usize>::new()
         );
     }
 

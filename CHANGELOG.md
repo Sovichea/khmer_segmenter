@@ -17,7 +17,7 @@
 - Added an optional 126-entry pilot community pack for inclusive segmentation;
   its entries remain invalid for spelling and autocomplete.
 - Added safe Khmer word-break opportunities for layout engines, including a
-  lone-consonant guard in Python and Rust/WASM.
+  lone-consonant guard and composition breaks in Python and Rust/WASM.
 - Added a runtime word-composition policy that splits long curated forms into
   smaller accepted words, with a reviewed keep-list and a completion length cap.
 - Baked the composition split and completion cap into KDIC compilation so Rust,

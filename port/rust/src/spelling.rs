@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::str::FromStr;
+use std::sync::OnceLock;
 
 use crate::kdict::coeng_da_ta_variants;
 use crate::kdict::{KDict, WORD_AUTOCOMPLETE, WORD_SPELLCHECK};
@@ -214,6 +215,25 @@ pub struct TypoDetector {
     deletion_skeleton: HashMap<String, Vec<usize>>,
     reviewed_typos: HashMap<String, String>,
     max_exact_typo_chars: usize,
+    composition_parts: OnceLock<CompositionParts>,
+}
+
+struct CompositionParts {
+    words: HashSet<String>,
+    max_len: usize,
+}
+
+/// Count Khmer orthographic clusters (base characters that are not subscripts).
+fn orthographic_cluster_count(text: &str) -> usize {
+    let mut count = 0;
+    let mut previous = '\0';
+    for character in text.chars() {
+        if ('\u{1780}'..='\u{17b3}').contains(&character) && previous != COENG {
+            count += 1;
+        }
+        previous = character;
+    }
+    count
 }
 
 impl TypoDetector {
@@ -425,7 +445,89 @@ impl TypoDetector {
             deletion_skeleton,
             reviewed_typos,
             max_exact_typo_chars,
+            composition_parts: OnceLock::new(),
         }
+    }
+
+    /// Return internal byte offsets where a retained word may wrap.
+    ///
+    /// The whole word must split into at least two accepted spellings, each
+    /// with two or more orthographic clusters, so a bare letter or a
+    /// single-cluster syllable is never isolated. The pack stores costs rather
+    /// than raw frequencies, so no lexicality weighting is applied here.
+    pub(crate) fn composition_break_offsets(&self, text: &str) -> Vec<usize> {
+        let parts = self.composition_parts.get_or_init(|| {
+            let mut words = HashSet::new();
+            let mut max_len = 0;
+            for word in &self.words {
+                if orthographic_cluster_count(word) >= 2 {
+                    max_len = max_len.max(word.chars().count());
+                    words.insert(word.clone());
+                }
+            }
+            CompositionParts { words, max_len }
+        });
+        let characters: Vec<char> = text.chars().collect();
+        let length = characters.len();
+        if parts.max_len < 2 || length < 4 {
+            return Vec::new();
+        }
+        let byte_index: Vec<usize> = text
+            .char_indices()
+            .map(|(index, _)| index)
+            .chain(std::iter::once(text.len()))
+            .collect();
+        // Minimum-piece decomposition of every suffix, tracking the first split.
+        let mut min_pieces = vec![usize::MAX; length + 1];
+        let mut next_split: Vec<Option<usize>> = vec![None; length + 1];
+        min_pieces[length] = 0;
+        for start in (0..length).rev() {
+            let limit = (start + parts.max_len).min(length);
+            for end in (start + 1)..=limit {
+                if min_pieces[end] == usize::MAX {
+                    continue;
+                }
+                let piece = &text[byte_index[start]..byte_index[end]];
+                if parts.words.contains(piece) {
+                    let candidate = min_pieces[end] + 1;
+                    if candidate < min_pieces[start] {
+                        min_pieces[start] = candidate;
+                        next_split[start] = Some(end);
+                    }
+                }
+            }
+        }
+        // Force at least one split so the whole word cannot match itself.
+        let mut first_end = None;
+        let mut best_total = usize::MAX;
+        for end in 1..length {
+            if min_pieces[end] == usize::MAX {
+                continue;
+            }
+            let piece = &text[byte_index[0]..byte_index[end]];
+            if parts.words.contains(piece) {
+                let total = min_pieces[end] + 1;
+                if total < best_total {
+                    best_total = total;
+                    first_end = Some(end);
+                }
+            }
+        }
+        let Some(mut position) = first_end else {
+            return Vec::new();
+        };
+        let mut offsets = vec![byte_index[position]];
+        while position < length {
+            let Some(end) = next_split[position] else {
+                break;
+            };
+            if end >= length {
+                break;
+            }
+            offsets.push(byte_index[end]);
+            position = end;
+        }
+        offsets
     }
 
     pub fn is_word(&self, word: &str) -> bool {
