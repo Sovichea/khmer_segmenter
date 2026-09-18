@@ -39,9 +39,9 @@ python scripts/sync_rac_dictionary.py --rac-tsv dataset/rac_dictionary_2022_pair
 This creates:
 
 ```text
-khmer_segmenter/dictionary_data/khmer_dictionary_official_2022_words.txt
-khmer_segmenter/dictionary_data/khmer_dictionary_supplemental_words.txt
-khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
+src/khmer_segmenter/dictionary_data/khmer_dictionary_official_2022_words.txt
+src/khmer_segmenter/dictionary_data/khmer_dictionary_supplemental_words.txt
+src/khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 port/common/khmer_dictionary_words.txt
 ```
 
@@ -73,10 +73,10 @@ Explicit paths are also supported:
 
 ```bash
 python scripts/build_dictionary_kdict.py \
-  --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt \
-  --supplemental khmer_segmenter/dictionary_data/khmer_dictionary_supplemental_words.txt \
-  --spellcheck khmer_segmenter/dictionary_data/khmer_spellcheck_words.txt \
-  --freq khmer_segmenter/dictionary_data/khmer_word_frequencies.json \
+  --dict src/khmer_segmenter/dictionary_data/khmer_dictionary_words.txt \
+  --supplemental src/khmer_segmenter/dictionary_data/khmer_dictionary_supplemental_words.txt \
+  --spellcheck src/khmer_segmenter/dictionary_data/khmer_spellcheck_words.txt \
+  --freq src/khmer_segmenter/dictionary_data/khmer_word_frequencies.json \
   --output port/common/khmer_dictionary.kdict
 ```
 
@@ -107,15 +107,15 @@ Then run the complete pipeline with one or more locally obtained corpora:
 ```bash
 python scripts/prepare_data.py \
   --corpus dataset/my_corpus.txt \
-  --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
+  --dict src/khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 ```
 
 The pipeline normalizes the corpus, estimates frequencies iteratively, and
 generates these local artifacts (dictionary-derived text and binaries are
-ignored by Git):
+ignored by Git unless they are reviewed runtime files):
 
 ```text
-khmer_segmenter/dictionary_data/khmer_word_frequencies.json
+src/khmer_segmenter/dictionary_data/khmer_word_frequencies.json
 port/common/khmer_frequencies.bin
 port/common/khmer_dictionary.kdict
 ```

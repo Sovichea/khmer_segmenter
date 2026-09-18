@@ -19,7 +19,7 @@ system. Confirm that unapproved generated data remains ignored:
 
 ```bash
 git status --short
-git check-ignore khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
+git check-ignore src/khmer_segmenter/dictionary_data/unknown_word_frequencies.json
 git check-ignore port/common/khmer_dictionary.kdict
 ```
 

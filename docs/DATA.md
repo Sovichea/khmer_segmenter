@@ -207,7 +207,7 @@ use:
 ```bash
 python scripts/prepare_data.py \
   --corpus dataset/my_corpus.txt \
-  --dict khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
+  --dict src/khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 ```
 
 The segmenter works without a frequency JSON by applying default dictionary
