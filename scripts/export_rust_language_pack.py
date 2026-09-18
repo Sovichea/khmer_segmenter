@@ -20,6 +20,9 @@ from khmer_segmenter.kdict import (
     KDict,
     compile_klex,
 )
+from khmer_segmenter.spelling import _orthographic_cluster_count
+
+AUTOCOMPLETE_MAX_CLUSTERS = 5
 
 DEFAULT_INPUT = PROJECT_ROOT / "port" / "common" / "khmer_dictionary.kdict"
 DEFAULT_KLEX = PROJECT_ROOT / "port" / "rust" / "data" / "khmer_dictionary.klex.json"
@@ -94,14 +97,14 @@ def export_klex(
         is_author_curated = word in author_curated_words
         is_rac_derived = word in rac_derived_words
         is_rac_usage = word in rac_usage_words
-        uses = (
-            ["spelling"]
-            if word in rac_phrase_exclusions
-            else
-            ["segmentation", "spelling", "autocomplete"]
-            if is_author_curated or is_rac_derived or is_rac_usage
-            else _uses(record.flags)
-        )
+        if word in rac_phrase_exclusions:
+            uses = ["spelling"]
+        elif is_author_curated or is_rac_derived or is_rac_usage:
+            uses = ["segmentation", "spelling"]
+            if _orthographic_cluster_count(word) <= AUTOCOMPLETE_MAX_CLUSTERS:
+                uses.append("autocomplete")
+        else:
+            uses = _uses(record.flags)
         if (
             word in correction_targets
             and (record is None or not record.flags & SPELLCHECK)

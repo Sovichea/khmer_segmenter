@@ -28,9 +28,23 @@ try:
     from khmer_segmenter.normalization import KhmerNormalizer
     from khmer_segmenter import KhmerSegmenter
     from khmer_segmenter.kdict import compile_klex
+    from khmer_segmenter.composition import (
+        composition_parts,
+        is_composition,
+        max_part_length,
+    )
+    from khmer_segmenter.spelling import _orthographic_cluster_count
 except ImportError:
     print("Error: Could not import khmer_segmenter package. Run from project root.")
     sys.exit(1)
+
+DEFAULT_COMPOSITION_KEEP = os.path.join(
+    PROJECT_ROOT,
+    "src",
+    "khmer_segmenter",
+    "dictionary_data",
+    "khmer_dictionary_composition_keep.txt",
+)
 
 
 
@@ -412,6 +426,9 @@ def step_compile_kdict(
     spellcheck_path=None,
     typo_corrections_path=None,
     supplemental_penalty=1.5,
+    composition_keep_path=DEFAULT_COMPOSITION_KEEP,
+    composition_guard=5.0,
+    autocomplete_max_clusters=5,
 ):
     print(f"[*] Step 4: Compiling KDict Binary...")
     
@@ -532,6 +549,35 @@ def step_compile_kdict(
                 if typed and correction and typed != correction:
                     approved_typos[typed] = correction
 
+    # Match the Python runtime composition policy so native KDIC consumers
+    # split cheap long compositions and never offer an over-long completion.
+    raw_counts = {
+        strip_control_chars(word): float(value) for word, value in raw_freq.items()
+    }
+    keep = set()
+    if composition_keep_path and os.path.isfile(composition_keep_path):
+        with open(composition_keep_path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                kept = strip_control_chars(line.strip())
+                if kept:
+                    keep.add(kept)
+    composition_excluded = set()
+    if raw_counts and composition_guard > 0:
+        parts = composition_parts(protected_spelling_words, min_clusters=2)
+        part_length = max_part_length(parts)
+        for word in words:
+            if word in keep:
+                continue
+            if raw_counts.get(word, 0.0) >= composition_guard:
+                continue
+            if is_composition(word, parts, max_part_length=part_length):
+                composition_excluded.add(word)
+    if composition_excluded:
+        print(
+            f"  > Composition policy: splitting {len(composition_excluded)} "
+            "long low-frequency forms"
+        )
+
     segment_flag = 1 << 0
     spellcheck_flag = 1 << 1
     autocomplete_flag = 1 << 2
@@ -542,10 +588,15 @@ def step_compile_kdict(
     metadata_words |= set(approved_typos.values())
     for word in metadata_words:
         flags = 0
-        if word in words:
+        if word in words and word not in composition_excluded:
             flags |= segment_flag
         if word in protected_spelling_words:
-            flags |= spellcheck_flag | autocomplete_flag
+            flags |= spellcheck_flag
+            if (
+                autocomplete_max_clusters is None
+                or _orthographic_cluster_count(word) <= autocomplete_max_clusters
+            ):
+                flags |= autocomplete_flag
         if word in approved_typos:
             flags |= typo_surface_flag
         if word in supplemental_words and word not in primary_words:

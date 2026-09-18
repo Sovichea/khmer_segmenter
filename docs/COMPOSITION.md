@@ -46,9 +46,25 @@ python scripts/build_composition_keep.py
 
 When no keep-list is present (custom data), the runtime requires forms of at
 least seven clusters before splitting, so a custom dictionary is not
-over-segmented. Packed KDIC models store costs but not raw frequencies, so the
-runtime composition policy is skipped for them until the policy is baked into
-the pack.
+over-segmented.
+
+## Native packs
+
+Python applies the policy at load time. Native consumers read a KDIC pack,
+which stores costs but not raw frequencies, so the policy is **baked into the
+compiler** instead: `scripts/build_dictionary_kdict.py` clears `SEGMENT` for
+composition words and clears `AUTOCOMPLETE` for forms above the cluster cap
+before writing the pack. Rust, WASM, and C therefore inherit the same split and
+completion behaviour with no runtime work. `scripts/export_rust_language_pack.py`
+keeps the base flags and applies the same completion cap to promoted words.
+
+Rebuild the native packs after changing the policy or the keep-list:
+
+```bash
+python scripts/build_dictionary_kdict.py
+python scripts/export_rust_language_pack.py
+cargo test --manifest-path port/rust/Cargo.toml --lib
+```
 
 ## Completion cap
 
