@@ -375,6 +375,7 @@ linguistic artifacts.
 - [Dictionary and embedded-data preparation](docs/EMBEDDED_DICTIONARY.md)
 - [Development workflows](docs/DEVELOPMENT.md)
 - [Evaluation](docs/EVALUATION.md)
+- [Safe word breaks](docs/WORD_BREAKS.md)
 - [Migration from 0.1.1](docs/MIGRATION_0_2.md)
 - [Benchmarks](docs/BENCHMARKS.md)
 - [Algorithm and porting reference](port/README.md)

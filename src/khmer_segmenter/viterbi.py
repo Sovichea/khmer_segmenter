@@ -23,7 +23,11 @@ from .models import (
 from .normalization import KhmerNormalizer
 from .orthography import coeng_da_ta_variants
 from .rule_engine import RuleBasedEngine
-from .spelling import TypoDetector, load_approved_typo_corrections
+from .spelling import (
+    TypoDetector,
+    _orthographic_cluster_count,
+    load_approved_typo_corrections,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +106,9 @@ class KhmerSegmenter:
         self._curated_runtime_words = set()
         self._supplemental_runtime_words = set()
         self._typo_detector = None
+        self._break_lexicon_cache = None
+        self._break_max_len = 0
+        self._composition_cache = {}
         self._pos_path = pos_path
         self.data_manifest = {}
         self.default_cost = 10.0  # High cost for dictionary words without frequency
@@ -1035,8 +1042,103 @@ class KhmerSegmenter:
             )
         )
 
+    @staticmethod
+    def _is_single_consonant(text):
+        """True for a lone Khmer consonant letter, never a safe break neighbor."""
+
+        return len(text) == 1 and 0x1780 <= ord(text) <= 0x17A2
+
+    @property
+    def _break_lexicon(self):
+        """Accepted spellings with at least two clusters, used as break parts.
+
+        Single-cluster forms are excluded so a composition can never break off a
+        bare letter or a lone vowel-bearing syllable.
+        """
+
+        if self._break_lexicon_cache is None:
+            self._break_lexicon_cache = frozenset(
+                word
+                for word in self.spellcheck_words
+                if word and _orthographic_cluster_count(word) >= 2
+            )
+            self._break_max_len = max(
+                (len(word) for word in self._break_lexicon_cache), default=0
+            )
+        return self._break_lexicon_cache
+
+    def _decompose_composition(self, text):
+        """Return a minimum-part break decomposition, or None when unsafe.
+
+        A decomposition is accepted only when the whole form is a composition
+        rather than a lexicalized unit: every part has at least two clusters and
+        the whole-word frequency does not exceed its most frequent part.
+        """
+
+        if text in self._composition_cache:
+            return self._composition_cache[text]
+        words = self._break_lexicon
+        length = len(text)
+        max_len = self._break_max_len
+        result = None
+        if length >= 2 and max_len >= 2:
+            # full[start] is the minimum-part decomposition of text[start:].
+            full = [None] * (length + 1)
+            full[length] = ()
+            for start in range(length - 1, -1, -1):
+                best = (text[start:],) if text[start:] in words else None
+                limit = min(length, start + max_len)
+                for end in range(start + 1, limit + 1):
+                    piece = text[start:end]
+                    if piece not in words:
+                        continue
+                    tail = full[end]
+                    if tail is None:
+                        continue
+                    candidate = (piece,) + tail
+                    if best is None or len(candidate) < len(best):
+                        best = candidate
+                full[start] = best
+            # Force at least one split so the whole word cannot match itself.
+            top_limit = min(length - 1, max_len)
+            for end in range(1, top_limit + 1):
+                left = text[:end]
+                if left not in words:
+                    continue
+                tail = full[end]
+                if tail is None:
+                    continue
+                candidate = (left,) + tail
+                if result is None or len(candidate) < len(result):
+                    result = candidate
+            if result is not None:
+                whole_frequency = float(self.word_frequencies.get(text, 0) or 0)
+                best_part = max(
+                    float(self.word_frequencies.get(part, 0) or 0) for part in result
+                )
+                if whole_frequency > best_part:
+                    result = None
+        self._composition_cache[text] = result
+        return result
+
+    @staticmethod
+    def _part_prefix_lengths(parts):
+        """Cumulative character lengths of every part boundary except the last."""
+
+        lengths = []
+        total = 0
+        for part in parts[:-1]:
+            total += len(part)
+            lengths.append(total)
+        return lengths
+
     def word_break_opportunities(
-        self, text, *, normalize=True, disable_post_processing=False
+        self,
+        text,
+        *,
+        normalize=True,
+        disable_post_processing=False,
+        allow_composition_breaks=True,
     ) -> tuple[int, ...]:
         """Return safe Khmer word-boundary offsets in the original source text.
 
@@ -1044,6 +1146,14 @@ class KhmerSegmenter:
         is offered only between adjacent known Khmer lexical words. Existing
         whitespace, punctuation, unknown spans, numbers, and existing zero-width
         spaces therefore do not produce redundant opportunities.
+
+        When ``allow_composition_breaks`` is true, an additional break is
+        offered inside a long known word that decomposes into smaller accepted
+        words. A break is never emitted next to a lone consonant, and a
+        decomposition is rejected when any part has fewer than two orthographic
+        clusters or when the whole word is more frequent than its parts, so
+        lexicalized words such as ``សាលា`` or ``សរសេរ`` stay unbroken while
+        compositions such as ``ត្រូវការ`` may wrap.
         """
 
         if normalize:
@@ -1064,19 +1174,48 @@ class KhmerSegmenter:
             )
             for token in tokens
         ]
-        return tuple(
-            left.source_end
-            for left, right in zip(mapped, mapped[1:])
-            if self._is_known_khmer_word(left)
-            and self._is_known_khmer_word(right)
-            and left.source_end == right.source_start
-            and 0 < left.source_end < len(text)
-            and text[left.source_end - 1] != "\u200b"
-            and text[left.source_end] != "\u200b"
-        )
+        offsets: set[int] = set()
+        for left, right in zip(mapped, mapped[1:]):
+            if (
+                self._is_known_khmer_word(left)
+                and self._is_known_khmer_word(right)
+                and not self._is_single_consonant(left.text)
+                and not self._is_single_consonant(right.text)
+                and left.source_end == right.source_start
+                and 0 < left.source_end < len(text)
+                and text[left.source_end - 1] != "\u200b"
+                and text[left.source_end] != "\u200b"
+            ):
+                offsets.add(left.source_end)
+        if allow_composition_breaks:
+            for token in mapped:
+                if not self._is_known_khmer_word(token):
+                    continue
+                parts = self._decompose_composition(token.text)
+                if not parts:
+                    continue
+                for prefix_length in self._part_prefix_lengths(parts):
+                    normalized_index = token.start + prefix_length
+                    if not 0 < normalized_index < len(normalized_text):
+                        continue
+                    source_index = source_mapping[normalized_index - 1][1]
+                    if not 0 < source_index < len(text):
+                        continue
+                    if (
+                        text[source_index - 1] == "\u200b"
+                        or text[source_index] == "\u200b"
+                    ):
+                        continue
+                    offsets.add(source_index)
+        return tuple(sorted(offsets))
 
     def insert_word_breaks(
-        self, text, *, normalize=True, disable_post_processing=False
+        self,
+        text,
+        *,
+        normalize=True,
+        disable_post_processing=False,
+        allow_composition_breaks=True,
     ) -> str:
         """Insert U+200B at safe Khmer word boundaries without changing text."""
 
@@ -1085,6 +1224,7 @@ class KhmerSegmenter:
                 text,
                 normalize=normalize,
                 disable_post_processing=disable_post_processing,
+                allow_composition_breaks=allow_composition_breaks,
             )
         )
         if not offsets:

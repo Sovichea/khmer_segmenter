@@ -20,6 +20,7 @@ main README.
 ## Use and evaluate
 
 - [Evaluation guide](EVALUATION.md): curated gate, legacy diagnostics, metrics, and commands
+- [Safe word breaks](WORD_BREAKS.md): ZWSP layout rules, composition breaks, and verification
 - [Typo detection](TYPO_DETECTION.md): whole-span diagnostics, suggestions, and edit scripts
 - [Benchmark results](BENCHMARKS.md): accuracy and runtime measurements
 - [Development workflows](DEVELOPMENT.md): tests, corpus preparation,
