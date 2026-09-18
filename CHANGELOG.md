@@ -17,6 +17,10 @@
 - Added an optional 126-entry pilot community pack for inclusive segmentation;
   its entries remain invalid for spelling and autocomplete.
 - Added safe Khmer word-break opportunities for layout engines.
+- Added a runtime word-composition policy that splits long curated forms into
+  smaller accepted words, with a reviewed keep-list and a completion length cap.
+- Added whole-span composition validation and a checksum-verified source fetch
+  that restores fresh-clone reproducibility for repository scripts.
 - Removed experimental internal-word hyphenation and the KHYP data format.
 
 The 300-sentence benchmark is a human-reviewed, model-seeded regression suite.

@@ -63,6 +63,10 @@ class DataFiles:
         return self.root / "khmer_spellcheck_words.txt"
 
     @property
+    def composition_keep(self) -> Path:
+        return self.root / "khmer_dictionary_composition_keep.txt"
+
+    @property
     def typo_corrections(self) -> Path:
         return self.root / "khmer_typo_corrections.tsv"
 

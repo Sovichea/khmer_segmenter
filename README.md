@@ -22,6 +22,7 @@ unknown-word recovery without a runtime machine-learning model.
 - Khmer Unicode normalization
 - Frequency-weighted dictionary decisions
 - Layered curated and supplemental segmentation lexicons
+- Runtime word-composition splitting with a curated keep-list
 - A small, explicitly identified author-curated vocabulary for signature terms and names
 - RAC-curated spelling correction and autocomplete vocabulary
 - Word spelling checks through Python and the CLI
@@ -380,6 +381,7 @@ linguistic artifacts.
 - [Dictionary and embedded-data preparation](docs/EMBEDDED_DICTIONARY.md)
 - [Development workflows](docs/DEVELOPMENT.md)
 - [Evaluation](docs/EVALUATION.md)
+- [Runtime word composition](docs/COMPOSITION.md)
 - [Safe word breaks](docs/WORD_BREAKS.md)
 - [Migration from 0.1.1](docs/MIGRATION_0_2.md)
 - [Benchmarks](docs/BENCHMARKS.md)

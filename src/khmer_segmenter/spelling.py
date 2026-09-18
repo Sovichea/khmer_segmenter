@@ -394,12 +394,26 @@ class TypoDetector:
                 signature = skeleton[:index] + skeleton[index + 1 :]
                 self._deletion_skeleton[signature].append(word)
 
-    def complete_prefix(self, prefix: str, *, limit: int) -> tuple[SpellingSuggestion, ...]:
-        """Return curated words beginning with *prefix*, with an exact match first."""
+    def complete_prefix(
+        self,
+        prefix: str,
+        *,
+        limit: int,
+        max_clusters: int | None = None,
+    ) -> tuple[SpellingSuggestion, ...]:
+        """Return curated words beginning with *prefix*, with an exact match first.
+
+        ``max_clusters`` limits suggestions by orthographic cluster count so a
+        long curated phrase is not offered as an ordinary word completion.
+        """
 
         if not prefix or limit <= 0:
             return ()
         matches = (word for word in self.autocomplete_words if word.startswith(prefix))
+        if max_clusters is not None:
+            matches = (
+                word for word in matches if _orthographic_cluster_count(word) <= max_clusters
+            )
         ranked = sorted(
             matches,
             key=lambda word: (

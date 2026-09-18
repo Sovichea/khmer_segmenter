@@ -21,6 +21,7 @@ use:
 - `khmer_dictionary_words.txt`
 - `khmer_dictionary_official_2022_words.txt`
 - `khmer_dictionary_author_curated_words.txt`
+- `khmer_dictionary_composition_keep.txt` (reviewed composition keep-list)
 - `khmer_dictionary_rac_derived_words.txt`
 - `khmer_dictionary_rac_phrase_exclusions.txt`
 - `khmer_dictionary_rac_derived_review.tsv`

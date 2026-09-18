@@ -55,7 +55,7 @@ The frozen 100-sentence test split gives the following stable-candidate result:
 | Version | Boundary precision | Boundary recall | Boundary F1 | Exact sentence | Unknown tokens |
 |:---|---:|---:|---:|---:|---:|
 | 0.1.1 | 99.11% | 85.01% | 91.52% | 17.00% | 12.56% |
-| 0.2.0 | 100.00% | 99.34% | **99.67%** | 94.00% | 0.20% |
+| 0.2.0 | 99.89% | 99.56% | **99.73%** | 95.00% | 0.20% |
 
 These figures show a large regression-test improvement, but the set was seeded
 from the newer model and reviewed for ambiguous boundaries. It is not an

@@ -36,6 +36,7 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
 |-- khmer_dictionary_official_2022_words.txt
 |-- khmer_dictionary_author_curated_words.txt
+|-- khmer_dictionary_composition_keep.txt
 |-- khmer_dictionary_rac_derived_words.txt
 |-- khmer_dictionary_rac_usage_words.txt
 |-- khmer_dictionary_rac_phrase_exclusions.txt
@@ -161,6 +162,7 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
 |-- khmer_dictionary_official_2022_words.txt
 |-- khmer_dictionary_author_curated_words.txt
+|-- khmer_dictionary_composition_keep.txt
 |-- khmer_dictionary_rac_derived_words.txt
 |-- khmer_dictionary_rac_usage_words.txt
 |-- khmer_dictionary_rac_phrase_exclusions.txt

@@ -8,6 +8,7 @@ import unicodedata
 from dataclasses import replace
 from pathlib import Path
 
+from .composition import composition_parts, is_composition, max_part_length
 from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
 from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
 from .models import (
@@ -47,6 +48,8 @@ class KhmerSegmenter:
         data_dir=None,
         kdict_path=None,
         kdict_layers=None,
+        composition=True,
+        composition_guard=5.0,
     ):
         """
         Initialize the segmenter by loading the dictionary and word frequencies.
@@ -109,6 +112,10 @@ class KhmerSegmenter:
         self._break_lexicon_cache = None
         self._break_max_len = 0
         self._composition_cache = {}
+        self._composition_enabled = bool(composition)
+        self._composition_guard = float(composition_guard)
+        self._composition_exclusions_cache = None
+        self._composition_keep_cache = None
         self._pos_path = pos_path
         self.data_manifest = {}
         self.default_cost = 10.0  # High cost for dictionary words without frequency
@@ -128,6 +135,7 @@ class KhmerSegmenter:
             self._load_lexical_sources()
             self._load_frequencies(frequency_path)
         self._load_data_manifest(data_files.model_manifest)
+        self._apply_composition_policy()
 
     @classmethod
     def from_data_dir(cls, data_dir=None):
@@ -403,6 +411,74 @@ class KhmerSegmenter:
         with open(path, "r", encoding="utf-8") as handle:
             data = json.load(handle)
         self.data_manifest = data
+
+    @property
+    def _composition_keep(self):
+        """Words that must never be split by the runtime composition policy."""
+
+        if self._composition_keep_cache is None:
+            keep: set[str] = set()
+            path = self.data_files.composition_keep
+            if path.is_file():
+                with open(path, "r", encoding="utf-8") as handle:
+                    for line in handle:
+                        word = self.normalizer.normalize(line.strip())
+                        if word:
+                            keep.add(word)
+            self._composition_keep_cache = frozenset(keep)
+        return self._composition_keep_cache
+
+    def _composition_exclusions(self):
+        """Return cheap compositions that segmentation should split instead."""
+
+        if self._composition_exclusions_cache is not None:
+            return self._composition_exclusions_cache
+        exclusions: set[str] = set()
+        if self._composition_enabled and self.word_frequencies:
+            parts = composition_parts(self.spellcheck_words, min_clusters=2)
+            part_length = max_part_length(parts)
+            keep = self._composition_keep
+            # Without a keep-list, require a longer form so custom data is not
+            # over-split; the packaged model ships a reviewed keep-list.
+            conservative = not keep
+            for word in self.words:
+                if word in keep:
+                    continue
+                if conservative and _orthographic_cluster_count(word) < 7:
+                    continue
+                if float(self.word_frequencies.get(word, 0) or 0) >= self._composition_guard:
+                    continue
+                if is_composition(word, parts, max_part_length=part_length):
+                    exclusions.add(word)
+        self._composition_exclusions_cache = frozenset(exclusions)
+        return self._composition_exclusions_cache
+
+    def _apply_composition_policy(self):
+        exclusions = self._composition_exclusions()
+        if exclusions:
+            self.words -= exclusions
+            self.max_word_length = max(map(len, self.words), default=0)
+
+    def is_valid_composition(
+        self, word, *, normalize=True, accuracy=SpellingAccuracy.LEXICAL
+    ):
+        """Return whether *word* is an exact word or a valid composition.
+
+        This is the whole-span spelling check: a long curated form such as
+        ``បុរាណកាល`` validates when it segments entirely into accepted words,
+        without being stored as a single spelling unit.
+        """
+
+        candidate = self.normalizer.normalize(word) if normalize else word
+        if self.is_spelling_valid(candidate, normalize=False, accuracy=accuracy):
+            return True
+        tokens = self.segment(candidate, disable_post_processing=True, normalize=False)
+        if len(tokens) < 2 or "".join(tokens) != candidate:
+            return False
+        return all(
+            self.is_spelling_valid(token, normalize=False, accuracy=accuracy)
+            for token in tokens
+        )
 
     def _load_dictionary(self, path):
         if not os.path.exists(path):
@@ -763,11 +839,20 @@ class KhmerSegmenter:
             limit=max_suggestions,
         )
 
-    def complete_word(self, prefix, *, normalize=True, max_suggestions=10):
-        """Return frequency-ranked completions from the curated spelling lexicon."""
+    def complete_word(
+        self, prefix, *, normalize=True, max_suggestions=10, max_clusters=5
+    ):
+        """Return frequency-ranked completions from the curated spelling lexicon.
+
+        ``max_clusters`` drops suggestions that are longer than a sensible word
+        composition, so long curated phrases are not offered as completions.
+        Pass ``None`` to disable the cap.
+        """
 
         candidate = self.normalizer.normalize(prefix) if normalize else prefix
-        return self.typo_detector.complete_prefix(candidate, limit=max_suggestions)
+        return self.typo_detector.complete_prefix(
+            candidate, limit=max_suggestions, max_clusters=max_clusters
+        )
 
     @property
     def typo_detector(self):
