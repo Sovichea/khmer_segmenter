@@ -61,6 +61,10 @@ These figures show a large regression-test improvement, but the set was seeded
 from the newer model and reviewed for ambiguous boundaries. It is not an
 independent general-accuracy benchmark.
 
+`tests/test_curated_segmentation_quality.py` enforces release floors on this
+set in CI: boundary F1 ≥ 0.99, exact-sentence ≥ 0.93, and unknown-token rate
+≤ 0.01.
+
 On a local Windows/Python 3.10 run, the document spellcheck profile initialized
 in about 2.0 seconds, its first lazy check took about 1.6 seconds, repeated
 checks of a 49-code-point sample averaged 3.0–3.2 ms, and completion averaged
