@@ -11,7 +11,7 @@ use khmer_segmenter::kdict::{
     WORD_SUPPLEMENTAL, WORD_TYPO_SURFACE,
 };
 use khmer_segmenter::khmer_segmenter::{KhmerSegmenter, SegmentationLength, SegmenterConfig};
-use khmer_segmenter::{SpellcheckProfile, SpellingAccuracy};
+use khmer_segmenter::{SpellcheckProfile, SpellingAccuracy, SpellingAuthority};
 
 fn invalid_data(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message.into())
@@ -663,6 +663,7 @@ fn run_word_breaks(args: &[String]) -> io::Result<()> {
 fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
     let mut profile = SpellcheckProfile::Typing;
     let mut accuracy = SpellingAccuracy::Visual;
+    let mut authority = SpellingAuthority::Official;
     let mut dictionary: Option<String> = None;
     let mut input: Option<String> = None;
     let mut format = "json";
@@ -685,6 +686,18 @@ fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
                     io::Error::new(io::ErrorKind::InvalidInput, "--accuracy requires a value")
                 })?;
                 accuracy = value
+                    .parse()
+                    .map_err(|error: String| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+            }
+            "--spelling-authority" => {
+                index += 1;
+                let value = args.get(index).ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "--spelling-authority requires a value",
+                    )
+                })?;
+                authority = value
                     .parse()
                     .map_err(|error: String| io::Error::new(io::ErrorKind::InvalidInput, error))?;
             }
@@ -750,7 +763,9 @@ fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
         value
     };
     let dictionary = require_dictionary_path(dictionary.map(PathBuf::from))?;
-    let segmenter = load_segmenter(&dictionary, SegmenterConfig::default())?;
+    let mut config = SegmenterConfig::default();
+    config.spelling_authority = authority;
+    let segmenter = load_segmenter(&dictionary, config)?;
     let analysis = segmenter
         .analyze_text_with_accuracy(&text, profile, accuracy)
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
@@ -959,6 +974,14 @@ fn main() -> io::Result<()> {
             config.enable_unknown_merging = false;
         } else if arg == "--no-freq" {
             config.enable_frequency_costs = false; // Not used in binary dict but kept for compat
+        } else if arg == "--spelling-authority" {
+            if i + 1 < args.len() {
+                match args[i + 1].parse::<SpellingAuthority>() {
+                    Ok(authority) => config.spelling_authority = authority,
+                    Err(error) => eprintln!("WARNING: {error}"),
+                }
+                i += 1;
+            }
         } else if arg == "--short" {
             config.segmentation_length = SegmentationLength::Short;
         } else if arg == "--long" {

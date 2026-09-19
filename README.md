@@ -116,7 +116,7 @@ python scripts/rebuild_rac_model.py \
 ```
 
 `khmer-segment data prepare --rac-tsv PATH` remains available for simple custom
-0.1-style dictionary overrides; it does not reproduce the strict RAC model.
+0.1-style dictionary overrides; it does not reproduce the bundled RAC model.
 
 The installed layered model additionally contains conservative supplemental
 segmentation chunks. Supplemental entries can preserve names, newer vocabulary,

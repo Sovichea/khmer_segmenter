@@ -52,19 +52,24 @@ It is built from reviewed sources and tagged per entry:
 
 The list is compiled from the review tables in `build/` with
 `python scripts/compile_practical_policy.py`. A community spelling makes the
-form valid and offers it in completion; it does not change segmentation costs
-or the canonical spelling shown by correction suggestions.
+form valid, keeps it as a single segmentation token, and offers it in
+completion; it does not change existing segmentation costs or the canonical
+spelling shown by correction suggestions.
 
-## Relationship to lexicon modes
+## Relationship to lexicon layers
 
-[Lexicon modes](LEXICON_LAYERS.md) decide which **packs** load (`strict` vs
-`inclusive`). Spelling authority decides whether reviewed community **spellings**
-are accepted. The two are independent: an inclusive pack can still be used with
-`official` spelling authority, and vice versa.
+[Lexicon layers](LEXICON_LAYERS.md) decide which **packs** participate in
+segmentation; every supplied pack always loads, with community evidence last.
+Spelling authority decides whether reviewed community **spellings** are
+accepted. The two are independent: community packs improve segmentation, and
+community spellings become valid only under community authority.
 
 ## Native ports
 
-Rust, WASM, and C read KDIC flags. Community spellings become accepted in the
-native ports only when they are compiled into a pack with the `spelling` and
-`autocomplete` uses (for example, an inclusive community pack). Until that pack
-exists, the toggle is Python-only.
+Rust and WebAssembly expose the same selection through
+`SegmenterConfig::spelling_authority` and
+`WasmKhmerSegmenter.newWithAuthority`, with `--spelling-authority` on the native
+CLI. The reviewed community spellings are embedded in the Rust language pack, so
+under community authority they participate in segmentation, spelling validity,
+and completion exactly as in Python. The C port reads KDIC flags and does not yet
+expose the runtime toggle.

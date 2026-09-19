@@ -118,10 +118,11 @@ python scripts/benchmark_spellcheck.py \
 ```
 
 The script also accepts `--valid-jsonl` for a curated benchmark containing a
-`text` field. Run both `--spelling-accuracy lexical` and `visual`: lexical mode
-intentionally reports dictionary-encoding variants, while visual mode accepts
-COENG DA/TA forms that render equivalently. Do not label those intentional
-lexical diagnostics as product false positives.
+`text` field. `--spelling-accuracy` defaults to `visual`, matching the product
+default. Run both `visual` and `lexical`: lexical mode intentionally reports
+dictionary-encoding variants, while visual mode accepts COENG DA/TA forms that
+render equivalently. Do not label those intentional lexical diagnostics as
+product false positives.
 
 This reports initialization, first lazy spellcheck, repeated spellcheck,
 completion latency, resident-memory growth (when `psutil` is installed), and the rate of valid lines receiving

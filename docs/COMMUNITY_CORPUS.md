@@ -25,8 +25,9 @@ confirmation. Keep the downloaded corpus and generated candidate cache local.
   valid or place it in autocomplete.
 - Approved entries may later be promoted to the reviewed community spelling
   list, where they become valid only under community
-  [spelling authority](SPELLING_AUTHORITY.md). That promotion is not applied
-  yet; the default stays official.
+  [spelling authority](SPELLING_AUTHORITY.md). This is how the reviewed Chuon
+  Nath and SBBIC legacy forms were added; the Panhapich corpus entries are not
+  promoted yet and the default stays official.
 - The community pack is loaded alongside RAC, reviewed official lexicons, and
   user packs; all participate in segmentation, with community evidence last.
 
@@ -91,9 +92,8 @@ khmer-segment data compile build/panhapich-community.klex.json \
 ```
 
 The community pack preserves relative frequency among its reviewed entries.
-For an experimental one-file inclusive model that also updates the costs of
-existing RAC and official-lexicon words, interpolate rather than replace the
-curated model:
+To build one standalone model that also updates the costs of existing RAC and
+official-lexicon words, interpolate rather than replace the curated model:
 
 ```bash
 python scripts/blend_corpus_frequencies.py \

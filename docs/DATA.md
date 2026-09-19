@@ -130,7 +130,7 @@ python scripts/validate_findings.py \
 ```
 
 The simpler `khmer-segment data prepare --rac-tsv PATH` command is retained for
-custom dictionary overrides, not for reproducing the bundled strict model.
+custom dictionary overrides, not for reproducing the bundled RAC model.
 
 See [Prepare Dictionaries for Python, C, and Rust](EMBEDDED_DICTIONARY.md) for
 all generated files and KDIC conversion.

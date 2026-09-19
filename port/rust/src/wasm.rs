@@ -2,8 +2,8 @@ use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    KhmerSegmenter, SegmenterConfig, SpellcheckProfile, SpellingAccuracy, SpellingDiagnostic,
-    SpellingSuggestion,
+    KhmerSegmenter, SegmenterConfig, SpellcheckProfile, SpellingAccuracy, SpellingAuthority,
+    SpellingDiagnostic, SpellingSuggestion,
 };
 
 #[derive(Serialize)]
@@ -58,6 +58,21 @@ impl WasmKhmerSegmenter {
         let inner =
             KhmerSegmenter::from_bytes(dictionary_bytes.to_vec(), SegmenterConfig::default())
                 .map_err(|error| JsValue::from_str(&error.to_string()))?;
+        Ok(Self { inner })
+    }
+
+    /// Construct with a selectable spelling authority (`official` or `community`).
+    #[wasm_bindgen(js_name = newWithAuthority)]
+    pub fn new_with_authority(
+        dictionary_bytes: &[u8],
+        authority: &str,
+    ) -> Result<WasmKhmerSegmenter, JsValue> {
+        let mut config = SegmenterConfig::default();
+        config.spelling_authority = authority
+            .parse::<SpellingAuthority>()
+            .map_err(|error| JsValue::from_str(&error))?;
+        let inner = KhmerSegmenter::from_bytes(dictionary_bytes.to_vec(), config)
+            .map_err(|error| JsValue::from_str(&error.to_string()))?;
         Ok(Self { inner })
     }
 

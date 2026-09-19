@@ -11,10 +11,11 @@ segmentation preference and completion while preserving curated spellcheck.
    specialist terminology with provenance.
 3. **User packs** — application- or user-approved vocabulary and corrections.
 4. **Community pack** — corpus-derived segmentation evidence and common variants;
-   excluded from strict spelling validity.
+   excluded from spelling validity by default.
 
-Strict mode uses the first three layers. A community-aware mode may use all four
-for segmentation and completion, while diagnostics continue to distinguish a
+All four layers participate in segmentation, with community evidence last. Under
+community [spelling authority](SPELLING_AUTHORITY.md), reviewed community
+spellings also become valid, while diagnostics continue to distinguish a
 standard spelling, an accepted common variant, and an unknown form.
 
 ## Proposed curation pipeline

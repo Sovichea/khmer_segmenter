@@ -6,6 +6,9 @@ WebAssembly ports:
 - `khmer_dictionary.klex.json` is the editable KLEX source with explicit model
   costs and lexical-policy flags.
 - `khmer_dictionary.kdict` is the compiled KDIC v2 runtime pack.
+- `khmer_dictionary_community_spellings.txt` embeds the reviewed community
+  spellings loaded under community spelling authority. It is kept byte-identical
+  to the Python runtime copy by `tests/test_dictionary_sync.py`.
 
 Regenerate both files from the repository root after rebuilding the canonical
 model:

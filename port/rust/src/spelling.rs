@@ -9,6 +9,7 @@ use std::sync::OnceLock;
 use crate::kdict::coeng_da_ta_variants;
 use crate::kdict::{KDict, WORD_AUTOCOMPLETE, WORD_SPELLCHECK};
 use crate::khmer_segmenter::Segmentation;
+use crate::normalization::khmer_normalize;
 
 const COENG: char = '\u{17d2}';
 const NIKAHIT: char = '\u{17c6}';
@@ -63,6 +64,54 @@ impl FromStr for SpellingAccuracy {
             )),
         }
     }
+}
+
+/// Which reviewed sources may make a spelling valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SpellingAuthority {
+    #[default]
+    Official,
+    Community,
+}
+
+impl SpellingAuthority {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Official => "official",
+            Self::Community => "community",
+        }
+    }
+}
+
+impl FromStr for SpellingAuthority {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "official" => Ok(Self::Official),
+            "community" => Ok(Self::Community),
+            _ => Err(format!(
+                "unknown spelling authority {value:?}; expected official or community"
+            )),
+        }
+    }
+}
+
+const COMMUNITY_SPELLINGS: &str = include_str!("../data/khmer_dictionary_community_spellings.txt");
+
+/// Cost penalty applied to reviewed community spellings absent from KDIC, so
+/// frequent dictionary words still rank ahead of them.
+const COMMUNITY_SPELLING_COST_PENALTY: f32 = 1.0;
+
+/// Reviewed community spellings, normalized for lookup.
+pub fn community_spellings() -> Vec<String> {
+    COMMUNITY_SPELLINGS
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(khmer_normalize)
+        .filter(|word| !word.is_empty())
+        .collect()
 }
 
 impl SpellcheckProfile {
@@ -239,6 +288,10 @@ fn orthographic_cluster_count(text: &str) -> usize {
 
 impl TypoDetector {
     pub fn from_kdict(dictionary: &KDict) -> Self {
+        Self::from_kdict_with_authority(dictionary, SpellingAuthority::Official)
+    }
+
+    pub fn from_kdict_with_authority(dictionary: &KDict, authority: SpellingAuthority) -> Self {
         // KDIC is the broad segmentation lexicon and may contain supplemental
         // words or known typo surfaces. Spelling and completion intentionally
         // use only the separately curated spelling vocabulary.
@@ -291,6 +344,17 @@ impl TypoDetector {
             if let Some((_, cost)) = entries.iter().find(|(word, _)| word == "ឱ្យ") {
                 entries.push(("ឲ្យ".to_owned(), *cost + 0.001));
                 autocomplete_words.insert("ឲ្យ".to_owned());
+            }
+        }
+        if authority == SpellingAuthority::Community {
+            let community_cost = dictionary.default_cost() + COMMUNITY_SPELLING_COST_PENALTY;
+            let mut existing: HashSet<String> =
+                entries.iter().map(|(word, _)| word.clone()).collect();
+            for word in community_spellings() {
+                if existing.insert(word.clone()) {
+                    entries.push((word.clone(), community_cost));
+                }
+                autocomplete_words.insert(word);
             }
         }
         let words: HashSet<String> = entries.iter().map(|(word, _)| word.clone()).collect();

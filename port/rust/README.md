@@ -10,6 +10,8 @@ The Rust port includes a ready-to-load language pack under `data/`:
 
 - `khmer_dictionary.kdict` is the optimized runtime file.
 - `khmer_dictionary.klex.json` is its editable, reproducible source.
+- `khmer_dictionary_community_spellings.txt` embeds the reviewed community
+  spellings used under community spelling authority.
 
 The linguistic data is derived from
 [Seanghay Hay's attributed Khmer Dictionary 2022 publication](https://huggingface.co/datasets/seanghay/khmer-dictionary-44k)
@@ -62,6 +64,7 @@ import init, { WasmKhmerSegmenter } from './pkg/khmer_segmenter.js';
 await init();
 const bytes = new Uint8Array(await fetch('./khmer_dictionary.kdict').then(r => r.arrayBuffer()));
 const segmenter = new WasmKhmerSegmenter(bytes);
+const community = WasmKhmerSegmenter.newWithAuthority(bytes, 'community');
 const analysis = segmenter.analyzeWithProfile('សម្បត្ត', 'typing');
 const completions = segmenter.complete('សម្', 8);
 ```
@@ -94,6 +97,23 @@ Callers that already loaded a `KDict` can pass ownership to `from_kdict()`.
 This prevents a segmenter from being created in an unusable dictionary-less
 state. Native ranges use UTF-8 byte offsets; the WASM wrapper converts ranges
 to JavaScript UTF-16 code-unit offsets.
+
+Select a spelling authority through the config to accept reviewed community
+variants alongside the official lexicon:
+
+```rust
+use khmer_segmenter::{KhmerSegmenter, SegmenterConfig, SpellingAuthority};
+
+let mut config = SegmenterConfig::default();
+config.spelling_authority = SpellingAuthority::Community;
+let segmenter = KhmerSegmenter::from_path("khmer_dictionary.kdict", config)?;
+
+segmenter.is_spelling_valid("អោយ"); // true
+```
+
+The WASM wrapper exposes the same choice through `newWithAuthority`, and the
+native CLI accepts `--spelling-authority official|community` on `diagnose`,
+`analyze`, and the batch modes. `official` is the default.
 
 The native CLI exposes the same combined output:
 

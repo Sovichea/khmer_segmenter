@@ -32,6 +32,7 @@ use:
 - `khmer_dictionary_supplemental_words.txt` (segmentation-only legacy forms)
 - `khmer_spellcheck_words.txt`
 - `port/rust/data/khmer_spellcheck_words.txt` (synchronized Rust copy)
+- `port/rust/data/khmer_dictionary_community_spellings.txt` (synchronized Rust copy)
 - `port/rust/data/khmer_dictionary.klex.json` (editable Rust language-pack source)
 - `port/rust/data/khmer_dictionary.kdict` (compiled Rust runtime pack)
 - `khmer_typo_corrections.tsv` (review workflow and approved exact pairs)
@@ -84,6 +85,16 @@ the upstream terms; provenance metadata is attribution, not a license grant.
 
 The reviewed community spellings in
 `khmer_dictionary_community_spellings.txt` and
-`khmer_dictionary_community_spellings_review.tsv` currently contain only
-reviewed legacy variants (`អោយ`, `ឲ្យ`). They are accepted only when a caller
-selects community spelling authority.
+`khmer_dictionary_community_spellings_review.tsv` combine reviewed legacy
+variants (`អោយ`, `ឲ្យ`) with legacy headwords accepted from **Chuon Nath 1967**
+and the **SBBIC Khmer wordlist**, each tagged with its source. They are accepted
+only when a caller selects community spelling authority.
+
+## Secondary frequency source
+
+`khmer_word_frequencies_chuon.json` is derived from the Chuon Nath 1967
+dictionary (via `interscript/khmer-dict-spice`, pinned revision
+`85f37da6d79e9cc8f45a1fe308fc518fa24eddb4`). It is blended into segmentation
+costs as a secondary signal. The repository combines it with the RAC-derived
+frequencies under the attribution terms of both sources; downstream
+redistributors must retain both credits.

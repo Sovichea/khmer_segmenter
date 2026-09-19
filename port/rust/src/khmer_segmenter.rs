@@ -4,10 +4,11 @@ use crate::normalization::{
 };
 use crate::rule_engine::RuleEngine;
 use crate::spelling::{
-    SpellcheckConfig, SpellcheckProfile, SpellingAccuracy, SpellingDiagnostic, SpellingSuggestion,
-    TypoDetector,
+    community_spellings, SpellcheckConfig, SpellcheckProfile, SpellingAccuracy, SpellingAuthority,
+    SpellingDiagnostic, SpellingSuggestion, TypoDetector,
 };
 use crate::utils;
+use std::collections::HashSet;
 use std::fmt;
 use std::ops::Range;
 #[cfg(not(target_arch = "wasm32"))]
@@ -23,6 +24,7 @@ pub struct SegmenterConfig {
     pub enable_unknown_merging: bool,
     pub enable_frequency_costs: bool,
     pub segmentation_length: SegmentationLength,
+    pub spelling_authority: SpellingAuthority,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,6 +42,7 @@ impl Default for SegmenterConfig {
             enable_unknown_merging: true,
             enable_frequency_costs: true,
             segmentation_length: SegmentationLength::Long,
+            spelling_authority: SpellingAuthority::Official,
         }
     }
 }
@@ -49,6 +52,12 @@ pub struct KhmerSegmenter {
     typo_detector: OnceLock<TypoDetector>,
     rule_engine: RuleEngine,
     config: SegmenterConfig,
+    community_words: OnceLock<Option<CommunityWords>>,
+}
+
+struct CommunityWords {
+    words: HashSet<String>,
+    max_len: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -163,7 +172,29 @@ impl KhmerSegmenter {
             typo_detector: OnceLock::new(),
             rule_engine: RuleEngine::new(),
             config,
+            community_words: OnceLock::new(),
         }
+    }
+
+    /// Reviewed community spellings, loaded only under community authority.
+    fn community_lexicon(&self) -> Option<&CommunityWords> {
+        if self.config.spelling_authority != SpellingAuthority::Community {
+            return None;
+        }
+        self.community_words
+            .get_or_init(|| {
+                let words: HashSet<String> = community_spellings().into_iter().collect();
+                if words.is_empty() {
+                    return None;
+                }
+                let max_len = words
+                    .iter()
+                    .map(|word| word.chars().count())
+                    .max()
+                    .unwrap_or(0);
+                Some(CommunityWords { words, max_len })
+            })
+            .as_ref()
     }
 
     // Helper to access string pool (Unsafe) - Removed in favor of direct byte access
@@ -278,13 +309,18 @@ impl KhmerSegmenter {
 
             // Dictionary Lookup
             let max_wl = header.max_word_length as usize;
+            let community = self.community_lexicon();
+            let lookup_max = match community {
+                Some(lexicon) => max_wl.max(lexicon.max_len),
+                None => max_wl,
+            };
             let mut khash: u32 = 5381;
             let mut current_offset = i;
             let bytes = text.as_bytes();
 
             for sub_c in text[i..].chars() {
                 let sc_len = sub_c.len_utf8();
-                if current_offset + sc_len - i > max_wl {
+                if current_offset + sc_len - i > lookup_max {
                     break;
                 }
 
@@ -325,6 +361,21 @@ impl KhmerSegmenter {
                     }
 
                     idx = (idx + 1) & mask;
+                }
+
+                // Reviewed community spellings augment segmentation under
+                // community authority, mirroring the Python loader.
+                if let Some(lexicon) = community {
+                    let span_len = current_offset - i;
+                    if span_len <= lexicon.max_len
+                        && lexicon.words.contains(&text[i..current_offset])
+                    {
+                        let new_cost = dp[i].cost + header.default_cost;
+                        if new_cost < dp[current_offset].cost {
+                            dp[current_offset].cost = new_cost;
+                            dp[current_offset].prev_idx = i as isize;
+                        }
+                    }
                 }
             }
 
@@ -752,8 +803,9 @@ impl KhmerSegmenter {
     }
 
     fn typo_detector(&self) -> &TypoDetector {
-        self.typo_detector
-            .get_or_init(|| TypoDetector::from_kdict(&self.kdict))
+        self.typo_detector.get_or_init(|| {
+            TypoDetector::from_kdict_with_authority(&self.kdict, self.config.spelling_authority)
+        })
     }
 
     fn refine_segments_for_short_length(
@@ -830,6 +882,9 @@ impl KhmerSegmenter {
 
     fn is_dictionary_word(&self, word: &str) -> bool {
         self.kdict.cost(word).is_some()
+            || self
+                .community_lexicon()
+                .is_some_and(|lexicon| lexicon.words.contains(word))
     }
 
     fn is_short_segmentation_part(&self, word: &str) -> bool {
@@ -1177,6 +1232,53 @@ mod tests {
         assert!(segmenter.is_known_word("ដេល"));
         assert!(!segmenter.is_spelling_valid("ដេល"));
         assert_eq!(segmenter.suggest_spelling("ដេល", 1.5, 1)[0].text, "ដែល");
+    }
+
+    fn community_segmenter() -> KhmerSegmenter {
+        let mut config = SegmenterConfig::default();
+        config.spelling_authority = SpellingAuthority::Community;
+        KhmerSegmenter::from_bytes(TEST_DICTIONARY.to_vec(), config).unwrap()
+    }
+
+    #[test]
+    fn spelling_authority_parses_known_values() {
+        assert_eq!(
+            "official".parse::<SpellingAuthority>().unwrap(),
+            SpellingAuthority::Official
+        );
+        assert_eq!(
+            "community".parse::<SpellingAuthority>().unwrap(),
+            SpellingAuthority::Community
+        );
+        assert!("unknown".parse::<SpellingAuthority>().is_err());
+        assert_eq!(SpellingAuthority::default(), SpellingAuthority::Official);
+    }
+
+    #[test]
+    fn community_authority_accepts_reviewed_variants() {
+        let official = segmenter(SegmentationLength::Long);
+        let community = community_segmenter();
+
+        let variant = "អោយ";
+        assert!(!official.is_spelling_valid(variant));
+        assert!(community.is_spelling_valid(variant));
+        assert!(community.is_known_word(variant));
+        assert!(community
+            .complete_word(variant, 5)
+            .iter()
+            .any(|suggestion| suggestion.text == variant));
+    }
+
+    #[test]
+    fn community_authority_keeps_added_words_as_single_tokens() {
+        let official = segmenter(SegmentationLength::Long);
+        let community = community_segmenter();
+
+        let word = "សទា";
+        assert!(!official.is_known_word(word));
+        assert!(community.is_known_word(word));
+        assert_ne!(tokens(&official, word), vec![word.to_owned()]);
+        assert_eq!(tokens(&community, word), vec![word.to_owned()]);
     }
 
     #[test]

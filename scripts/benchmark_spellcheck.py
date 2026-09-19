@@ -46,8 +46,8 @@ def main() -> int:
     parser.add_argument(
         "--spelling-accuracy",
         choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
-        default=SpellingAccuracy.LEXICAL.value,
-        help="require dictionary encoding or accept visual COENG DA/TA equivalents",
+        default=SpellingAccuracy.VISUAL.value,
+        help="accept visual COENG DA/TA equivalents or require exact dictionary encoding",
     )
     parser.add_argument("--iterations", type=int, default=100)
     parser.add_argument("--output", type=Path)

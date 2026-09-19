@@ -103,16 +103,16 @@ remain visible in the HTML review but are not compiled.
 
 Approved forms containing COENG DA or COENG TA require a second decision:
 `coeng_status=verified`. Until then they are compiled for segmentation only.
-The compiler may generate the visual DA/TA alias for segmentation, but strict
+The compiler may generate the visual DA/TA alias for segmentation, but lexical
 spellcheck and autocomplete receive neither form from that secondary pack.
-After verification, strict spellcheck accepts only the approved lexical form;
-applications may still explicitly select visual spelling accuracy when they
-want to accept both encodings.
+After verification, lexical spellcheck accepts only the approved lexical form;
+applications may still select visual spelling accuracy when they want to accept
+both encodings.
 
 An approved correction that exactly matches a RAC headword inherits RAC's
 lexical authority and is recorded as `coeng_status=verified_rac`. A form that
 matches only a generated RAC COENG DA/TA visual alias does not inherit that
-authority: it remains pending for strict spelling even though segmentation may
+authority: it remains pending for lexical spelling even though segmentation may
 use it.
 
 The result is conservative, but it is still an extraction review—not a new
