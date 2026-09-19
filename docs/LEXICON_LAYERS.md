@@ -10,9 +10,10 @@ Segmenter can load independently replaceable KDIC v2 packs in this order:
 4. **Community evidence** — corpus-derived forms that are useful in inclusive
    mode but are not treated as RAC authority.
 
-`strict` mode loads RAC, official lexicons, and user packs. `inclusive` mode
-also loads community packs. Community entries therefore cannot silently make
-strict spellcheck accept a popular typo.
+Every supplied pack participates in segmentation, in priority order. Community
+entries therefore improve segmentation without silently making spellcheck
+accept a popular typo: spelling policy is a separate
+[authority](SPELLING_AUTHORITY.md) choice.
 
 Each secondary pack is rebased to the RAC cost scale and receives a layer
 penalty. This preserves frequency differences inside the pack—frequent
@@ -29,7 +30,6 @@ segmenter = KhmerSegmenter.from_kdict_layers(
     lexicon_paths=["geography.kdict", "science.kdict"],
     user_paths=["my-project.kdict"],
     community_paths=["community.kdict"],
-    mode="strict",  # change to "inclusive" to load community evidence
 )
 
 evidence = segmenter.provenance_for("កាដម្យូម")
@@ -46,7 +46,6 @@ khmer-segment \
   --lexicon-kdict science.kdict \
   --user-kdict my-project.kdict \
   --community-kdict community.kdict \
-  --lexicon-mode strict \
   analyze --profile typing "..."
 ```
 

@@ -22,6 +22,8 @@
   smaller accepted words, with a reviewed keep-list and a completion length cap.
 - Baked the composition split and completion cap into KDIC compilation so Rust,
   WASM, and C inherit the same behaviour.
+- Added a selectable spelling authority (`official` by default, or `community`)
+  that accepts reviewed community variants such as `អោយ` and `ឲ្យ`.
 - Added whole-span composition validation and a checksum-verified source fetch
   that restores fresh-clone reproducibility for repository scripts.
 - Removed experimental internal-word hyphenation and the KHYP data format.

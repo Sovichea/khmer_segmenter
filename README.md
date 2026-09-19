@@ -153,14 +153,13 @@ The generated pack is standalone and works with Python, Rust, and WASM. See
 [Unified KDIC v2 Language Packs](docs/KDICT_V2.md).
 
 For independently replaceable RAC, official terminology, user, and community
-packs, use the [layered lexicon workflow](docs/LEXICON_LAYERS.md). Strict mode
-loads RAC + reviewed official lexicons + user dictionaries; inclusive mode also
-loads explicitly supplied community evidence.
+packs, use the [layered lexicon workflow](docs/LEXICON_LAYERS.md). Every supplied
+pack participates in segmentation, in priority order.
 
 Corpus discovery and frequency curation are documented separately in the
 [community corpus workflow](docs/COMMUNITY_CORPUS.md). Community frequency can
-improve segmentation in inclusive mode, but it never grants spelling or
-autocomplete authority.
+improve segmentation, but it never grants spelling or autocomplete authority;
+that is controlled separately by [spelling authority](docs/SPELLING_AUTHORITY.md).
 
 The audit records every curated match, retained chunk, and rejected fragment.
 
@@ -276,10 +275,10 @@ diagnostics = segmenter.check_text(text, profile="document")
 ```
 
 Spelling accuracy is independent of the detection profile. The default,
-`lexical`, requires the exact curated spelling. Use `visual` when an editor
-should treat the legacy COENG DA/TA forms as equivalent. The forms `ស្ដាប់`
-and `ស្តាប់` then both pass validation, while completion and correction
-suggestions continue to show only the curated spelling.
+`visual`, treats the legacy COENG DA/TA forms as equivalent, so `ស្ដាប់` and
+`ស្តាប់` both pass validation. Use `lexical` when only the exact curated
+spelling is acceptable. Completion and correction suggestions continue to show
+only the curated spelling.
 
 ```python
 from khmer_segmenter import SpellingAccuracy
@@ -382,6 +381,7 @@ linguistic artifacts.
 - [Development workflows](docs/DEVELOPMENT.md)
 - [Evaluation](docs/EVALUATION.md)
 - [Runtime word composition](docs/COMPOSITION.md)
+- [Spelling authority](docs/SPELLING_AUTHORITY.md)
 - [Safe word breaks](docs/WORD_BREAKS.md)
 - [Migration from 0.1.1](docs/MIGRATION_0_2.md)
 - [Benchmarks](docs/BENCHMARKS.md)

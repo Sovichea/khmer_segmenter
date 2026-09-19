@@ -27,8 +27,8 @@ never automatically assigned `SPELLCHECK` or `AUTOCOMPLETE`.
 
 This keeps segmentation tolerant of the two visual encodings without changing
 the curated word shown to users. Spellcheck integrations choose their policy
-at runtime: `lexical` (default) accepts only the exact curated spelling, while
-`visual` also accepts its COENG DA/TA counterpart. Completion remains
+at runtime: `visual` (default) also accepts the COENG DA/TA counterpart, while
+`lexical` accepts only the exact curated spelling. Completion remains
 canonical in both modes.
 
 For example, if a pack stores `ស្ដាប់`, segmentation recognizes both `ស្ដាប់`

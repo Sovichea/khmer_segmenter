@@ -39,6 +39,7 @@ DEFAULT_OUTPUT = DATA_DIR / "khmer_dictionary_composition_keep.txt"
 PROTECTED_FILES = (
     "khmer_dictionary_supplemental_words.txt",
     "khmer_dictionary_author_curated_words.txt",
+    "khmer_dictionary_community_spellings.txt",
     "khmer_dictionary_rac_derived_words.txt",
     "khmer_dictionary_rac_usage_words.txt",
 )

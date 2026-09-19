@@ -67,7 +67,7 @@ impl WasmKhmerSegmenter {
         } else {
             SpellcheckProfile::Typing
         };
-        self.analysis(text, profile, SpellingAccuracy::Lexical)
+        self.analysis(text, profile, SpellingAccuracy::Visual)
     }
 
     /// Analyze text with the same named profile exposed by Python and Rust.
@@ -76,7 +76,7 @@ impl WasmKhmerSegmenter {
         let profile = profile
             .parse::<SpellcheckProfile>()
             .map_err(|error| JsValue::from_str(&error))?;
-        self.analysis(text, profile, SpellingAccuracy::Lexical)
+        self.analysis(text, profile, SpellingAccuracy::Visual)
     }
 
     /// Analyze with an independent spelling-accuracy policy.

@@ -36,6 +36,8 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
 |-- khmer_dictionary_official_2022_words.txt
 |-- khmer_dictionary_author_curated_words.txt
+|-- khmer_dictionary_community_spellings.txt
+|-- khmer_dictionary_community_spellings_review.tsv
 |-- khmer_dictionary_composition_keep.txt
 |-- khmer_dictionary_rac_derived_words.txt
 |-- khmer_dictionary_rac_usage_words.txt
@@ -94,7 +96,7 @@ figures are deliberately not described as new words: most candidates are
 fragments, grammatical notation, parts of phrases, or spellings that conflict
 with an explicit headword. The first semantic review promoted 32 forms and
 recorded 8 representative rejections. Later batches can continue from the
-local queue without weakening the default lexical policy.
+local queue without weakening the default spelling policy.
 
 ## Download and rebuild the dictionary
 
@@ -162,6 +164,8 @@ src/khmer_segmenter/dictionary_data/
 |-- khmer_dictionary_words.txt
 |-- khmer_dictionary_official_2022_words.txt
 |-- khmer_dictionary_author_curated_words.txt
+|-- khmer_dictionary_community_spellings.txt
+|-- khmer_dictionary_community_spellings_review.tsv
 |-- khmer_dictionary_composition_keep.txt
 |-- khmer_dictionary_rac_derived_words.txt
 |-- khmer_dictionary_rac_usage_words.txt

@@ -12,10 +12,10 @@ from .composition import composition_parts, is_composition, max_part_length
 from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
 from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
 from .models import (
-    LexiconMode,
     SpellcheckConfig,
     SpellcheckProfile,
     SpellingAccuracy,
+    SpellingAuthority,
     SpellingDiagnostic,
     SpellingSuggestion,
     TextAnalysis,
@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)
 
 
 SUPPLEMENTAL_WORD_PENALTY = 1.5
+# Weight applied to the secondary Chuon Nath frequency evidence when blending
+# segmentation costs. Frequencies only affect Viterbi ranking; spelling and
+# autocomplete authority stay separate.
+CHUON_FREQUENCY_WEIGHT = 0.2
 
 
 class KhmerSegmenter:
@@ -50,6 +54,7 @@ class KhmerSegmenter:
         kdict_layers=None,
         composition=True,
         composition_guard=5.0,
+        spelling_authority=SpellingAuthority.OFFICIAL,
     ):
         """
         Initialize the segmenter by loading the dictionary and word frequencies.
@@ -116,6 +121,7 @@ class KhmerSegmenter:
         self._composition_guard = float(composition_guard)
         self._composition_exclusions_cache = None
         self._composition_keep_cache = None
+        self._spelling_authority = SpellingAuthority.coerce(spelling_authority)
         self._pos_path = pos_path
         self.data_manifest = {}
         self.default_cost = 10.0  # High cost for dictionary words without frequency
@@ -135,19 +141,20 @@ class KhmerSegmenter:
             self._load_lexical_sources()
             self._load_frequencies(frequency_path)
         self._load_data_manifest(data_files.model_manifest)
+        self._load_community_spellings()
         self._apply_composition_policy()
 
     @classmethod
-    def from_data_dir(cls, data_dir=None):
+    def from_data_dir(cls, data_dir=None, *, spelling_authority=SpellingAuthority.OFFICIAL):
         """Create a segmenter from a local data directory or configured default."""
 
-        return cls(data_dir=data_dir)
+        return cls(data_dir=data_dir, spelling_authority=spelling_authority)
 
     @classmethod
-    def from_kdict(cls, path):
+    def from_kdict(cls, path, *, spelling_authority=SpellingAuthority.OFFICIAL):
         """Create a segmenter from one unified KDIC v2 language pack."""
 
-        return cls(kdict_path=path)
+        return cls(kdict_path=path, spelling_authority=spelling_authority)
 
     @classmethod
     def from_kdict_layers(
@@ -157,22 +164,21 @@ class KhmerSegmenter:
         lexicon_paths=(),
         community_paths=(),
         user_paths=(),
-        mode=LexiconMode.STRICT,
+        spelling_authority=SpellingAuthority.OFFICIAL,
     ):
-        """Load separately replaceable KDIC authority layers.
+        """Load every supplied KDIC authority layer.
 
-        Strict mode uses RAC, reviewed official lexicons, and user dictionaries.
-        Inclusive mode additionally loads community packs. Earlier layers retain
-        lexical priority when the same surface occurs in more than one pack.
+        All packs participate in segmentation, in priority order: RAC, reviewed
+        official lexicons, user dictionaries, then community evidence. Earlier
+        layers retain lexical priority when the same surface occurs in more than
+        one pack. Spelling authority is a separate policy.
         """
 
-        mode = LexiconMode.coerce(mode)
         layers = [("rac", rac_path)]
         layers.extend(("lexicon", path) for path in lexicon_paths)
         layers.extend(("user", path) for path in user_paths)
-        if mode is LexiconMode.INCLUSIVE:
-            layers.extend(("community", path) for path in community_paths)
-        return cls(kdict_layers=layers)
+        layers.extend(("community", path) for path in community_paths)
+        return cls(kdict_layers=layers, spelling_authority=spelling_authority)
 
     def provenance_for(self, word, *, normalize=True):
         """Return immutable source-evidence records for a loaded lexical form."""
@@ -412,6 +418,35 @@ class KhmerSegmenter:
             data = json.load(handle)
         self.data_manifest = data
 
+    def _load_community_spellings(self):
+        """Merge reviewed community spellings when that authority is selected.
+
+        Official authority keeps only RAC and reviewed official layers. Community
+        authority additionally accepts the reviewed community variants, so a
+        long-used form such as ``អោយ`` is not forced to look like a typo.
+        """
+
+        if self._spelling_authority is not SpellingAuthority.COMMUNITY:
+            return
+        path = self.data_files.community_spellings
+        if not path.is_file():
+            path = DataFiles(BUNDLED_DATA_DIR).community_spellings
+        if not path.is_file():
+            return
+        words: set[str] = set()
+        with open(path, "r", encoding="utf-8") as handle:
+            for line in handle:
+                word = self.normalizer.normalize(line.strip())
+                if word:
+                    words.add(word)
+        if not words:
+            return
+        self.words.update(words)
+        self._spellcheck_words = set(self.spellcheck_words) | words
+        self._autocomplete_words = set(self.autocomplete_words) | words
+        self._curated_runtime_words = set(self._curated_runtime_words) | words
+        self.max_word_length = max(map(len, self.words), default=0)
+
     @property
     def _composition_keep(self):
         """Words that must never be split by the runtime composition policy."""
@@ -460,7 +495,7 @@ class KhmerSegmenter:
             self.max_word_length = max(map(len, self.words), default=0)
 
     def is_valid_composition(
-        self, word, *, normalize=True, accuracy=SpellingAccuracy.LEXICAL
+        self, word, *, normalize=True, accuracy=SpellingAccuracy.VISUAL
     ):
         """Return whether *word* is an exact word or a valid composition.
 
@@ -709,6 +744,19 @@ class KhmerSegmenter:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
+        # Blend the secondary Chuon Nath frequency evidence for words that are
+        # already in the primary model. This improves segmentation ranking
+        # without granting spelling or autocomplete authority.
+        chuon_path = self.data_files.chuon_frequencies
+        if not chuon_path.is_file():
+            chuon_path = DataFiles(BUNDLED_DATA_DIR).chuon_frequencies
+        if chuon_path.is_file():
+            with open(chuon_path, "r", encoding="utf-8") as handle:
+                chuon = json.load(handle)
+            for word, count in chuon.items():
+                if word in data:
+                    data[word] = float(data[word]) + CHUON_FREQUENCY_WEIGHT * float(count)
+
         # We will apply a minimum frequency floor to all words.
         # This treats "unseen dictionary words" and "rare corpus words" equally.
         min_freq_floor = 5.0
@@ -785,7 +833,7 @@ class KhmerSegmenter:
         word,
         *,
         normalize=True,
-        accuracy=SpellingAccuracy.LEXICAL,
+        accuracy=SpellingAccuracy.VISUAL,
     ):
         """Return whether *word* is an accepted spelling.
 
@@ -801,7 +849,7 @@ class KhmerSegmenter:
             and any(variant in self.spellcheck_words for variant in coeng_da_ta_variants(candidate))
         )
 
-    def check_spelling(self, words, *, normalize=True, accuracy=SpellingAccuracy.LEXICAL):
+    def check_spelling(self, words, *, normalize=True, accuracy=SpellingAccuracy.VISUAL):
         """Return spelling validity for each word while preserving input order."""
 
         return [
@@ -819,7 +867,7 @@ class KhmerSegmenter:
         word,
         *,
         normalize=True,
-        accuracy=SpellingAccuracy.LEXICAL,
+        accuracy=SpellingAccuracy.VISUAL,
         max_edit_cost=1.5,
         max_suggestions=5,
     ) -> tuple[SpellingSuggestion, ...]:
@@ -878,7 +926,7 @@ class KhmerSegmenter:
         text,
         *,
         profile=SpellcheckProfile.TYPING,
-        accuracy=SpellingAccuracy.LEXICAL,
+        accuracy=SpellingAccuracy.VISUAL,
         normalize=True,
         max_edit_cost=None,
         max_suggestions=None,
@@ -917,7 +965,7 @@ class KhmerSegmenter:
         text,
         *,
         profile=SpellcheckProfile.TYPING,
-        accuracy=SpellingAccuracy.LEXICAL,
+        accuracy=SpellingAccuracy.VISUAL,
         normalize=True,
         max_edit_cost=None,
         max_suggestions=None,
@@ -1026,7 +1074,7 @@ class KhmerSegmenter:
         text,
         *,
         profile=SpellcheckProfile.TYPING,
-        accuracy=SpellingAccuracy.LEXICAL,
+        accuracy=SpellingAccuracy.VISUAL,
         normalize=True,
         disable_post_processing=False,
     ) -> list[SpellingDiagnostic]:

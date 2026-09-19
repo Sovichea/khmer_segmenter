@@ -11,6 +11,8 @@ from pathlib import Path, PurePosixPath
 
 APPROVED_RUNTIME_NAMES = {
     "khmer_dictionary_author_curated_words.txt",
+    "khmer_dictionary_community_spellings.txt",
+    "khmer_dictionary_community_spellings_review.tsv",
     "khmer_dictionary_composition_keep.txt",
     "khmer_dictionary_words.txt",
     "khmer_dictionary_official_2022_words.txt",
@@ -24,6 +26,7 @@ APPROVED_RUNTIME_NAMES = {
     "khmer_typo_corrections.tsv",
     "khmer_model_manifest.json",
     "khmer_word_frequencies.json",
+    "khmer_word_frequencies_chuon.json",
     "khmer_word_pos.json",
 }
 

@@ -21,6 +21,8 @@ use:
 - `khmer_dictionary_words.txt`
 - `khmer_dictionary_official_2022_words.txt`
 - `khmer_dictionary_author_curated_words.txt`
+- `khmer_dictionary_community_spellings.txt` (reviewed community spellings; opt-in authority)
+- `khmer_dictionary_community_spellings_review.tsv`
 - `khmer_dictionary_composition_keep.txt` (reviewed composition keep-list)
 - `khmer_dictionary_rac_derived_words.txt`
 - `khmer_dictionary_rac_phrase_exclusions.txt`
@@ -79,3 +81,9 @@ dataset card currently labels the license as `other` and states that inherited
 source licenses require confirmation. The repository does not redistribute
 the source sentences or candidate cache. Downstream distributors must review
 the upstream terms; provenance metadata is attribution, not a license grant.
+
+The reviewed community spellings in
+`khmer_dictionary_community_spellings.txt` and
+`khmer_dictionary_community_spellings_review.tsv` currently contain only
+reviewed legacy variants (`អោយ`, `ឲ្យ`). They are accepted only when a caller
+selects community spelling authority.

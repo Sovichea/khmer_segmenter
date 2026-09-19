@@ -44,21 +44,23 @@ class SpellingAccuracy(str, Enum):
             ) from error
 
 
-class LexiconMode(str, Enum):
-    """Select which authority layers participate in analysis."""
+class SpellingAuthority(str, Enum):
+    """Select which reviewed sources may make a spelling valid."""
 
-    STRICT = "strict"
-    INCLUSIVE = "inclusive"
+    OFFICIAL = "official"
+    COMMUNITY = "community"
 
     @classmethod
-    def coerce(cls, value: "LexiconMode | str") -> "LexiconMode":
+    def coerce(cls, value: "SpellingAuthority | str") -> "SpellingAuthority":
         if isinstance(value, cls):
             return value
         try:
             return cls(value)
         except ValueError as error:
-            choices = ", ".join(mode.value for mode in cls)
-            raise ValueError(f"unknown lexicon mode {value!r}; expected {choices}") from error
+            choices = ", ".join(authority.value for authority in cls)
+            raise ValueError(
+                f"unknown spelling authority {value!r}; expected {choices}"
+            ) from error
 
 
 class DiagnosticKind(str, Enum):

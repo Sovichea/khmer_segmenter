@@ -585,7 +585,7 @@ impl KhmerSegmenter {
     /// forms may be useful as coherent segmentation units without being
     /// authoritative spellings.
     pub fn is_spelling_valid(&self, word: &str) -> bool {
-        self.is_spelling_valid_with_accuracy(word, SpellingAccuracy::Lexical)
+        self.is_spelling_valid_with_accuracy(word, SpellingAccuracy::Visual)
     }
 
     pub fn is_spelling_valid_with_accuracy(&self, word: &str, accuracy: SpellingAccuracy) -> bool {
@@ -602,7 +602,7 @@ impl KhmerSegmenter {
             word,
             max_edit_cost,
             max_suggestions,
-            SpellingAccuracy::Lexical,
+            SpellingAccuracy::Visual,
         )
     }
 
@@ -670,7 +670,7 @@ impl KhmerSegmenter {
         raw_text: &str,
         profile: SpellcheckProfile,
     ) -> Result<TextAnalysis, SegmentationError> {
-        self.analyze_text_with_accuracy(raw_text, profile, SpellingAccuracy::Lexical)
+        self.analyze_text_with_accuracy(raw_text, profile, SpellingAccuracy::Visual)
     }
 
     pub fn analyze_text_with_accuracy(
@@ -687,7 +687,7 @@ impl KhmerSegmenter {
         raw_text: &str,
         config: SpellcheckConfig,
     ) -> Result<TextAnalysis, SegmentationError> {
-        self.analyze_text_with_config_and_accuracy(raw_text, config, SpellingAccuracy::Lexical)
+        self.analyze_text_with_config_and_accuracy(raw_text, config, SpellingAccuracy::Visual)
     }
 
     pub fn analyze_text_with_config_and_accuracy(
@@ -710,7 +710,7 @@ impl KhmerSegmenter {
         raw_text: &str,
         config: SpellcheckConfig,
     ) -> Result<Vec<SpellingDiagnostic>, SegmentationError> {
-        self.check_text_with_config_and_accuracy(raw_text, config, SpellingAccuracy::Lexical)
+        self.check_text_with_config_and_accuracy(raw_text, config, SpellingAccuracy::Visual)
     }
 
     pub fn check_text_with_config_and_accuracy(

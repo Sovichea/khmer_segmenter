@@ -56,7 +56,10 @@ def test_supplemental_runtime_dictionary_is_segmentation_only():
         | segmenter.rac_derived_words
         | segmenter.rac_usage_words
     )
-    assert all(not segmenter.is_spelling_valid(word) for word in segmentation_only)
+    assert all(
+        not segmenter.is_spelling_valid(word, accuracy="lexical")
+        for word in segmentation_only
+    )
     assert supplemental & segmenter.author_curated_words == {"រ៉ុក្កែត"}
 
 

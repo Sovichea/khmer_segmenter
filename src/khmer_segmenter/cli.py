@@ -20,7 +20,11 @@ from .data import (
     candidate_data_dirs,
 )
 from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, KDict, compile_klex
-from .models import LexiconMode, SpellcheckProfile, SpellingAccuracy
+from .models import (
+    SpellcheckProfile,
+    SpellingAccuracy,
+    SpellingAuthority,
+)
 from .preparation import prepare_dictionary
 from .viterbi import KhmerSegmenter
 
@@ -65,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         action="append",
         default=[],
-        help="community KDIC loaded only in inclusive mode; repeatable",
+        help="community KDIC segmentation evidence; repeatable",
     )
     parser.add_argument(
         "--user-kdict",
@@ -75,10 +79,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="trusted application/user KDIC; repeatable",
     )
     parser.add_argument(
-        "--lexicon-mode",
-        choices=tuple(mode.value for mode in LexiconMode),
-        default=LexiconMode.STRICT.value,
-        help="strict excludes community packs; inclusive loads them",
+        "--spelling-authority",
+        choices=tuple(authority.value for authority in SpellingAuthority),
+        default=SpellingAuthority.OFFICIAL.value,
+        help=(
+            "official: RAC and reviewed official layers only; "
+            "community: also accept reviewed community spellings"
+        ),
     )
     parser.add_argument("--verbose", action="store_true", help="show data-loading details")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -103,7 +110,7 @@ def build_parser() -> argparse.ArgumentParser:
     analyze.add_argument(
         "--accuracy",
         choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
-        default=SpellingAccuracy.LEXICAL.value,
+        default=SpellingAccuracy.VISUAL.value,
         help="lexical (default) requires exact spelling; visual accepts COENG DA/TA equivalents",
     )
 
@@ -116,7 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
     spellcheck.add_argument(
         "--accuracy",
         choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
-        default=SpellingAccuracy.LEXICAL.value,
+        default=SpellingAccuracy.VISUAL.value,
         help="lexical (default) requires exact spelling; visual accepts COENG DA/TA equivalents",
     )
 
@@ -135,7 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose.add_argument(
         "--accuracy",
         choices=tuple(accuracy.value for accuracy in SpellingAccuracy),
-        default=SpellingAccuracy.LEXICAL.value,
+        default=SpellingAccuracy.VISUAL.value,
         help="lexical (default) requires exact spelling; visual accepts COENG DA/TA equivalents",
     )
     diagnose.add_argument("--max-edit-cost", type=float)
@@ -226,13 +233,17 @@ def _segmenter(args: argparse.Namespace) -> KhmerSegmenter:
             lexicon_paths=args.lexicon_kdict,
             community_paths=args.community_kdict,
             user_paths=args.user_kdict,
-            mode=args.lexicon_mode,
+            spelling_authority=args.spelling_authority,
         )
     if args.lexicon_kdict or args.community_kdict or args.user_kdict:
         raise ValueError("layer packs require --rac-kdict")
     if args.kdict is not None:
-        return KhmerSegmenter.from_kdict(args.kdict)
-    return KhmerSegmenter.from_data_dir(args.data_dir)
+        return KhmerSegmenter.from_kdict(
+            args.kdict, spelling_authority=args.spelling_authority
+        )
+    return KhmerSegmenter.from_data_dir(
+        args.data_dir, spelling_authority=args.spelling_authority
+    )
 
 
 def _data_files_for_status(explicit: Path | None) -> DataFiles:

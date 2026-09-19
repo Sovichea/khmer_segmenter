@@ -23,8 +23,12 @@ confirmation. Keep the downloaded corpus and generated candidate cache local.
 - Give admitted entries only `segmentation` and `supplemental` KLEX uses.
   Corpus frequency may rank segmentation candidates but cannot make a spelling
   valid or place it in autocomplete.
-- Strict mode continues to use RAC, reviewed official lexicons, and user packs.
-  The community pack is loaded only in inclusive mode.
+- Approved entries may later be promoted to the reviewed community spelling
+  list, where they become valid only under community
+  [spelling authority](SPELLING_AUTHORITY.md). That promotion is not applied
+  yet; the default stays official.
+- The community pack is loaded alongside RAC, reviewed official lexicons, and
+  user packs; all participate in segmentation, with community evidence last.
 
 This separation allows a frequent form to remain intact for analysis without
 declaring that it is the spelling users should write.
@@ -130,6 +134,5 @@ segmenter = KhmerSegmenter.from_kdict_layers(
     "rac.kdict",
     lexicon_paths=["science.kdict"],
     community_paths=["panhapich-community.kdict"],
-    mode="inclusive",
 )
 ```

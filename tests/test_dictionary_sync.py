@@ -14,8 +14,8 @@ class DictionarySyncTests(unittest.TestCase):
     def test_typo_correction_data_is_valid_and_synchronized(self):
         self.assertEqual(validate(DEFAULT_SOURCE), {
             "approved": 167,
-            "pending": 8,
-            "rejected": 0,
+            "pending": 7,
+            "rejected": 1,
         })
         self.assertEqual(
             DEFAULT_SOURCE.read_text(encoding="utf-8").splitlines(),

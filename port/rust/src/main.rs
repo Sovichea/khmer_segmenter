@@ -662,7 +662,7 @@ fn run_word_breaks(args: &[String]) -> io::Result<()> {
 
 fn run_diagnose(args: &[String], include_segments: bool) -> io::Result<()> {
     let mut profile = SpellcheckProfile::Typing;
-    let mut accuracy = SpellingAccuracy::Lexical;
+    let mut accuracy = SpellingAccuracy::Visual;
     let mut dictionary: Option<String> = None;
     let mut input: Option<String> = None;
     let mut format = "json";

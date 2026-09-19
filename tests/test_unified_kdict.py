@@ -15,7 +15,7 @@ from khmer_segmenter.kdict import (
 )
 
 
-def test_coeng_da_ta_aliases_segment_but_visual_spelling_is_opt_in(tmp_path: Path):
+def test_coeng_da_ta_aliases_segment_and_visual_spelling_is_default(tmp_path: Path):
     lexicon = tmp_path / "coeng.klex.json"
     output = tmp_path / "coeng.kdict"
     canonical = "\u179f\u17d2\u178a\u17b6\u1794\u17cb"
@@ -43,8 +43,9 @@ def test_coeng_da_ta_aliases_segment_but_visual_spelling_is_opt_in(tmp_path: Pat
     segmenter = KhmerSegmenter.from_kdict(output)
     assert segmenter.segment(visual_alias) == [visual_alias]
     assert segmenter.is_spelling_valid(canonical)
-    assert not segmenter.is_spelling_valid(visual_alias)
-    assert segmenter.is_spelling_valid(visual_alias, accuracy="visual")
+    # Visual accuracy is the default, so the alias is accepted.
+    assert segmenter.is_spelling_valid(visual_alias)
+    assert not segmenter.is_spelling_valid(visual_alias, accuracy="lexical")
     assert segmenter.suggest_spelling(visual_alias, accuracy="visual") == ()
     assert [item.text for item in segmenter.complete_word(visual_alias[:3])] == []
 
@@ -208,7 +209,7 @@ def test_kdict_embeds_and_preserves_word_provenance(
     assert report["provenance_words"] == 1
 
 
-def test_layered_kdict_strict_mode_excludes_community(tmp_path: Path):
+def test_layered_kdict_loads_every_supplied_pack(tmp_path: Path):
     def build(name: str, word: str) -> Path:
         source = tmp_path / f"{name}.klex.json"
         output = tmp_path / f"{name}.kdict"
@@ -236,28 +237,18 @@ def test_layered_kdict_strict_mode_excludes_community(tmp_path: Path):
     community = build("community", "អោយ")
     user = build("user", "ឈ្មោះអ្នកប្រើ")
 
-    strict = KhmerSegmenter.from_kdict_layers(
+    segmenter = KhmerSegmenter.from_kdict_layers(
         rac,
         lexicon_paths=[lexicon],
         community_paths=[community],
         user_paths=[user],
-        mode="strict",
     )
-    assert strict.is_spelling_valid("ដែល")
-    assert strict.is_spelling_valid("កាដម្យូម")
-    assert strict.is_spelling_valid("ឈ្មោះអ្នកប្រើ")
-    assert strict.provenance_for("កាដម្យូម") == ()
-    assert "អោយ" not in strict.words
-
-    inclusive = KhmerSegmenter.from_kdict_layers(
-        rac,
-        lexicon_paths=[lexicon],
-        community_paths=[community],
-        user_paths=[user],
-        mode="inclusive",
-    )
-    assert inclusive.is_spelling_valid("អោយ")
-    assert inclusive.segment("កាដម្យូម") == ["កាដម្យូម"]
+    assert segmenter.is_spelling_valid("ដែល")
+    assert segmenter.is_spelling_valid("កាដម្យូម")
+    assert segmenter.is_spelling_valid("ឈ្មោះអ្នកប្រើ")
+    assert segmenter.is_spelling_valid("អោយ")
+    assert segmenter.provenance_for("កាដម្យូម") == ()
+    assert segmenter.segment("កាដម្យូម") == ["កាដម្យូម"]
 
 
 def test_layered_kdict_rebases_and_preserves_community_frequency(tmp_path: Path):
@@ -308,7 +299,6 @@ def test_layered_kdict_rebases_and_preserves_community_frequency(tmp_path: Path)
     segmenter = KhmerSegmenter.from_kdict_layers(
         rac,
         community_paths=[community],
-        mode="inclusive",
     )
 
     assert segmenter.word_costs["ហ្សែន"] < segmenter.word_costs["ហាយវេ"]

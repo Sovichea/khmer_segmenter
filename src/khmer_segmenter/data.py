@@ -67,6 +67,14 @@ class DataFiles:
         return self.root / "khmer_dictionary_composition_keep.txt"
 
     @property
+    def community_spellings(self) -> Path:
+        return self.root / "khmer_dictionary_community_spellings.txt"
+
+    @property
+    def chuon_frequencies(self) -> Path:
+        return self.root / "khmer_word_frequencies_chuon.json"
+
+    @property
     def typo_corrections(self) -> Path:
         return self.root / "khmer_typo_corrections.tsv"
 
@@ -86,6 +94,7 @@ class DataFiles:
             "rac_phrase_exclusions": self.rac_phrase_exclusions.is_file(),
             "supplemental_words": self.supplemental_words.is_file(),
             "spellcheck_words": self.spellcheck_words.is_file(),
+            "community_spellings": self.community_spellings.is_file(),
             "typo_corrections": self.typo_corrections.is_file(),
             "model_manifest": self.model_manifest.is_file(),
         }

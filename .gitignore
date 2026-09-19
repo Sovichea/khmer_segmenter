@@ -17,6 +17,8 @@ src/khmer_segmenter/dictionary_data/*
 !src/khmer_segmenter/dictionary_data/khmer_dictionary_words.txt
 !src/khmer_segmenter/dictionary_data/khmer_dictionary_official_2022_words.txt
 !src/khmer_segmenter/dictionary_data/khmer_dictionary_author_curated_words.txt
+!src/khmer_segmenter/dictionary_data/khmer_dictionary_community_spellings.txt
+!src/khmer_segmenter/dictionary_data/khmer_dictionary_community_spellings_review.tsv
 !src/khmer_segmenter/dictionary_data/khmer_dictionary_composition_keep.txt
 !src/khmer_segmenter/dictionary_data/khmer_dictionary_rac_derived_words.txt
 !src/khmer_segmenter/dictionary_data/khmer_dictionary_rac_usage_words.txt
@@ -28,6 +30,7 @@ src/khmer_segmenter/dictionary_data/*
 !src/khmer_segmenter/dictionary_data/khmer_typo_corrections.tsv
 !src/khmer_segmenter/dictionary_data/khmer_model_manifest.json
 !src/khmer_segmenter/dictionary_data/khmer_word_frequencies.json
+!src/khmer_segmenter/dictionary_data/khmer_word_frequencies_chuon.json
 !src/khmer_segmenter/dictionary_data/khmer_word_pos.json
 
 # Legacy pre-src location remains ignored for local development and comparison.

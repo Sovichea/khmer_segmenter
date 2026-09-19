@@ -17,7 +17,7 @@ exam-002	approved	ថ្នាល់	ថ្នាក់	top_k	exam-page-2025	Can
 hf-003	approved	សុម	សូម	top1	pisethan-spelling	CC BY 4.0 source candidate
 hf-004	approved	គ្រសួង	ក្រសួង	top1	pisethan-spelling	CC BY 4.0 source candidate
 hf-005	approved	ផេនការ	ផែនការ	top1	pisethan-spelling	CC BY 4.0 source candidate
-dataset-001	pending	អោយ	ឱ្យ	context_required	local-corpus-review	Common legacy form; 3210 occurrences after U+200B removal; decide whether to flag or accept
+dataset-001	rejected	អោយ	ឱ្យ	context_required	local-corpus-review	Accepted as a community spelling; enable spelling authority community instead of flagging it.
 dataset-002	approved	កំពស់	កម្ពស់	top1	local-corpus-review	297 exact diagnostic spans after U+200B removal
 dataset-003	approved	កំលាំង	កម្លាំង	top1	local-corpus-review	179 exact diagnostic spans after U+200B removal
 dataset-004	approved	កំនត់	កំណត់	top1	local-corpus-review	170 exact diagnostic spans after U+200B removal

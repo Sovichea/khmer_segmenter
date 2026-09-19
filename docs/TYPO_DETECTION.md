@@ -88,9 +88,9 @@ the caller already knows the complete word span.
 ## Lexical and visual spelling accuracy
 
 Profiles control how aggressively typo detection searches; they do not change
-which spelling is authoritative. `lexical` is the default and requires an
-exact curated dictionary form. `visual` additionally accepts the legacy
-COENG DA/TA equivalent of a curated word. For example, when the lexicon stores
+which spelling is authoritative. `visual` is the default and accepts the legacy
+COENG DA/TA equivalent of a curated word. `lexical` requires an exact curated
+dictionary form. For example, when the lexicon stores
 `ស្ដាប់`, visual mode also accepts `ស្តាប់` without making it a completion or a
 canonical correction target.
 
