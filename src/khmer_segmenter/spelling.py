@@ -303,6 +303,7 @@ class TypoDetector:
         frequencies: dict[str, int | float] | None = None,
         reviewed_typos: dict[str, str] | None = None,
         autocomplete_words: Iterable[str] | None = None,
+        phrase_exclusions: Iterable[str] | None = None,
     ):
         self.words = frozenset(word for word in words if _is_lexical_khmer(word))
         completion_source = self.words if autocomplete_words is None else autocomplete_words
@@ -377,10 +378,11 @@ class TypoDetector:
                 alias = word + _RO
                 if alias not in self.words:
                     generated_candidates[alias].add(word)
+        excluded = frozenset(phrase_exclusions or ())
         generated_confusions = {
             alias: next(iter(candidates))
             for alias, candidates in generated_candidates.items()
-            if len(candidates) == 1
+            if len(candidates) == 1 and alias not in excluded
         }
         generated_confusions.update(reviewed_typos or {})
         self.reviewed_typos = generated_confusions

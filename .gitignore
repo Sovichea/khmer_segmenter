@@ -28,6 +28,7 @@ src/khmer_segmenter/dictionary_data/*
 !src/khmer_segmenter/dictionary_data/khmer_dictionary_supplemental_words.txt
 !src/khmer_segmenter/dictionary_data/khmer_spellcheck_words.txt
 !src/khmer_segmenter/dictionary_data/khmer_typo_corrections.tsv
+!src/khmer_segmenter/dictionary_data/khmer_typo_phrase_exclusions.txt
 !src/khmer_segmenter/dictionary_data/khmer_model_manifest.json
 !src/khmer_segmenter/dictionary_data/khmer_word_frequencies.json
 !src/khmer_segmenter/dictionary_data/khmer_word_frequencies_chuon.json

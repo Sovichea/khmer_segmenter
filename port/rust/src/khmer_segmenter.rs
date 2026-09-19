@@ -1081,6 +1081,32 @@ mod tests {
     }
 
     #[test]
+    fn common_phrase_is_not_reported_as_a_rare_compound() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        // ត្រីសួរថា៖ is the phrase ត្រី + សួរ + ថា + ៖. The generated alias
+        // ត្រីសួរ -> ត្រីសូរ must not fire across the token boundary.
+        assert_eq!(tokens(&segmenter, "ត្រីសួរថា៖"), vec!["ត្រី", "សួរ", "ថា", "៖"]);
+        for phrase in [
+            "ត្រីសួរថា៖",
+            "ត្រីសួរ",
+            "អ្នកគ្រូ",
+            "សូរនាំ",
+            "ដូចដល់",
+            "មូលសម្ដី",
+            "ដើរមក",
+            "ជាភាព",
+        ] {
+            assert!(
+                segmenter
+                    .check_text(phrase, SpellcheckProfile::Typing)
+                    .unwrap()
+                    .is_empty(),
+                "{phrase}"
+            );
+        }
+    }
+
+    #[test]
     fn unified_analysis_maps_diagnostics_to_original_source() {
         let segmenter = segmenter(SegmentationLength::Long);
         let typo = "\u{179f}\u{1798}\u{17d2}\u{1794}\u{178f}\u{17d2}\u{178f}";

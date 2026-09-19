@@ -107,6 +107,7 @@ class KhmerSegmenter:
         self._spellcheck_words = None
         self._autocomplete_words = None
         self._pack_typo_corrections = None
+        self._typo_phrase_exclusions = None
         self.kdict_packs = []
         self.kdict_sources = []
         self.word_provenance = {}
@@ -918,8 +919,27 @@ class KhmerSegmenter:
                 self.word_frequencies,
                 corrections,
                 autocomplete_words=self.autocomplete_words,
+                phrase_exclusions=self.typo_phrase_exclusions,
             )
         return self._typo_detector
+
+    @property
+    def typo_phrase_exclusions(self):
+        """Reviewed phrase collisions that must never be reported as typos."""
+
+        if self._typo_phrase_exclusions is None:
+            path = self.data_files.typo_phrase_exclusions
+            if not path.is_file():
+                path = DataFiles(BUNDLED_DATA_DIR).typo_phrase_exclusions
+            words: set[str] = set()
+            if path.is_file():
+                with open(path, "r", encoding="utf-8") as handle:
+                    for line in handle:
+                        word = self.normalizer.normalize(line.strip())
+                        if word:
+                            words.add(word)
+            self._typo_phrase_exclusions = frozenset(words)
+        return self._typo_phrase_exclusions
 
     def detect_typos(
         self,

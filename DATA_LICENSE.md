@@ -36,6 +36,8 @@ use:
 - `port/rust/data/khmer_dictionary.klex.json` (editable Rust language-pack source)
 - `port/rust/data/khmer_dictionary.kdict` (compiled Rust runtime pack)
 - `khmer_typo_corrections.tsv` (review workflow and approved exact pairs)
+- `khmer_typo_phrase_exclusions.txt` (reviewed phrase collisions excluded from typo detection)
+- `port/rust/data/khmer_typo_phrase_exclusions.txt` (synchronized Rust copy)
 - `khmer_word_frequencies.json`
 - `khmer_word_pos.json`
 - `khmer_model_manifest.json`

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+- Stopped typo detection from reporting common phrases as rare-compound typos
+  (for example `ត្រីសួរ` and `អ្នកគ្រូ`).
+- Added a reviewed phrase-collision exclusion list shared by the Python, Rust,
+  and WebAssembly ports; approved pairs and real missing or extra `រ` typos are
+  unchanged.
+
 ## 0.3.0
 
 - Added safe Khmer word-break opportunities for layout engines, including a

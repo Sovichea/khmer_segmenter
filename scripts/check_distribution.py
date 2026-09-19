@@ -24,6 +24,7 @@ APPROVED_RUNTIME_NAMES = {
     "khmer_dictionary_supplemental_words.txt",
     "khmer_spellcheck_words.txt",
     "khmer_typo_corrections.tsv",
+    "khmer_typo_phrase_exclusions.txt",
     "khmer_model_manifest.json",
     "khmer_word_frequencies.json",
     "khmer_word_frequencies_chuon.json",

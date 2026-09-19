@@ -98,6 +98,7 @@ impl FromStr for SpellingAuthority {
 }
 
 const COMMUNITY_SPELLINGS: &str = include_str!("../data/khmer_dictionary_community_spellings.txt");
+const TYPO_PHRASE_EXCLUSIONS: &str = include_str!("../data/khmer_typo_phrase_exclusions.txt");
 
 /// Cost penalty applied to reviewed community spellings absent from KDIC, so
 /// frequent dictionary words still rank ahead of them.
@@ -465,8 +466,16 @@ impl TypoDetector {
                 }
             }
         }
+        // Reviewed phrase collisions such as ត្រីសួរ ("fish asked") resemble a
+        // rare compound (ត្រីសូរ) but are really common phrases. They are
+        // excluded from the generated aliases; approved pairs are unaffected.
+        let excluded: HashSet<&str> = TYPO_PHRASE_EXCLUSIONS
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .collect();
         for (typed, candidates) in generated_candidates {
-            if candidates.len() == 1 {
+            if candidates.len() == 1 && !excluded.contains(typed.as_str()) {
                 reviewed_typos
                     .entry(typed)
                     .or_insert_with(|| candidates.into_iter().next().unwrap());

@@ -58,6 +58,23 @@ class DictionarySyncTests(unittest.TestCase):
             rust_words.read_text(encoding="utf-8").splitlines(),
         )
 
+    def test_typo_phrase_exclusions_are_synchronized_with_rust(self):
+        root = Path(__file__).resolve().parents[1]
+        python_words = (
+            root
+            / "src"
+            / "khmer_segmenter"
+            / "dictionary_data"
+            / "khmer_typo_phrase_exclusions.txt"
+        )
+        rust_words = (
+            root / "port" / "rust" / "data" / "khmer_typo_phrase_exclusions.txt"
+        )
+        self.assertEqual(
+            python_words.read_text(encoding="utf-8").splitlines(),
+            rust_words.read_text(encoding="utf-8").splitlines(),
+        )
+
     def test_reads_first_tsv_column_and_normalizes(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "words.tsv"

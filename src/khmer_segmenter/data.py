@@ -79,6 +79,10 @@ class DataFiles:
         return self.root / "khmer_typo_corrections.tsv"
 
     @property
+    def typo_phrase_exclusions(self) -> Path:
+        return self.root / "khmer_typo_phrase_exclusions.txt"
+
+    @property
     def model_manifest(self) -> Path:
         return self.root / "khmer_model_manifest.json"
 

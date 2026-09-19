@@ -189,6 +189,32 @@ def test_dictionary_derived_reahmuk_confusion_preserves_valid_collision(segmente
     assert segmenter.check_text("ស្រះ", profile="typing") == []
 
 
+def test_common_phrase_is_not_reported_as_a_rare_compound(segmenter):
+    # ត្រីសួរថា៖ is the phrase ត្រី + សួរ + ថា + ៖. The machine-generated alias
+    # ត្រីសួរ -> ត្រីសូរ must not fire across the token boundary.
+    text = "ត្រីសួរថា៖"
+    assert [token.text for token in segmenter.analyze(text)] == [
+        "ត្រី",
+        "សួរ",
+        "ថា",
+        "៖",
+    ]
+    assert segmenter.detect_typos(text) == []
+
+
+@pytest.mark.parametrize("phrase", [
+    "ត្រីសួរ",
+    "អ្នកគ្រូ",
+    "សូរនាំ",
+    "ដូចដល់",
+    "មូលសម្ដី",
+    "ដើរមក",
+    "ជាភាព",
+])
+def test_reviewed_phrase_collisions_are_not_typos(segmenter, phrase):
+    assert segmenter.detect_typos(phrase) == []
+
+
 @pytest.mark.parametrize(("typed", "intended"), [
     ("ជូយ", "ជួយ"),
     ("ស្ថានការណ៏", "ស្ថានការណ៍"),

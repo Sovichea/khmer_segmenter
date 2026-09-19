@@ -130,6 +130,21 @@ frequent intended words. Generated forms receive exact-alias confidence only
 when they are neither valid dictionary words nor ambiguous between two intended
 words. Explicit approved correction pairs take precedence.
 
+### Phrase collisions
+
+A generated alias can be a legitimate phrase of common words rather than a
+typo. For example `ត្រីសួរ` ("fish asked") is one substitution away from the
+rare compound `ត្រីសូរ`, and `អ្នកគ្រូ` ("teacher") from `អ្នកគ្រួ`. Reviewed
+collisions are listed in
+`src/khmer_segmenter/dictionary_data/khmer_typo_phrase_exclusions.txt`; they
+are removed from the generated aliases so the phrase is never reported.
+Approved correction pairs and real missing or extra `រ` typos such as
+`ចងកា` -> `ចងការ` are unaffected. Regenerate and synchronize the list with:
+
+```bash
+python scripts/build_typo_phrase_exclusions.py
+```
+
 The detector runs after normal segmentation and considers small windows around
 suspicious tokens. It does not scan every possible substring. Candidate
 retrieval uses Khmer base-character skeleton indexes, then ranks the reduced

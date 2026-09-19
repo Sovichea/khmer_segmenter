@@ -16,6 +16,7 @@ main README.
 - [0.2 release checklist](RELEASE_CHECKLIST_0_2.md)
 - [0.2 release notes](RELEASE_NOTES_0_2.md)
 - [0.3 release notes](RELEASE_NOTES_0_3.md)
+- [0.3.1 release notes](RELEASE_NOTES_0_3_1.md)
 - [Community corpus roadmap](COMMUNITY_CORPUS_ROADMAP.md)
 
 ## Use and evaluate
