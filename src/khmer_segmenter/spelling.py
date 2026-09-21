@@ -15,6 +15,7 @@ from .models import DiagnosticKind, EditOperation, SpellingDiagnostic, SpellingS
 
 _SHORT_FRAGMENT_FREQUENCY_LIMIT = 500
 _COMMON_ENDING_FREQUENCY_MINIMUM = 10
+_OOV_CORRECTION_FREQUENCY_MINIMUM = 20
 _COENG = "\u17d2"
 _RO = "\u179a"
 _CA = "\u1785"
@@ -157,6 +158,8 @@ class _Proposal:
         """Reward a coherent span while still accounting for edit distance."""
 
         token_count = self.end_token - self.start_token + 1
+        if not self.diagnostic.suggestions:
+            return token_count
         return token_count - 0.5 * self.diagnostic.suggestions[0].edit_cost - 0.25
 
 
@@ -384,8 +387,10 @@ class TypoDetector:
             for alias, candidates in generated_candidates.items()
             if len(candidates) == 1 and alias not in excluded
         }
-        generated_confusions.update(reviewed_typos or {})
+        approved_typos = dict(reviewed_typos or {})
+        generated_confusions.update(approved_typos)
         self.reviewed_typos = generated_confusions
+        self._approved_typos = frozenset(approved_typos)
         self._max_exact_typo_length = max(map(len, self.reviewed_typos), default=0)
         self._exact_skeleton: dict[tuple[str, ...], list[str]] = defaultdict(list)
         self._deletion_skeleton: dict[tuple[str, ...], list[str]] = defaultdict(list)
@@ -598,6 +603,7 @@ class TypoDetector:
         max_suggestions: int = 3,
         context_tokens: int = 1,
         include_valid_fragments: bool = False,
+        min_confidence: float = 0.0,
     ) -> list[SpellingDiagnostic]:
         if not math.isfinite(max_edit_cost) or max_edit_cost <= 0:
             raise ValueError("max_edit_cost must be finite and greater than zero")
@@ -605,6 +611,8 @@ class TypoDetector:
             raise ValueError("max_suggestions must be greater than zero")
         if context_tokens < 0:
             raise ValueError("context_tokens cannot be negative")
+        if not 0.0 <= min_confidence <= 1.0:
+            raise ValueError("min_confidence must be between zero and one")
 
         lexical = [_is_lexical_khmer(token.text) for token in tokens]
         cluster_counts = [
@@ -650,6 +658,18 @@ class TypoDetector:
                 # Approved corrections are human-reviewed and may intentionally
                 # be multiword expressions that are not single lexicon entries.
                 if intended is None:
+                    continue
+                if (
+                    candidate_text not in self._approved_typos
+                    and not tokens[start_index].known
+                    and (
+                        (start_index > 0 and lexical[start_index - 1])
+                        or (end_index + 1 < len(tokens) and lexical[end_index + 1])
+                    )
+                ):
+                    # A machine-generated alias that opens with an
+                    # out-of-vocabulary fragment inside a longer unbroken run
+                    # is an unknown word, not a typo; the fuzzy pass reports it.
                     continue
                 span_start = tokens[start_index].start
                 span_end = tokens[end_index].end
@@ -707,6 +727,37 @@ class TypoDetector:
                     candidate_text = "".join(token.text for token in span_tokens)
                     if candidate_text in self.words:
                         continue
+                    if not tokens[start_index].known and (
+                        start_index > run_start or end_index < run_end
+                    ):
+                        # The span opens with an out-of-vocabulary fragment
+                        # embedded in a longer unbroken run. Report the whole
+                        # unknown run as an unknown word instead of proposing a
+                        # correction we cannot ground.
+                        run_last = start_index
+                        while (
+                            run_last + 1 < len(tokens)
+                            and lexical[run_last + 1]
+                            and not tokens[run_last + 1].known
+                        ):
+                            run_last += 1
+                        oov_start = tokens[start_index].start
+                        oov_end = tokens[run_last].end
+                        key = (oov_start, oov_end)
+                        if key not in proposals:
+                            proposals[key] = _Proposal(
+                                SpellingDiagnostic(
+                                    text=normalized_text[oov_start:oov_end],
+                                    start=oov_start,
+                                    end=oov_end,
+                                    kind=DiagnosticKind.UNKNOWN_WORD,
+                                    confidence=0.0,
+                                    suggestions=(),
+                                ),
+                                start_index,
+                                run_last,
+                            )
+                        continue
                     span_start = span_tokens[0].start
                     span_end = span_tokens[-1].end
                     suggestions = self.suggestions(
@@ -717,9 +768,54 @@ class TypoDetector:
                     )
                     if not suggestions:
                         continue
+                    if (
+                        (start_index > run_start or end_index < run_end)
+                        and any(
+                            not tokens[position].known
+                            for position in range(start_index, end_index + 1)
+                        )
+                        and (
+                            float(self.frequencies.get(suggestions[0].text, 0) or 0)
+                            < _OOV_CORRECTION_FREQUENCY_MINIMUM
+                        )
+                    ):
+                        # The span contains an out-of-vocabulary fragment and
+                        # the best correction is not a well-attested word, so
+                        # it is an unknown word rather than a typo.
+                        first_unknown = next(
+                            position
+                            for position in range(start_index, end_index + 1)
+                            if not tokens[position].known
+                        )
+                        run_last = first_unknown
+                        while (
+                            run_last + 1 < len(tokens)
+                            and lexical[run_last + 1]
+                            and not tokens[run_last + 1].known
+                        ):
+                            run_last += 1
+                        oov_start = tokens[first_unknown].start
+                        oov_end = tokens[run_last].end
+                        key = (oov_start, oov_end)
+                        if key not in proposals:
+                            proposals[key] = _Proposal(
+                                SpellingDiagnostic(
+                                    text=normalized_text[oov_start:oov_end],
+                                    start=oov_start,
+                                    end=oov_end,
+                                    kind=DiagnosticKind.UNKNOWN_WORD,
+                                    confidence=0.0,
+                                    suggestions=(),
+                                ),
+                                start_index,
+                                run_last,
+                            )
+                        continue
                     confidence = self._confidence(suggestions, max_edit_cost)
                     if index not in invalid_indices:
                         confidence = round(confidence * 0.75, 3)
+                    if confidence < min_confidence:
+                        continue
                     diagnostic = SpellingDiagnostic(
                         text=normalized_text[span_start:span_end],
                         start=span_start,
@@ -731,7 +827,7 @@ class TypoDetector:
                     key = (span_start, span_end)
                     proposal = _Proposal(diagnostic, start_index, end_index)
                     previous = proposals.get(key)
-                    if previous is None or (
+                    if previous is None or not previous.diagnostic.suggestions or (
                         suggestions[0].edit_cost,
                         -confidence,
                     ) < (

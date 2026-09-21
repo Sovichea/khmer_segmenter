@@ -145,6 +145,20 @@ Approved correction pairs and real missing or extra `រ` typos such as
 python scripts/build_typo_phrase_exclusions.py
 ```
 
+### Unknown words versus misspellings
+
+The segmenter deliberately splits an out-of-vocabulary run into small tokens
+and flags the unsupported fragments (`known=false`, `type=unknown`). The
+detector uses that signal: a fragment embedded in a longer unbroken run whose
+best correction is not a well-attested word is reported with kind
+`unknown_word` and **no suggestions**, instead of being "corrected" without a
+reference. For example `កូវីដ` yields `កូ` as `unknown_word`, and `ហ្វេសប៊ុក`
+yields `ប៊ុ`. A whole unknown word that is not embedded in a longer run keeps
+its usual fuzzy handling, so `ជូយ` -> `ជួយ` is still a `probable_misspelling`.
+A name built only from valid short words (`សុខលីដា`) has no `unknown` flag and
+is left untouched; applications that need it recognized should add it to a
+user or application dictionary.
+
 The detector runs after normal segmentation and considers small windows around
 suspicious tokens. It does not scan every possible substring. Candidate
 retrieval uses Khmer base-character skeleton indexes, then ranks the reduced

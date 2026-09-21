@@ -69,6 +69,7 @@ class DiagnosticKind(str, Enum):
     MISSING_DEPENDENT_VOWEL = "missing_dependent_vowel"
     EXTRA_CHARACTER = "extra_character"
     PROBABLE_MISSPELLING = "probable_misspelling"
+    UNKNOWN_WORD = "unknown_word"
 
 
 @dataclass(frozen=True, slots=True)

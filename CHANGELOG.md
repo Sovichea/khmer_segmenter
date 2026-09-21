@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2
+
+- Added the `unknown_word` diagnostic kind: out-of-vocabulary fragments are
+  reported without suggestions instead of being corrected without a reference
+  (`កូវីដ`, `ហ្វេសប៊ុក`).
+- Kept whole unknown words and real typos on their normal handling
+  (`ជូយ` -> `ជួយ`), and left names made of valid short words untouched.
+- Exposed `unknown_word` in the Python, Rust, and WebAssembly APIs, independent
+  of the profile `min_confidence`.
+
 ## 0.3.1
 
 - Stopped typo detection from reporting common phrases as rare-compound typos

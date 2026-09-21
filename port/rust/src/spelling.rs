@@ -100,6 +100,10 @@ impl FromStr for SpellingAuthority {
 const COMMUNITY_SPELLINGS: &str = include_str!("../data/khmer_dictionary_community_spellings.txt");
 const TYPO_PHRASE_EXCLUSIONS: &str = include_str!("../data/khmer_typo_phrase_exclusions.txt");
 
+/// log10(4); a correction is well attested when its KDIC cost is at least this
+/// much below the floor cost, i.e. its frequency is at least 20.
+const OOV_CORRECTION_COST: f32 = 0.602_06;
+
 /// Cost penalty applied to reviewed community spellings absent from KDIC, so
 /// frequent dictionary words still rank ahead of them.
 const COMMUNITY_SPELLING_COST_PENALTY: f32 = 1.0;
@@ -212,6 +216,7 @@ pub enum DiagnosticKind {
     MissingDependentVowel,
     ExtraCharacter,
     ProbableMisspelling,
+    UnknownWord,
 }
 
 impl DiagnosticKind {
@@ -220,6 +225,7 @@ impl DiagnosticKind {
             Self::MissingDependentVowel => "missing_dependent_vowel",
             Self::ExtraCharacter => "extra_character",
             Self::ProbableMisspelling => "probable_misspelling",
+            Self::UnknownWord => "unknown_word",
         }
     }
 }
@@ -252,7 +258,10 @@ struct Proposal {
 impl Proposal {
     fn score(&self) -> f32 {
         let token_count = (self.end_token - self.start_token + 1) as f32;
-        token_count - 0.5 * self.diagnostic.suggestions[0].edit_cost - 0.25
+        match self.diagnostic.suggestions.first() {
+            Some(suggestion) => token_count - 0.5 * suggestion.edit_cost - 0.25,
+            None => token_count,
+        }
     }
 }
 
@@ -264,6 +273,8 @@ pub struct TypoDetector {
     exact_skeleton: HashMap<String, Vec<usize>>,
     deletion_skeleton: HashMap<String, Vec<usize>>,
     reviewed_typos: HashMap<String, String>,
+    approved_typos: HashSet<String>,
+    default_cost: f32,
     max_exact_typo_chars: usize,
     composition_parts: OnceLock<CompositionParts>,
 }
@@ -474,6 +485,8 @@ impl TypoDetector {
             .map(str::trim)
             .filter(|line| !line.is_empty())
             .collect();
+        let approved_typos: HashSet<String> = reviewed_typos.keys().cloned().collect();
+        let default_cost = dictionary.default_cost();
         for (typed, candidates) in generated_candidates {
             if candidates.len() == 1 && !excluded.contains(typed.as_str()) {
                 reviewed_typos
@@ -518,6 +531,8 @@ impl TypoDetector {
             exact_skeleton,
             deletion_skeleton,
             reviewed_typos,
+            approved_typos,
+            default_cost,
             max_exact_typo_chars,
             composition_parts: OnceLock::new(),
         }
@@ -749,6 +764,7 @@ impl TypoDetector {
         context_tokens: usize,
         include_valid_fragments: bool,
         accuracy: SpellingAccuracy,
+        min_confidence: f32,
     ) -> Vec<SpellingDiagnostic> {
         let ranges = segmentation.ranges();
         let text = segmentation.normalized();
@@ -790,6 +806,23 @@ impl TypoDetector {
                 let Some(intended) = self.reviewed_typos.get(candidate_text) else {
                     continue;
                 };
+                if !self.approved_typos.contains(candidate_text)
+                    && !self.is_word(tokens[start_token])
+                {
+                    let mut run_start = start_token;
+                    while run_start > 0 && is_lexical_khmer(tokens[run_start - 1]) {
+                        run_start -= 1;
+                    }
+                    let mut run_end = end_token;
+                    while run_end + 1 < tokens.len() && is_lexical_khmer(tokens[run_end + 1]) {
+                        run_end += 1;
+                    }
+                    if start_token > run_start || end_token < run_end {
+                        // A generated alias over an out-of-vocabulary fragment
+                        // inside a longer unbroken run is an unknown word.
+                        continue;
+                    }
+                }
                 let mut suggestions = vec![SpellingSuggestion {
                     text: intended.clone(),
                     edit_cost: weighted_edit_cost(candidate_text, intended),
@@ -840,6 +873,44 @@ impl TypoDetector {
                         continue;
                     }
                     let range = ranges[start_token].start..ranges[end_token].end;
+                    // Maximal lexical run containing the candidate span.
+                    let mut run_start = start_token;
+                    while run_start > 0 && is_lexical_khmer(tokens[run_start - 1]) {
+                        run_start -= 1;
+                    }
+                    let mut run_end = end_token;
+                    while run_end + 1 < tokens.len() && is_lexical_khmer(tokens[run_end + 1]) {
+                        run_end += 1;
+                    }
+                    let embedded = start_token > run_start || end_token < run_end;
+                    if embedded && !self.is_word(tokens[start_token]) {
+                        // The span opens with an out-of-vocabulary fragment
+                        // inside a longer unbroken run: report the whole
+                        // unknown run as an unknown word, without a correction.
+                        let mut last = start_token;
+                        while last + 1 < tokens.len()
+                            && is_lexical_khmer(tokens[last + 1])
+                            && !self.is_word(tokens[last + 1])
+                        {
+                            last += 1;
+                        }
+                        let oov_range = ranges[start_token].start..ranges[last].end;
+                        if seen.insert((oov_range.start, oov_range.end)) {
+                            proposals.push(Proposal {
+                                diagnostic: SpellingDiagnostic {
+                                    text: text[oov_range.clone()].to_owned(),
+                                    source_range: oov_range.clone(),
+                                    range: oov_range,
+                                    kind: DiagnosticKind::UnknownWord,
+                                    confidence: 0.0,
+                                    suggestions: Vec::new(),
+                                },
+                                start_token,
+                                end_token: last,
+                            });
+                        }
+                        continue;
+                    }
                     if !seen.insert((range.start, range.end)) {
                         continue;
                     }
@@ -849,8 +920,45 @@ impl TypoDetector {
                     if suggestions.is_empty() {
                         continue;
                     }
-                    let contains_unknown = (start_token..=end_token)
-                        .any(|index| !self.is_word_with_accuracy(tokens[index], accuracy));
+                    let contains_unknown =
+                        (start_token..=end_token).any(|index| !self.is_word(tokens[index]));
+                    if embedded
+                        && contains_unknown
+                        && suggestions[0].lexical_cost > self.default_cost - OOV_CORRECTION_COST
+                    {
+                        // The span contains an out-of-vocabulary fragment and
+                        // the best correction is not a well-attested word.
+                        let mut first_unknown = start_token;
+                        while first_unknown <= end_token && self.is_word(tokens[first_unknown]) {
+                            first_unknown += 1;
+                        }
+                        if first_unknown > end_token {
+                            continue;
+                        }
+                        let mut last = first_unknown;
+                        while last + 1 < tokens.len()
+                            && is_lexical_khmer(tokens[last + 1])
+                            && !self.is_word(tokens[last + 1])
+                        {
+                            last += 1;
+                        }
+                        let oov_range = ranges[first_unknown].start..ranges[last].end;
+                        if seen.insert((oov_range.start, oov_range.end)) {
+                            proposals.push(Proposal {
+                                diagnostic: SpellingDiagnostic {
+                                    text: text[oov_range.clone()].to_owned(),
+                                    source_range: oov_range.clone(),
+                                    range: oov_range,
+                                    kind: DiagnosticKind::UnknownWord,
+                                    confidence: 0.0,
+                                    suggestions: Vec::new(),
+                                },
+                                start_token: first_unknown,
+                                end_token: last,
+                            });
+                        }
+                        continue;
+                    }
                     if !contains_unknown && suggestions[0].edit_cost > 0.75 {
                         // High-recall inspection of valid fragments must not
                         // erase a legitimate adjacent base-word merely because
@@ -858,6 +966,9 @@ impl TypoDetector {
                         continue;
                     }
                     let confidence = confidence(&suggestions, max_edit_cost);
+                    if confidence < min_confidence {
+                        continue;
+                    }
                     proposals.push(Proposal {
                         diagnostic: SpellingDiagnostic {
                             text: candidate_text.to_owned(),

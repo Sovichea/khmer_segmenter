@@ -4,8 +4,8 @@ use crate::normalization::{
 };
 use crate::rule_engine::RuleEngine;
 use crate::spelling::{
-    community_spellings, SpellcheckConfig, SpellcheckProfile, SpellingAccuracy, SpellingAuthority,
-    SpellingDiagnostic, SpellingSuggestion, TypoDetector,
+    community_spellings, DiagnosticKind, SpellcheckConfig, SpellcheckProfile, SpellingAccuracy,
+    SpellingAuthority, SpellingDiagnostic, SpellingSuggestion, TypoDetector,
 };
 use crate::utils;
 use std::collections::HashSet;
@@ -789,9 +789,13 @@ impl KhmerSegmenter {
                 config.context_tokens,
                 config.include_valid_fragments,
                 accuracy,
+                config.min_confidence,
             )
             .into_iter()
-            .filter(|diagnostic| diagnostic.confidence >= config.min_confidence)
+            .filter(|diagnostic| {
+                diagnostic.kind == DiagnosticKind::UnknownWord
+                    || diagnostic.confidence >= config.min_confidence
+            })
             .filter(|diagnostic| !self.is_spelling_valid_with_accuracy(&diagnostic.text, accuracy))
             .map(|mut diagnostic| {
                 if let Some(source_range) = segmentation.source_range_for(&diagnostic.range) {
@@ -1104,6 +1108,27 @@ mod tests {
                 "{phrase}"
             );
         }
+    }
+
+    #[test]
+    fn out_of_vocabulary_fragments_are_unknown_words_not_typos() {
+        let segmenter = segmenter(SegmentationLength::Long);
+        for (text, expected) in [("កូវីដ", "កូ"), ("ហ្វេសប៊ុក", "ប៊ុ")]
+        {
+            let diagnostics = segmenter
+                .check_text(text, SpellcheckProfile::Typing)
+                .unwrap();
+            assert_eq!(diagnostics.len(), 1, "{text}");
+            assert_eq!(diagnostics[0].text, expected);
+            assert_eq!(diagnostics[0].kind, DiagnosticKind::UnknownWord);
+            assert!(diagnostics[0].suggestions.is_empty());
+        }
+        // A name built only from valid short words has no grounding for a
+        // correction, and none is invented.
+        assert!(segmenter
+            .check_text("សុខលីដា", SpellcheckProfile::Typing)
+            .unwrap()
+            .is_empty());
     }
 
     #[test]

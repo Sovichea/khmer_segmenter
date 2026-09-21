@@ -12,6 +12,7 @@ from .composition import composition_parts, is_composition, max_part_length
 from .data import BUNDLED_DATA_DIR, DataFiles, resolve_data_files
 from .kdict import AUTOCOMPLETE, SEGMENT, SPELLCHECK, SUPPLEMENTAL, KDict
 from .models import (
+    DiagnosticKind,
     SpellcheckConfig,
     SpellcheckProfile,
     SpellingAccuracy,
@@ -1052,11 +1053,15 @@ class KhmerSegmenter:
             max_suggestions=max_suggestions,
             context_tokens=context_tokens,
             include_valid_fragments=include_valid_fragments,
+            min_confidence=min_confidence,
         )
         diagnostics = tuple(
             self._map_diagnostic_to_source(diagnostic, source_mapping)
             for diagnostic in diagnostics
-            if diagnostic.confidence >= min_confidence
+            if (
+                diagnostic.kind is DiagnosticKind.UNKNOWN_WORD
+                or diagnostic.confidence >= min_confidence
+            )
             and not self.is_spelling_valid(
                 diagnostic.text, normalize=False, accuracy=accuracy
             )

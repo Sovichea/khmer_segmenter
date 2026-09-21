@@ -215,6 +215,24 @@ def test_reviewed_phrase_collisions_are_not_typos(segmenter, phrase):
     assert segmenter.detect_typos(phrase) == []
 
 
+def test_oov_fragment_is_reported_as_unknown_word_not_a_typo(segmenter):
+    diagnostic = segmenter.detect_typos("កូវីដ")[0]
+    assert (diagnostic.text, diagnostic.kind) == ("កូ", "unknown_word")
+    assert diagnostic.suggestions == ()
+
+
+def test_oov_fragment_inside_a_loanword_is_unknown_word(segmenter):
+    diagnostic = segmenter.detect_typos("ហ្វេសប៊ុក")[0]
+    assert (diagnostic.text, diagnostic.kind) == ("ប៊ុ", "unknown_word")
+    assert diagnostic.suggestions == ()
+
+
+def test_name_of_valid_words_is_not_guessed(segmenter):
+    # សុខលីដា is made of valid short words, so the segmenter cannot know it is
+    # a name; it must not invent a correction either.
+    assert segmenter.detect_typos("សុខលីដា") == []
+
+
 @pytest.mark.parametrize(("typed", "intended"), [
     ("ជូយ", "ជួយ"),
     ("ស្ថានការណ៏", "ស្ថានការណ៍"),
